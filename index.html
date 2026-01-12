@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>양지누림 근태관리 시스템</title>
+    
+    <!-- 스타일 및 외부 라이브러리 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css">
+    
+    <!-- Firebase SDK (Compat Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <!-- React 및 Babel (CDN 라이브러리) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f1f5f9;
+            margin: 0;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: invert(0.5); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- Firebase 설정 (귀하의 설정값 유지) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
+            authDomain: "ygnurim-attendance-management.firebaseapp.com",
+            projectId: "ygnurim-attendance-management",
+            storageBucket: "ygnurim-attendance-management.firebasestorage.app",
+            messagingSenderId: "17124870776",
+            appId: "1:17124870776:web:49839a4bfd982a65d4fb8d",
+            measurementId: "G-EELTZ41FTR"
+        };
+
+        // 초기화
+        const fb = window.firebase;
+        if (!fb.apps.length) fb.initializeApp(firebaseConfig);
+        const auth = fb.auth();
+        const db = fb.firestore();
+        const appId = "ygnurim-hr-v2";
+
+        // --- 아이콘 컴포넌트 ---
+        const Icon = ({ name, size = 18 }) => {
+            const icons = {
+                calendar: <path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM16 2v4M8 2v4M3 10h18" />,
+                users: <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />,
+                upload: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />,
+                home: <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            };
+            return (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {icons[name]}
+                </svg>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [activeTab, setActiveTab] = useState('attendance');
+            const [staffList, setStaffList] = useState([]);
+            const [attendanceData, setAttendanceData] = useState([]);
+            const [selectedId, setSelectedId] = useState('');
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const fileRef = useRef(null);
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // 데이터 연동
+            useEffect(() => {
+                const unsubscribeAuth = auth.onAuthStateChanged(async (u) => {
+                    if (u) setUser(u);
+                    else await auth.signInAnonymously();
+                });
+
+                // 직원 목록 실시간 수신
+                const unsubscribeStaff = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('staff')
+                    .onSnapshot(snapshot => {
+                        setStaffList(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+
+                // 근태 기록 실시간 수신
+                const unsubscribeAttend = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('attendance')
+                    .onSnapshot(snapshot => {
+                        setAttendanceData(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                    });
+
+                return () => { unsubscribeAuth(); unsubscribeStaff(); unsubscribeAttend(); };
+            }, []);
+
+            // CSV 파일 읽기 및 저장
+            const handleCsvUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async (evt) => {
+                    const lines = evt.target.result.split(/\r?\n/).filter(line => line.trim());
+                    const batch = db.batch();
+                    
+                    // 첫 줄(헤더) 제외하고 처리
+                    lines.slice(1).forEach(line => {
+                        const [name, birth, joinDate] = line.split(',').map(c => c.trim());
+                        if (name) {
+                            const newStaffRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('staff').doc();
+                            batch.set(newStaffRef, { name, birth, joinDate, role: '근로지원인', status: '재직' });
+                        }
+                    });
+                    await batch.commit();
+                    alert(`${lines.length - 1}명의 직원이 성공적으로 등록되었습니다.`);
+                };
+                reader.readAsText(file, "EUC-KR");
+            };
+
+            // 근태 데이터 업데이트
+            const updateAttendance = async (day, field, value) => {
+                if (!selectedId) return;
+                const dateKey = `${year}-${month + 1}-${day}`;
+                const docId = `${selectedId}_${dateKey}`;
+                
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('attendance')
+                    .doc(docId).set({
+                        staffId: selectedId,
+                        date: dateKey,
+                        [field]: value
+                    }, { merge: true });
+            };
+
+            const daysInMonth = Array.from({ length: new Date(year, month + 1, 0).getDate() }, (_, i) => i + 1);
+
+            if (!user) return (
+                <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-bold text-lg animate-pulse">
+                    데이터 보안 연결 중...
+                </div>
+            );
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* 왼쪽 사이드바 */}
+                    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col p-6 shrink-0 border-r border-slate-800">
+                        <div className="mb-10 px-2">
+                            <h1 className="text-2xl font-black text-white tracking-tighter italic">NURIM <span className="text-blue-500">HR</span></h1>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Attendance Management</p>
+                        </div>
+                        <nav className="space-y-2 flex-1">
+                            <button onClick={() => setActiveTab('attendance')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'attendance' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 hover:text-white'}`}>
+                                <Icon name="calendar" /> 근태 현황판
+                            </button>
+                            <button onClick={() => setActiveTab('staff')} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 hover:text-white'}`}>
+                                <Icon name="users" /> 직원 명부 관리
+                            </button>
+                        </nav>
+                        <div className="mt-auto p-4 bg-slate-800/50 rounded-2xl border border-slate-700/30 text-[10px]">
+                            <p className="font-bold text-slate-500 mb-1">CLOUD ID</p>
+                            <p className="font-mono text-blue-400 truncate">{user.uid}</p>
+                        </div>
+                    </aside>
+
+                    {/* 오른쪽 메인 컨텐츠 */}
+                    <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
+                        <header className="h-20 bg-white border-b border-slate-200 flex items-center px-10 justify-between shrink-0">
+                            <h2 className="text-xl font-black text-slate-800">
+                                {activeTab === 'staff' ? '전체 직원 관리' : '월간 근태 상세 기록'}
+                            </h2>
+                            <div className="flex items-center gap-4">
+                                <input type="file" ref={fileRef} className="hidden" onChange={handleCsvUpload} accept=".csv" />
+                                <button onClick={() => fileRef.current.click()} className="flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-xl text-xs font-black hover:bg-black transition">
+                                    <Icon name="upload" size={14} /> CSV로 직원 추가
+                                </button>
+                            </div>
+                        </header>
+
+                        <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                            {activeTab === 'staff' ? (
+                                <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                                    <table className="w-full text-center">
+                                        <thead className="bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                                            <tr><th className="p-5">성명</th><th className="p-5">입사일</th><th className="p-5">생년월일</th><th className="p-5">상태</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50 font-bold text-slate-600">
+                                            {staffList.length > 0 ? staffList.map(s => (
+                                                <tr key={s.id} className="hover:bg-slate-50 transition">
+                                                    <td className="p-5 text-slate-900">{s.name}</td>
+                                                    <td className="p-5 font-mono text-slate-400">{s.joinDate || '-'}</td>
+                                                    <td className="p-5 font-mono text-slate-400">{s.birth || '-'}</td>
+                                                    <td className="p-5"><span className="px-3 py-1 bg-green-50 text-green-600 rounded-lg text-[10px]">정상재직</span></td>
+                                                </tr>
+                                            )) : (
+                                                <tr><td colSpan="4" className="p-20 text-slate-300 italic">등록된 직원이 없습니다.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="max-w-5xl mx-auto space-y-6">
+                                    {/* 월 및 직원 선택 필터 */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
+                                        <div className="relative">
+                                            <select className="w-full appearance-none bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 font-black text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                                value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+                                                <option value="">기록할 지원인을 선택하세요</option>
+                                                {staffList.map(s => <option key={s.id} value={s.id}>{s.name} ({s.role})</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="flex items-center justify-between bg-slate-100 rounded-2xl px-6">
+                                            <button onClick={() => setCurrentDate(new Date(year, month - 1))} className="p-2 font-black text-slate-400 hover:text-blue-600">◀ 이전 달</button>
+                                            <span className="font-black text-slate-800">{year}년 {month + 1}월</span>
+                                            <button onClick={() => setCurrentDate(new Date(year, month + 1))} className="p-2 font-black text-slate-400 hover:text-blue-600">다음 달 ▶</button>
+                                        </div>
+                                    </div>
+
+                                    {/* 근태 기록 그리드 */}
+                                    {selectedId ? (
+                                        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl overflow-hidden">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-center border-collapse min-w-[700px]">
+                                                    <thead className="bg-slate-900 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                                        <tr>
+                                                            <th className="p-4 border-r border-slate-800 w-24 text-white">날짜</th>
+                                                            <th className="p-4 border-r border-slate-800 w-40 text-white">근태 구분</th>
+                                                            <th className="p-4 border-r border-slate-800 text-white">출근 시간</th>
+                                                            <th className="p-4 border-r border-slate-800 text-white">퇴근 시간</th>
+                                                            <th className="p-4 text-white">기타 비고</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100 font-bold">
+                                                        {daysInMonth.map(day => {
+                                                            const record = attendanceData.find(d => d.id === `${selectedId}_${year}-${month+1}-${day}`) || {};
+                                                            return (
+                                                                <tr key={day} className="hover:bg-blue-50/50 transition-colors">
+                                                                    <td className="p-3 border-r border-slate-50 text-slate-400 font-mono text-xs">{day}일</td>
+                                                                    <td className="p-2 border-r border-slate-50">
+                                                                        <select className="w-full bg-slate-50 border-none rounded-lg text-center focus:ring-0 text-xs font-black py-2" 
+                                                                            value={record.status || ''} onChange={e => updateAttendance(day, 'status', e.target.value)}>
+                                                                            <option value="">- 상태 -</option>
+                                                                            <option value="정상">정상근무</option>
+                                                                            <option value="연차">연차휴가</option>
+                                                                            <option value="반차">오전반차</option>
+                                                                            <option value="반차">오후반차</option>
+                                                                            <option value="병가">병가</option>
+                                                                            <option value="결근">결근</option>
+                                                                        </select>
+                                                                    </td>
+                                                                    <td className="p-1 border-r border-slate-50">
+                                                                        <input type="time" className="w-full p-2 bg-transparent border-none text-center focus:ring-0 font-mono text-sm" 
+                                                                            value={record.onTime || ''} onChange={e => updateAttendance(day, 'onTime', e.target.value)} />
+                                                                    </td>
+                                                                    <td className="p-1 border-r border-slate-50">
+                                                                        <input type="time" className="w-full p-2 bg-transparent border-none text-center focus:ring-0 font-mono text-sm" 
+                                                                            value={record.offTime || ''} onChange={e => updateAttendance(day, 'offTime', e.target.value)} />
+                                                                    </td>
+                                                                    <td className="p-1 px-4">
+                                                                        <input className="w-full p-2 bg-transparent border-none focus:ring-0 italic text-slate-400 text-xs" 
+                                                                            placeholder="특이사항 입력" value={record.reason || ''} onChange={e => updateAttendance(day, 'reason', e.target.value)} />
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="py-40 text-center bg-white border-4 border-dashed border-slate-100 rounded-[3rem]">
+                                            <div className="mb-4 inline-flex p-6 bg-slate-50 rounded-full text-slate-300">
+                                                <Icon name="home" size={48} />
+                                            </div>
+                                            <p className="text-slate-400 font-black text-xl">상단에서 직원을 선택하여 기록을 시작하세요.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </main>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
