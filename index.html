@@ -74,14 +74,12 @@
             const today = new Date();
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-' };
             
-            // 근속 연수
             let yearsWorked = today.getFullYear() - joinDate.getFullYear();
             const m = today.getMonth() - joinDate.getMonth();
             if (m < 0 || (m === 0 && today.getDate() < joinDate.getDate())) {
                 yearsWorked--;
             }
 
-            // 발생 연차
             let totalLeave = 0;
             if (yearsWorked < 1) {
                 totalLeave = 11; 
@@ -90,7 +88,6 @@
                 if (totalLeave > 25) totalLeave = 25;
             }
 
-            // 사용 기간 (입사일 기준 1년)
             let baseYear = today.getFullYear();
             let baseDate = new Date(joinDate);
             baseDate.setFullYear(baseYear);
@@ -180,27 +177,22 @@
             );
         };
 
-        // --- 📊 엑셀/CSV 업로드 처리 (수정된 로직 적용) ---
+        // --- 📊 엑셀/CSV 업로드 처리 (스마트 헤더 찾기 적용) ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
 
-            // 🛠️ 날짜 변환 함수 (새 형식 지원 강화)
+            // 🛠️ 강력한 날짜 변환 (8자리, 6자리, -, ., / 모두 지원)
             const safeDate = (val) => {
                 if (!val) return '';
-                const str = String(val).trim();
-
-                // 1. 표준 날짜 포맷 우선 처리 (YYYY-MM-DD, YYYY.MM.DD 등)
-                // 구분자가 -, ., / 인 경우를 모두 잡아내고 표준형(YYYY-MM-DD)으로 변환
-                const stdMatch = str.match(/^(\d{4})[\-\.\/](\d{1,2})[\-\.\/](\d{1,2})$/);
-                if (stdMatch) {
-                    const y = stdMatch[1];
-                    const m = stdMatch[2].padStart(2, '0'); // 월이 3이면 03으로
-                    const d = stdMatch[3].padStart(2, '0'); // 일이 9면 09로
-                    return `${y}-${m}-${d}`;
+                let str = String(val).trim();
+                
+                // 1. YYYYMMDD (8자리) -> YYYY-MM-DD
+                if (/^\d{8}$/.test(str)) {
+                    return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
                 }
 
-                // 2. 6자리 숫자 (예: 790319) - 보조 수단
+                // 2. YYMMDD (6자리) -> 19YY-MM-DD or 20YY-MM-DD
                 if (/^\d{6}$/.test(str)) {
                     const yy = parseInt(str.substring(0, 2), 10);
                     const mm = str.substring(2, 4);
@@ -209,8 +201,18 @@
                     return `${prefix}${yy}-${mm}-${dd}`;
                 }
 
-                // 3. 엑셀 시리얼 넘버 처리
-                if (!isNaN(val) && val > 30000) {
+                // 3. 구분자가 있는 경우 (., /, -) -> -로 통일
+                // 예: 1979.3.19, 1979/03/19
+                const match = str.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
+                if (match) {
+                    const y = match[1];
+                    const m = match[2].padStart(2, '0');
+                    const d = match[3].padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                }
+
+                // 4. 엑셀 숫자 포맷
+                if (!isNaN(val) && val > 20000) {
                     try {
                         const date = new Date((val - 25569) * 86400 * 1000);
                         return date.toISOString().split('T')[0];
@@ -239,23 +241,36 @@
                             return;
                         }
 
+                        // 🔍 [핵심] 제목줄(Header)을 찾아서 열 번호 자동 감지
+                        const headerRow = jsonData[0]; // 첫 줄을 제목으로 가정
+                        
+                        // 제목에 해당 글자가 포함된 열 번호 찾기 (없으면 -1)
+                        const idxName = headerRow.findIndex(h => h && String(h).includes('이름'));
+                        const idxBirth = headerRow.findIndex(h => h && String(h).includes('생년월일'));
+                        const idxPhone = headerRow.findIndex(h => h && (String(h).includes('휴대폰') || String(h).includes('전화')));
+                        const idxJoin = headerRow.findIndex(h => h && String(h).includes('입사일'));
+
+                        if (idxName === -1) {
+                            setUploadMsg('❌ "이름" 열을 찾을 수 없습니다.');
+                            return;
+                        }
+
                         const batch = writeBatch(db);
                         let count = 0;
 
-                        // 2번째 행부터 데이터 (인덱스 1)
+                        // 2번째 줄부터 데이터 처리
                         for (let i = 1; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
 
-                            // 📌 열 매핑 (C=2, X=23, AA=26, AD=29)
-                            const name = row[2];
+                            const name = row[idxName];
                             
                             if (name) {
-                                const birthRaw = row[23];  
-                                const phoneRaw = row[26];  
-                                const joinRaw = row[29];   
+                                // 열 번호가 유효하면 데이터 가져오기, 아니면 빈 값
+                                const birthRaw = idxBirth > -1 ? row[idxBirth] : '';
+                                const phoneRaw = idxPhone > -1 ? row[idxPhone] : '';
+                                const joinRaw = idxJoin > -1 ? row[idxJoin] : '';
 
-                                // 수정된 로직으로 날짜 변환
                                 const birthDate = safeDate(birthRaw);
                                 const joinDate = safeDate(joinRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
@@ -296,7 +311,10 @@
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3>
-                            <p className="text-xs text-slate-500">엑셀/CSV 업로드 시 C(이름), X(생일), AA(폰), AD(입사일)열을 읽습니다.</p>
+                            <p className="text-xs text-slate-500">
+                                엑셀 파일의 <strong>첫 줄(제목)</strong>을 자동으로 인식합니다.<br/>
+                                (필수 포함 단어: 이름, 생년월일, 입사일)
+                            </p>
                         </div>
                         <div className="flex items-center gap-3">
                             {uploadMsg && <span className="text-sm font-bold text-blue-600 animate-pulse">{uploadMsg}</span>}
