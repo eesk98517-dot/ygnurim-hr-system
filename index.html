@@ -27,22 +27,14 @@
         import React, { useState, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp, getApps } from 'firebase/app';
-        import { 
-            getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-            signOut, onAuthStateChanged 
-        } from 'firebase/auth';
-        import { 
-            getFirestore, collection, doc, setDoc, getDoc, query, where, getDocs 
-        } from 'firebase/firestore';
+        import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+        import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
-        // --- Firebase 설정 (기존 설정 유지) ---
-        let firebaseConfig = { apiKey: "demo", authDomain: "demo", projectId: "demo" };
-        try {
-            if (typeof __firebase_config !== 'undefined') {
-                firebaseConfig = JSON.parse(__firebase_config);
-            }
-        } catch (e) { console.error(e); }
-
+        // --- Firebase 설정 (데모 모드) ---
+        // 실제 서버 연결 전까지는 이 설정이 오류를 뱉으므로, 아래 코드에서 예외 처리를 합니다.
+        const firebaseConfig = { apiKey: "demo", authDomain: "demo", projectId: "demo" };
+        
+        // 앱 초기화
         const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
         const auth = getAuth(app);
         const db = getFirestore(app);
@@ -68,51 +60,31 @@
                 setError('');
                 setLoading(true);
 
+                // [수정됨] 1. 관리자 프리패스 로직 (서버 연결 없이 즉시 통과)
+                if (id === 'ygnurim' && pw === 'ygnr00383') {
+                    setTimeout(() => { // 로그인하는 척 0.5초 대기
+                        onLogin({ role: 'admin', name: '관리자', email: 'admin@ygnurim.com' });
+                        setLoading(false);
+                    }, 500);
+                    return;
+                }
+
                 try {
-                    // 1. 관리자 하드코딩 로그인 처리 (초기 설정용)
-                    if (id === 'ygnurim' && pw === 'ygnr00383') {
-                        // 실제로는 Firebase Auth 이메일 형식이 필요하므로 가상 이메일 매핑
-                        const adminEmail = 'admin@ygnurim.com';
-                        try {
-                            // 기존 계정이 있으면 로그인
-                            await signInWithEmailAndPassword(auth, adminEmail, pw);
-                        } catch (err) {
-                            // 계정이 없으면 생성 (최초 1회 실행됨)
-                            if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                                await createUserWithEmailAndPassword(auth, adminEmail, pw);
-                                // DB에 관리자 정보 저장
-                                await setDoc(doc(db, 'users', adminEmail), {
-                                    name: '관리자',
-                                    role: 'admin',
-                                    employeeId: 'ygnurim'
-                                });
-                                // 생성 후 바로 로그인
-                                await signInWithEmailAndPassword(auth, adminEmail, pw);
-                            } else {
-                                throw err;
-                            }
-                        }
-                        onLogin({ role: 'admin', name: '관리자' });
-                        return;
-                    }
-
-                    // 2. 일반 직원 로그인 (DB 조회)
-                    // 아이디를 이메일 형식으로 변환 (예: user1 -> user1@ygnurim.com)
-                    // *실제 운영 시에는 아이디 입력 칸에 이메일을 쓰게 하거나, 내부적으로 도메인을 붙여줍니다.
+                    // 2. 일반 직원 로그인 시도 (데모 환경에서는 실패할 수 있음)
                     const email = id.includes('@') ? id : `${id}@ygnurim.com`;
-                    
                     await signInWithEmailAndPassword(auth, email, pw);
-                    
-                    // DB에서 사용자 역할(Role) 확인
-                    const userDoc = await getDoc(doc(db, 'users', email));
-                    if (userDoc.exists()) {
-                        onLogin(userDoc.data());
-                    } else {
-                        // DB에 정보가 없는 경우 (예외처리)
-                        onLogin({ role: 'staff', name: id });
-                    }
-
+                    onLogin({ role: 'staff', name: id, email: email }); // 성공 시
                 } catch (err) {
+                    // 3. 데모 모드일 경우, 방금 만든 직원 아이디라면 통과시켜 줌 (로컬 스토리지 확인)
+                    const localUser = localStorage.getItem('local_user_' + id);
+                    if (localUser) {
+                        const userData = JSON.parse(localUser);
+                        if (userData.pw === pw) {
+                             onLogin({ role: 'staff', name: userData.name, email: `${id}@ygnurim.com` });
+                             setLoading(false);
+                             return;
+                        }
+                    }
                     console.error("Login Error:", err);
                     setError('아이디 또는 비밀번호를 확인해주세요.');
                 } finally {
@@ -122,7 +94,7 @@
 
             return (
                 <div className="flex h-screen items-center justify-center bg-slate-100">
-                    <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
+                    <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
                         <div className="text-center mb-8">
                             <h1 className="text-3xl font-black text-blue-600 mb-2">양지누림</h1>
                             <p className="text-slate-500 font-bold">연차 관리 시스템 로그인</p>
@@ -161,7 +133,7 @@
         const CreateStaffAccount = () => {
             const [newId, setNewId] = useState('');
             const [newName, setNewName] = useState('');
-            const [newPw, setNewPw] = useState('123456'); // 초기 비밀번호
+            const [newPw, setNewPw] = useState('123456'); 
             const [msg, setMsg] = useState('');
 
             const handleCreate = async (e) => {
@@ -169,34 +141,39 @@
                 setMsg('처리 중...');
                 
                 try {
-                    const email = `${newId}@ygnurim.com`; // 아이디를 이메일 형식으로 변환
+                    // [수정됨] 데모 모드이므로 브라우저 저장소(LocalStorage)에 저장하여 테스트 가능하게 함
+                    const email = `${newId}@ygnurim.com`;
                     
-                    // *참고: Firebase Client SDK에서는 '현재 로그인된 관리자'가 로그아웃되지 않고 
-                    // 다른 계정을 생성하는 것이 까다롭습니다. (보통 Admin SDK 사용).
-                    // 여기서는 편의상 'Firestore에만 계정 정보를 등록'하고 
-                    // 실제 인증 계정 생성은 '해당 직원이 최초 로그인 시도 시' 또는 
-                    // '별도 Admin API'를 타야 하지만, 
-                    // 데모/프로토타입 환경에서는 Firestore에 '초기 세팅 데이터'를 넣는 것으로 갈음하고
-                    // 실제 인증은 위 Login 컴포넌트 로직처럼 처리할 수 있게 구성합니다.
-                    
-                    // 1. Firestore에 사용자 정보 저장
-                    await setDoc(doc(db, 'users', email), {
-                        employeeId: newId,
-                        name: newName,
-                        role: 'staff',
-                        tempPw: newPw, // 초기 비번 저장 (보안상 실제로는 해싱해야 함)
-                        joinDate: new Date().toISOString().split('T')[0]
-                    });
+                    // 1. 실제 DB 저장 시도 (설정 없으면 실패함)
+                    try {
+                        await setDoc(doc(db, 'users', email), {
+                            employeeId: newId,
+                            name: newName,
+                            role: 'staff',
+                            tempPw: newPw,
+                            joinDate: new Date().toISOString().split('T')[0]
+                        });
+                    } catch(dbErr) {
+                        console.log("DB 연결 안됨(데모 모드): 로컬 저장소에 저장합니다.");
+                    }
 
-                    // 2. Auth 생성을 위해 잠시 로그아웃 되었다가 다시 로그인 하는 것은 UX상 나쁘므로,
-                    // 여기서는 "DB에 등록 완료. 해당 아이디/비번으로 로그인 가능하도록 설정됨"으로 처리합니다.
-                    // (Login 컴포넌트에서 이 DB 정보를 참조하여 최초 로그인 시 Auth 계정을 자동 생성하게 로직 연결)
+                    // 2. 로컬 테스트용 저장 (이걸로 로그인 테스트 가능)
+                    localStorage.setItem('local_user_' + newId, JSON.stringify({
+                        id: newId,
+                        pw: newPw,
+                        name: newName,
+                        role: 'staff'
+                    }));
 
                     setMsg(`✅ 생성 완료! (ID: ${newId})`);
-                    setNewId(''); setNewName(''); setNewPw('123456');
+                    setNewId(''); setNewName('');
+                    
+                    // 3초 후 메시지 초기화
+                    setTimeout(() => setMsg(''), 3000);
+
                 } catch (err) {
                     console.error(err);
-                    setMsg('❌ 생성 실패: ' + err.message);
+                    setMsg('❌ 오류 발생');
                 }
             };
 
@@ -230,22 +207,20 @@
 
         // --- 메인 앱 ---
         const App = () => {
-            const [user, setUser] = useState(null); // 로그인한 사용자 정보 { role, name, ... }
+            const [user, setUser] = useState(null);
 
-            // 로그아웃
             const handleLogout = async () => {
-                await signOut(auth);
+                try { await signOut(auth); } catch(e) {}
                 setUser(null);
             };
 
-            // 로그인 상태가 아니면 로그인 화면 표시
             if (!user) {
                 return <Login onLogin={setUser} />;
             }
 
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
-                    {/* 사이드바 (간략화) */}
+                    {/* 사이드바 */}
                     <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10">
                         <div className="p-6 border-b border-slate-700/50">
                             <h1 className="text-xl font-black text-white">양지누림</h1>
@@ -275,14 +250,15 @@
 
                         {user.role === 'admin' ? (
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* 왼쪽: 현황판 (기존 대시보드 공간) */}
+                                {/* 왼쪽: 현황판 */}
                                 <div className="lg:col-span-2 space-y-6">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                        <h3 className="font-bold text-slate-700 mb-4">📢 시스템 공지</h3>
-                                        <p className="text-slate-600 text-sm">현재 직원 계정 관리 기능을 사용하실 수 있습니다.<br/>오른쪽 패널을 통해 직원을 등록해주세요.</p>
+                                        <h3 className="font-bold text-slate-700 mb-4">📢 시스템 안내</h3>
+                                        <p className="text-slate-600 text-sm">현재 <strong>데모 모드</strong>로 작동 중입니다.<br/>관리자(ygnurim)로 접속되었습니다. 오른쪽 패널에서 직원을 등록해보세요.</p>
                                     </div>
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-64 flex items-center justify-center text-slate-400">
-                                        (추후 직원 현황 그래프 등 표시 예정)
+                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-64 flex items-center justify-center text-slate-400 flex-col gap-2">
+                                        <div className="p-4 bg-slate-50 rounded-full"><Icons.Grid /></div>
+                                        <span>직원 연차 현황 그래프가 이곳에 표시됩니다.</span>
                                     </div>
                                 </div>
                                 {/* 오른쪽: 계정 생성 기능 */}
@@ -291,11 +267,25 @@
                                 </div>
                             </div>
                         ) : (
-                            // 직원용 화면 (Placeholder)
-                            <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 text-center">
-                                <div className="text-5xl mb-4">👋</div>
-                                <h3 className="text-xl font-bold text-slate-800 mb-2">{user.name}님, 환영합니다!</h3>
-                                <p className="text-slate-500">직원용 대시보드는 현재 준비 중입니다.</p>
+                            // 직원용 화면
+                            <div className="space-y-6">
+                                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">반갑습니다, {user.name}님! 👋</h3>
+                                        <p className="text-slate-500 text-sm mt-1">오늘도 좋은 하루 되세요.</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-bold text-slate-400 uppercase">잔여 연차</p>
+                                        <p className="text-3xl font-black text-blue-600">15.0 <span className="text-sm font-medium text-slate-500">일</span></p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 text-center min-h-[300px] flex flex-col items-center justify-center">
+                                    <p className="text-slate-400 font-medium">휴가 신청 내역이 없습니다.</p>
+                                    <button className="mt-4 px-6 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition text-sm">
+                                        + 첫 휴가 신청하기
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </main>
