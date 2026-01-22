@@ -6,9 +6,7 @@
     <title>양지누림 연차 관리 시스템</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
     <script type="importmap">
     {
         "imports": {
@@ -27,11 +25,18 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 체크박스 스타일 */
+        input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
     </style>
 
     <script>
         window.onerror = function(msg, url, line, col, error) {
-            alert("⚠️ 시스템 오류 발생:\n" + msg + "\n\n(줄: " + line + ")");
+            alert("⚠️ 시스템 오류 발생:\n" + msg);
             return false;
         };
     </script>
@@ -44,7 +49,6 @@
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-        // 🔹 updateDoc, deleteDoc 등 필요한 기능 모두 불러오기
         import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
         // ------------------------------------------------------------------
@@ -64,7 +68,7 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 아이콘 모음 ---
+        // --- 아이콘 ---
         const Icons = {
             Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
             Users: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
@@ -81,37 +85,28 @@
             Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
         };
 
-        // --- 📅 근로기준법 연차 계산 ---
+        // --- 📅 연차 계산 ---
         const calculateAnnualLeave = (joinDateStr) => {
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-' };
-            
             const joinDate = new Date(joinDateStr);
             const today = new Date();
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-' };
             
             let yearsWorked = today.getFullYear() - joinDate.getFullYear();
             const m = today.getMonth() - joinDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < joinDate.getDate())) {
-                yearsWorked--;
-            }
+            if (m < 0 || (m === 0 && today.getDate() < joinDate.getDate())) yearsWorked--;
 
-            // 발생 연차
             let totalLeave = 0;
-            if (yearsWorked < 1) {
-                totalLeave = 11; 
-            } else {
+            if (yearsWorked < 1) totalLeave = 11; 
+            else {
                 totalLeave = 15 + Math.floor((yearsWorked - 1) / 2);
                 if (totalLeave > 25) totalLeave = 25;
             }
 
-            // 사용 기간
             let baseYear = today.getFullYear();
             let baseDate = new Date(joinDate);
             baseDate.setFullYear(baseYear);
-            
-            if (today < baseDate) {
-                baseDate.setFullYear(baseYear - 1);
-            }
+            if (today < baseDate) baseDate.setFullYear(baseYear - 1);
 
             const startDate = baseDate.toISOString().split('T')[0];
             const endDateObj = new Date(baseDate);
@@ -119,13 +114,10 @@
             endDateObj.setDate(endDateObj.getDate() - 1);
             const endDate = endDateObj.toISOString().split('T')[0];
 
-            return {
-                total: totalLeave,
-                period: `${startDate} ~ ${endDate}`
-            };
+            return { total: totalLeave, period: `${startDate} ~ ${endDate}` };
         };
 
-        // --- 로그인 컴포넌트 ---
+        // --- 로그인 ---
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -158,15 +150,11 @@
                                 onLogin({ ...userDoc.data(), email });
                                 setLoading(false);
                                 return;
-                            } else {
-                                setError('아이디 또는 비밀번호가 잘못되었습니다.');
-                            }
+                            } else setError('아이디 또는 비밀번호가 잘못되었습니다.');
                         } catch (dbErr) {
                             setError('시스템 오류: ' + dbErr.message);
                         }
-                    } else {
-                        setError('로그인 실패: ' + err.code);
-                    }
+                    } else setError('로그인 실패: ' + err.code);
                 } finally {
                     setLoading(false);
                 }
@@ -198,34 +186,27 @@
             );
         };
 
-        // --- ✏️ 직원 수정 모달 ---
+        // --- 수정 모달 ---
         const EditStaffModal = ({ staff, onClose }) => {
             const [formData, setFormData] = useState({ ...staff });
             const [msg, setMsg] = useState('');
 
-            const handleChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => ({ ...prev, [name]: value }));
-            };
+            const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
             const handleSave = async (e) => {
                 e.preventDefault();
                 setMsg('저장 중...');
                 try {
-                    // 입사일 변경 시 연차 재계산
                     let updates = { ...formData };
                     if (formData.joinDate !== staff.joinDate) {
                         const leaveInfo = calculateAnnualLeave(formData.joinDate);
                         updates.annualLeaveTotal = leaveInfo.total;
                         updates.annualLeavePeriod = leaveInfo.period;
                     }
-
                     await updateDoc(doc(db, 'users', staff.id), updates);
                     setMsg('✅ 수정 완료!');
                     setTimeout(() => { setMsg(''); onClose(); }, 1000);
-                } catch (err) {
-                    setMsg('❌ 오류: ' + err.message);
-                }
+                } catch (err) { setMsg('❌ 오류: ' + err.message); }
             };
 
             return (
@@ -250,12 +231,10 @@
                                 <input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">입사일 (변경 시 연차 재계산)</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">입사일</label>
                                 <input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" required />
                             </div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
-                                수정 저장하기
-                            </button>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
                     </div>
@@ -263,41 +242,29 @@
             );
         };
 
-        // --- 📊 엑셀/CSV 업로드 처리 및 명부 ---
+        // --- 📊 명부 및 엑셀 처리 (다중 선택 기능 추가) ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
             const [editingStaff, setEditingStaff] = useState(null);
+            
+            // ✅ 선택된 직원 ID 관리
+            const [selectedIds, setSelectedIds] = useState(new Set());
 
-            // 날짜 변환 함수 (통합)
+            // 날짜 변환
             const safeDate = (val) => {
                 if (!val) return '';
                 let str = String(val).trim();
-                
-                // 1. YYYYMMDD -> YYYY-MM-DD
-                if (/^\d{8}$/.test(str)) {
-                    return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
-                }
-                // 2. YYMMDD -> 19YY or 20YY
+                if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
                 if (/^\d{6}$/.test(str)) {
                     const yy = parseInt(str.substring(0, 2), 10);
                     const prefix = yy > 30 ? '19' : '20'; 
                     return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`;
                 }
-                // 3. 구분자가 있는 경우
                 const match = str.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
-                if (match) {
-                    const y = match[1];
-                    const m = match[2].padStart(2, '0');
-                    const d = match[3].padStart(2, '0');
-                    return `${y}-${m}-${d}`;
-                }
-                // 4. 엑셀 숫자
+                if (match) return `${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}`;
                 if (!isNaN(val) && val > 20000) {
-                    try {
-                        const date = new Date((val - 25569) * 86400 * 1000);
-                        return date.toISOString().split('T')[0];
-                    } catch(e) { return str; }
+                    try { return new Date((val - 25569) * 86400 * 1000).toISOString().split('T')[0]; } catch(e) { return str; }
                 }
                 return str;
             };
@@ -305,60 +272,41 @@
             const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const reader = new FileReader();
                 reader.readAsArrayBuffer(file);
-
                 reader.onload = async (evt) => {
                     try {
                         const data = new Uint8Array(evt.target.result);
                         const wb = XLSX.read(data, { type: 'array' });
                         const ws = wb.Sheets[wb.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
 
-                        if (jsonData.length < 2) {
-                            setUploadMsg('❌ 데이터가 없습니다.');
-                            return;
-                        }
-
-                        // 헤더 찾기
                         const headerRow = jsonData[0]; 
                         const idxName = headerRow.findIndex(h => h && String(h).includes('이름'));
                         const idxBirth = headerRow.findIndex(h => h && String(h).includes('생년월일'));
                         const idxPhone = headerRow.findIndex(h => h && (String(h).includes('휴대폰') || String(h).includes('전화')));
                         const idxJoin = headerRow.findIndex(h => h && String(h).includes('입사일'));
 
-                        if (idxName === -1) {
-                            setUploadMsg('❌ "이름" 열을 찾을 수 없습니다.');
-                            return;
-                        }
-
+                        if (idxName === -1) { setUploadMsg('❌ "이름" 열 없음'); return; }
                         const batch = writeBatch(db);
                         let count = 0;
-
                         for (let i = 1; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
-
                             const name = row[idxName];
-                            
                             if (name) {
                                 const birthRaw = idxBirth > -1 ? row[idxBirth] : '';
                                 const phoneRaw = idxPhone > -1 ? row[idxPhone] : '';
                                 const joinRaw = idxJoin > -1 ? row[idxJoin] : '';
-
-                                const birthDate = safeDate(birthRaw);
                                 const joinDate = safeDate(joinRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
-
-                                // 고유 ID 생성 (중복 방지)
                                 const tempId = `staff_${count}_${Date.now()}`; 
                                 const email = `${tempId}@ygnurim.com`;
-
                                 const docRef = doc(db, 'users', email);
                                 batch.set(docRef, {
                                     name: name,
-                                    birth: birthDate,
+                                    birth: safeDate(birthRaw),
                                     phone: phoneRaw || '',
                                     joinDate: joinDate,
                                     employeeId: tempId,
@@ -371,26 +319,55 @@
                                 count++;
                             }
                         }
-
                         await batch.commit();
-                        setUploadMsg(`✅ ${count}명 처리 완료!`);
+                        setUploadMsg(`✅ ${count}명 등록!`);
                         setTimeout(() => setUploadMsg(''), 3000);
-
-                    } catch (err) {
-                        console.error(err);
-                        setUploadMsg('❌ 오류: ' + err.message);
-                    }
+                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
                 };
             };
 
-            const handleDelete = async (staff) => {
+            // ✅ 단일 삭제
+            const handleDeleteOne = async (staff) => {
                 if (window.confirm(`정말 [${staff.name}] 직원을 삭제하시겠습니까?`)) {
-                    try {
-                        await deleteDoc(doc(db, 'users', staff.id));
-                        alert('삭제되었습니다.');
-                    } catch (err) {
-                        alert('삭제 실패: ' + err.message);
-                    }
+                    try { await deleteDoc(doc(db, 'users', staff.id)); alert('삭제되었습니다.'); } 
+                    catch (err) { alert('삭제 실패: ' + err.message); }
+                }
+            };
+
+            // ✅ 전체 선택/해제 토글
+            const handleSelectAll = (e) => {
+                if (e.target.checked) {
+                    const allIds = new Set(staffList.map(s => s.id));
+                    setSelectedIds(allIds);
+                } else {
+                    setSelectedIds(new Set());
+                }
+            };
+
+            // ✅ 개별 선택 토글
+            const handleSelectOne = (id) => {
+                const newSet = new Set(selectedIds);
+                if (newSet.has(id)) newSet.delete(id);
+                else newSet.add(id);
+                setSelectedIds(newSet);
+            };
+
+            // ✅ 선택 일괄 삭제
+            const handleBulkDelete = async () => {
+                if (selectedIds.size === 0) return;
+                if (!window.confirm(`선택한 ${selectedIds.size}명의 직원을 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+                try {
+                    const batch = writeBatch(db);
+                    selectedIds.forEach(id => {
+                        const ref = doc(db, 'users', id);
+                        batch.delete(ref);
+                    });
+                    await batch.commit();
+                    alert(`${selectedIds.size}명 삭제 완료`);
+                    setSelectedIds(new Set());
+                } catch (err) {
+                    alert('일괄 삭제 중 오류 발생: ' + err.message);
                 }
             };
 
@@ -401,12 +378,16 @@
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3>
-                            <p className="text-xs text-slate-500">
-                                엑셀 파일의 <strong>첫 줄(제목)</strong>을 자동으로 인식합니다.<br/>
-                                (필수: 이름, 생년월일, 입사일)
-                            </p>
+                            <p className="text-xs text-slate-500">엑셀 업로드 또는 개별 관리</p>
                         </div>
                         <div className="flex items-center gap-3">
+                            {/* 선택 삭제 버튼 (선택된 항목 있을 때만 표시) */}
+                            {selectedIds.size > 0 && (
+                                <button onClick={handleBulkDelete} className="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex items-center gap-2 animate-fade-in shadow-lg shadow-red-200">
+                                    <Icons.Trash /> 선택 삭제 ({selectedIds.size}명)
+                                </button>
+                            )}
+
                             {uploadMsg && <span className="text-sm font-bold text-blue-600 animate-pulse">{uploadMsg}</span>}
                             <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls, .csv" className="hidden" />
                             <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center gap-2">
@@ -419,6 +400,14 @@
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
+                                    {/* ✅ 전체 선택 체크박스 */}
+                                    <th className="p-4 w-12 text-center">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={staffList.length > 0 && selectedIds.size === staffList.length}
+                                            onChange={handleSelectAll}
+                                        />
+                                    </th>
                                     <th className="p-4">이름</th>
                                     <th className="p-4">생년월일</th>
                                     <th className="p-4">휴대폰번호</th>
@@ -432,7 +421,15 @@
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {staffList.map((staff, idx) => (
-                                    <tr key={idx} className="hover:bg-slate-50 transition">
+                                    <tr key={idx} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
+                                        {/* ✅ 개별 선택 체크박스 */}
+                                        <td className="p-4 text-center">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedIds.has(staff.id)}
+                                                onChange={() => handleSelectOne(staff.id)}
+                                            />
+                                        </td>
                                         <td className="p-4 font-bold text-slate-800">{staff.name}</td>
                                         <td className="p-4 text-slate-500">{staff.birth}</td>
                                         <td className="p-4 text-slate-500">{staff.phone}</td>
@@ -443,10 +440,10 @@
                                         <td className="p-4 text-xs text-slate-400">{staff.annualLeavePeriod}</td>
                                         <td className="p-4 text-center bg-slate-50/50">
                                             <div className="flex justify-center gap-2">
-                                                <button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition">
+                                                <button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition" title="수정">
                                                     <Icons.Edit />
                                                 </button>
-                                                <button onClick={() => handleDelete(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition">
+                                                <button onClick={() => handleDeleteOne(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition" title="삭제">
                                                     <Icons.Trash />
                                                 </button>
                                             </div>
@@ -455,7 +452,7 @@
                                 ))}
                                 {staffList.length === 0 && (
                                     <tr>
-                                        <td colSpan="9" className="p-12 text-center text-slate-400">
+                                        <td colSpan="10" className="p-12 text-center text-slate-400">
                                             등록된 직원이 없습니다.
                                         </td>
                                     </tr>
