@@ -18,7 +18,12 @@
     }
     </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }</style>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        /* 스크롤바 숨김 처리 (깔끔하게) */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
@@ -31,7 +36,7 @@
         import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
         // ------------------------------------------------------------------
-        // ✅ 사용자 제공 Firebase 설정 적용 완료
+        // ✅ Firebase 설정 (실제 키 적용됨)
         // ------------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -43,22 +48,39 @@
             measurementId: "G-EELTZ41FTR"
         };
 
-        // 앱 초기화
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // --- 아이콘 컴포넌트 ---
+        // --- 아이콘 ---
         const Icons = {
+            Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+            Users: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Calendar: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+            CheckCircle: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            Briefcase: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
             User: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
             Lock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
             LogOut: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
             Plus: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
-            Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+            X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
         };
 
-        // --- 관리자: 직원 계정 생성 (DB 등록) ---
-        const CreateStaffAccount = () => {
+        // --- Mock Data (대시보드 UI 복원용) ---
+        const MOCK_STATS = [
+            { label: "총 임직원", value: "42", unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
+            { label: "금일 휴가자", value: "3", unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> },
+            { label: "결재 대기", value: "1", unit: "건", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
+            { label: "평균 소진율", value: "12", unit: "%", color: "bg-green-50 text-green-600", icon: <Icons.Calendar /> },
+        ];
+        const MOCK_TODAY_LEAVE = [
+            { name: "김지수", dept: "경영지원팀", type: "연차", time: "종일" },
+            { name: "이민호", dept: "개발팀", type: "오전반차", time: "09:00 ~ 13:00" },
+            { name: "박서준", dept: "마케팅팀", type: "병가", time: "종일" },
+        ];
+
+        // --- 모달: 직원 계정 생성 ---
+        const CreateStaffModal = ({ onClose }) => {
             const [newId, setNewId] = useState('');
             const [newName, setNewName] = useState('');
             const [newPw, setNewPw] = useState('123456'); 
@@ -67,12 +89,8 @@
             const handleCreate = async (e) => {
                 e.preventDefault();
                 setMsg('처리 중...');
-                
                 try {
                     const email = `${newId}@ygnurim.com`;
-                    
-                    // Firestore에 직원 정보 저장
-                    // 관리자가 여기서 등록해두면, 직원이 처음 로그인할 때 이 정보를 바탕으로 계정이 활성화됩니다.
                     await setDoc(doc(db, 'users', email), {
                         employeeId: newId,
                         name: newName,
@@ -82,45 +100,46 @@
                         annualLeaveTotal: 15,
                         annualLeaveUsed: 0
                     });
-
                     setMsg(`✅ 생성 완료! (ID: ${newId})`);
                     setNewId(''); setNewName('');
-                    setTimeout(() => setMsg(''), 5000);
-
+                    setTimeout(() => { setMsg(''); onClose(); }, 1500); // 1.5초 후 닫기
                 } catch (err) {
-                    console.error(err);
                     setMsg('❌ 오류: ' + err.message);
                 }
             };
 
             return (
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                        <Icons.Plus /> 직원 계정 발급
-                    </h3>
-                    <form onSubmit={handleCreate} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">직원 이름</label>
-                            <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded-lg p-2 text-sm" placeholder="예: 김직원" required />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">아이디 (사번)</label>
-                            <input type="text" value={newId} onChange={e => setNewId(e.target.value)} className="w-full border rounded-lg p-2 text-sm" placeholder="예: staff01" required />
-                        </div>
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                            <label className="block text-xs font-bold text-slate-400 mb-1">초기 비밀번호</label>
-                            <div className="text-sm font-bold text-slate-600">123456</div>
-                        </div>
-                        <button type="submit" className="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">
-                            직원 등록하기
-                        </button>
-                        {msg && <p className="text-xs text-center font-bold text-blue-600 break-keep">{msg}</p>}
-                    </form>
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">
+                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Icons.Plus /></div>
+                            직원 계정 발급
+                        </h3>
+                        <form onSubmit={handleCreate} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">직원 이름</label>
+                                <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: 김직원" required />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">아이디 (사번)</label>
+                                <input type="text" value={newId} onChange={e => setNewId(e.target.value)} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: staff01" required />
+                            </div>
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
+                                <label className="text-xs font-bold text-slate-400">초기 비밀번호</label>
+                                <div className="text-sm font-bold text-slate-600 tracking-widest">123456</div>
+                            </div>
+                            <button type="submit" className="w-full bg-slate-800 text-white py-3 rounded-xl text-sm font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200">
+                                계정 생성하기
+                            </button>
+                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
+                        </form>
+                    </div>
                 </div>
             );
         };
 
-        // --- 로그인 화면 (자동 가입 로직 포함) ---
+        // --- 로그인 컴포넌트 ---
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -132,7 +151,6 @@
                 setError('');
                 setLoading(true);
 
-                // 1. 관리자 프리패스 로그인
                 if (id === 'ygnurim' && pw === 'ygnr00383') {
                     onLogin({ role: 'admin', name: '관리자', email: 'admin@ygnurim.com' });
                     setLoading(false);
@@ -140,41 +158,23 @@
                 }
 
                 const email = id.includes('@') ? id : `${id}@ygnurim.com`;
-
                 try {
-                    // 2. 일반 로그인 시도
                     await signInWithEmailAndPassword(auth, email, pw);
-                    
-                    // 로그인 성공 시 DB에서 추가 정보(이름 등) 가져오기
                     const userDoc = await getDoc(doc(db, 'users', email));
-                    if (userDoc.exists()) {
-                        onLogin({ ...userDoc.data(), email });
-                    } else {
-                        onLogin({ role: 'staff', name: id, email });
-                    }
-
+                    if (userDoc.exists()) onLogin({ ...userDoc.data(), email });
+                    else onLogin({ role: 'staff', name: id, email });
                 } catch (err) {
-                    // 3. 계정이 없다는 에러 발생 시 (관리자가 DB에는 등록했는데 Auth 계정이 없는 경우)
                     if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
                         try {
-                            // DB 확인
                             const userDoc = await getDoc(doc(db, 'users', email));
-                            if (userDoc.exists()) {
-                                const userData = userDoc.data();
-                                // 초기 비밀번호 일치 확인
-                                if (userData.tempPw === pw) {
-                                    // 일치하면 실제 계정 생성 후 로그인
-                                    await createUserWithEmailAndPassword(auth, email, pw);
-                                    onLogin({ ...userData, email });
-                                    setLoading(false);
-                                    return;
-                                }
+                            if (userDoc.exists() && userDoc.data().tempPw === pw) {
+                                await createUserWithEmailAndPassword(auth, email, pw);
+                                onLogin({ ...userDoc.data(), email });
+                                setLoading(false);
+                                return;
                             }
-                        } catch (dbErr) {
-                            console.error("DB Check Error", dbErr);
-                        }
+                        } catch (dbErr) { console.error(dbErr); }
                     }
-                    console.error("Login Fail", err);
                     setError('아이디 또는 비밀번호를 확인해주세요.');
                 } finally {
                     setLoading(false);
@@ -193,23 +193,18 @@
                                 <label className="block text-sm font-bold text-slate-700 mb-2">아이디</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.User /></div>
-                                    <input type="text" value={id} onChange={(e) => setId(e.target.value)} 
-                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" 
-                                        placeholder="아이디를 입력하세요" required />
+                                    <input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="아이디" required />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">비밀번호</label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.Lock /></div>
-                                    <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} 
-                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" 
-                                        placeholder="비밀번호를 입력하세요" required />
+                                    <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="비밀번호" required />
                                 </div>
                             </div>
                             {error && <p className="text-red-500 text-sm font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
-                            <button type="submit" disabled={loading} 
-                                className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-50">
+                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-50">
                                 {loading ? '로그인 중...' : '로그인 하기'}
                             </button>
                         </form>
@@ -218,38 +213,36 @@
             );
         };
 
-        // --- 메인 앱 ---
+        // --- 메인 앱 (대시보드 복원) ---
         const App = () => {
             const [user, setUser] = useState(null);
+            const [showCreateModal, setShowCreateModal] = useState(false);
 
             const handleLogout = async () => {
                 try { await signOut(auth); } catch(e) {}
                 setUser(null);
             };
 
-            if (!user) {
-                return <Login onLogin={setUser} />;
-            }
+            if (!user) return <Login onLogin={setUser} />;
 
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
+                    {/* 모달 렌더링 */}
+                    {showCreateModal && <CreateStaffModal onClose={() => setShowCreateModal(false)} />}
+
                     {/* 사이드바 */}
-                    <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10">
+                    <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10 shadow-xl">
                         <div className="p-6 border-b border-slate-700/50">
                             <h1 className="text-xl font-black text-white">양지누림</h1>
-                            <p className="text-xs text-slate-400 mt-1">
-                                {user.name}님 ({user.role === 'admin' ? '관리자' : '직원'})
-                            </p>
+                            <p className="text-xs text-slate-400 mt-1">{user.name}님 ({user.role === 'admin' ? '관리자' : '직원'})</p>
                         </div>
-                        <nav className="flex-1 p-4">
-                            <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/50">
-                                <Icons.Grid /> 대시보드
-                            </button>
+                        <nav className="flex-1 p-4 flex flex-col gap-2">
+                            <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/50"><Icons.Grid /> 대시보드</button>
+                            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-bold transition"><Icons.Calendar /> 근태/연차 관리</button>
+                            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-bold transition"><Icons.Users /> 직원 명부</button>
                         </nav>
                         <div className="p-4 bg-[#0F172A]">
-                            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2">
-                                <Icons.LogOut /> 로그아웃
-                            </button>
+                            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
                         </div>
                     </aside>
 
@@ -259,48 +252,99 @@
                             <h2 className="text-2xl font-bold text-slate-800">
                                 {user.role === 'admin' ? '관리자 대시보드' : '나의 연차 현황'}
                             </h2>
+                            <div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()} (오늘)</div>
                         </header>
 
                         {user.role === 'admin' ? (
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                {/* 왼쪽: 현황판 */}
-                                <div className="lg:col-span-2 space-y-6">
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                        <h3 className="font-bold text-slate-700 mb-4">📢 관리자 안내</h3>
-                                        <p className="text-slate-600 text-sm leading-relaxed">
-                                            정상적으로 <strong>서버(Firebase)</strong>와 연결되었습니다.<br/>
-                                            오른쪽 패널에서 직원을 등록하면, 해당 직원은 ID와 초기 비밀번호(123456)로 로그인할 수 있습니다.
-                                        </p>
-                                    </div>
-                                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-64 flex items-center justify-center text-slate-400 flex-col gap-2">
-                                        <div className="p-4 bg-slate-50 rounded-full"><Icons.Grid /></div>
-                                        <span>직원 연차 현황 그래프가 이곳에 표시됩니다.</span>
-                                    </div>
+                            <div className="max-w-7xl mx-auto space-y-6">
+                                {/* 1. 통계 카드 (복원됨) */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {MOCK_STATS.map((stat, idx) => (
+                                        <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex items-center justify-between">
+                                            <div>
+                                                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{stat.label}</p>
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-2xl font-black text-slate-800">{stat.value}</span>
+                                                    <span className="text-sm font-medium text-slate-500">{stat.unit}</span>
+                                                </div>
+                                            </div>
+                                            <div className={`p-3 rounded-xl ${stat.color} bg-opacity-50`}>{stat.icon}</div>
+                                        </div>
+                                    ))}
                                 </div>
-                                {/* 오른쪽: 계정 생성 기능 */}
-                                <div>
-                                    <CreateStaffAccount />
+
+                                {/* 2. 메인 대시보드 그리드 */}
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* 왼쪽 (2/3): 현황 및 그래프 */}
+                                    <div className="lg:col-span-2 space-y-6">
+                                        {/* 금일 부재 현황 (복원됨) */}
+                                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h3 className="font-bold text-slate-700 flex items-center gap-2">
+                                                    <span className="w-2 h-6 bg-orange-400 rounded-sm"></span>
+                                                    금일 부재 현황
+                                                </h3>
+                                            </div>
+                                            <div className="space-y-3">
+                                                {MOCK_TODAY_LEAVE.map((person, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-white border flex items-center justify-center text-sm font-bold text-slate-600 shadow-sm">{person.name[0]}</div>
+                                                            <div>
+                                                                <p className="text-sm font-bold text-slate-800">{person.name} <span className="text-slate-400 font-normal text-xs">| {person.dept}</span></p>
+                                                                <p className="text-xs text-slate-500 font-medium mt-0.5">{person.time}</p>
+                                                            </div>
+                                                        </div>
+                                                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${person.type === '연차' ? 'bg-blue-100 text-blue-700' : person.type === '병가' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>{person.type}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 그래프 영역 (복원됨) */}
+                                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4">
+                                                <span className="w-2 h-6 bg-blue-500 rounded-sm"></span>
+                                                월간 연차 소진 추이
+                                            </h3>
+                                            <div className="h-48 bg-slate-50 rounded-xl flex items-center justify-center border border-dashed border-slate-200 text-slate-400 text-sm">
+                                                데이터가 누적되면 그래프가 표시됩니다.
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 오른쪽 (1/3): 퀵 액션 */}
+                                    <div className="space-y-4">
+                                        <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200">
+                                            <h3 className="font-bold text-lg mb-1">빠른 연차 등록</h3>
+                                            <p className="text-blue-100 text-sm mb-4">관리자가 직원의 연차를 대리 등록합니다.</p>
+                                            <button className="w-full bg-white text-blue-700 py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition">+ 연차 등록하기</button>
+                                        </div>
+
+                                        {/* 직원 생성 버튼 통합 */}
+                                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                                            <h3 className="font-bold text-slate-700 mb-2">직원 관리</h3>
+                                            <p className="text-slate-500 text-xs mb-4">새로운 직원이 입사했나요? 계정을 발급해주세요.</p>
+                                            <button 
+                                                onClick={() => setShowCreateModal(true)}
+                                                className="w-full border-2 border-slate-100 text-slate-600 py-3 rounded-xl text-sm font-bold hover:border-slate-800 hover:text-slate-800 transition flex items-center justify-center gap-2"
+                                            >
+                                                <Icons.Plus /> 직원 계정 발급
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
                             // 직원용 화면
                             <div className="space-y-6">
                                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-slate-800">반갑습니다, {user.name}님! 👋</h3>
-                                        <p className="text-slate-500 text-sm mt-1">오늘도 좋은 하루 되세요.</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs font-bold text-slate-400 uppercase">잔여 연차</p>
-                                        <p className="text-3xl font-black text-blue-600">15.0 <span className="text-sm font-medium text-slate-500">일</span></p>
-                                    </div>
+                                    <div><h3 className="text-xl font-bold text-slate-800">반갑습니다, {user.name}님! 👋</h3></div>
+                                    <div className="text-right"><p className="text-xs font-bold text-slate-400">잔여 연차</p><p className="text-3xl font-black text-blue-600">15.0</p></div>
                                 </div>
-
                                 <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 text-center min-h-[300px] flex flex-col items-center justify-center">
-                                    <p className="text-slate-400 font-medium">아직 휴가 신청 내역이 없습니다.</p>
-                                    <button className="mt-4 px-6 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition text-sm">
-                                        + 휴가 신청하기
-                                    </button>
+                                    <p className="text-slate-400 font-medium">휴가 신청 내역이 없습니다.</p>
+                                    <button className="mt-4 px-6 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition text-sm">+ 휴가 신청하기</button>
                                 </div>
                             </div>
                         )}
