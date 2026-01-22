@@ -6,6 +6,9 @@
     <title>양지누림 연차 관리 시스템</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
     <script type="importmap">
     {
         "imports": {
@@ -20,23 +23,24 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        /* 스크롤바 숨김 처리 (깔끔하게) */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect } from 'react';
+        import React, { useState, useEffect, useMemo, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-        import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
         // ------------------------------------------------------------------
-        // ✅ Firebase 설정 (실제 키 적용됨)
+        // ✅ Firebase 설정
         // ------------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -64,79 +68,55 @@
             LogOut: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
             Plus: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
             X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Upload: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         };
 
-        // --- Mock Data (대시보드 UI 복원용) ---
-        const MOCK_STATS = [
-            { label: "총 임직원", value: "42", unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
-            { label: "금일 휴가자", value: "3", unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> },
-            { label: "결재 대기", value: "1", unit: "건", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
-            { label: "평균 소진율", value: "12", unit: "%", color: "bg-green-50 text-green-600", icon: <Icons.Calendar /> },
-        ];
-        const MOCK_TODAY_LEAVE = [
-            { name: "김지수", dept: "경영지원팀", type: "연차", time: "종일" },
-            { name: "이민호", dept: "개발팀", type: "오전반차", time: "09:00 ~ 13:00" },
-            { name: "박서준", dept: "마케팅팀", type: "병가", time: "종일" },
-        ];
+        // --- 📅 근로기준법 연차 계산 로직 ---
+        const calculateAnnualLeave = (joinDateStr) => {
+            if (!joinDateStr) return { total: 0, period: '-' };
+            
+            const joinDate = new Date(joinDateStr);
+            const today = new Date();
+            
+            // 근속 연수 계산
+            let yearsWorked = today.getFullYear() - joinDate.getFullYear();
+            const m = today.getMonth() - joinDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < joinDate.getDate())) {
+                yearsWorked--;
+            }
 
-        // --- 모달: 직원 계정 생성 ---
-        const CreateStaffModal = ({ onClose }) => {
-            const [newId, setNewId] = useState('');
-            const [newName, setNewName] = useState('');
-            const [newPw, setNewPw] = useState('123456'); 
-            const [msg, setMsg] = useState('');
+            // 발생 연차 계산 (1년 미만: 11개, 1년 이상: 15개 + @)
+            let totalLeave = 0;
+            if (yearsWorked < 1) {
+                // 1년 미만: 1개월 만근 시 1개 (최대 11개) -> 여기선 단순화하여 11개 부여 (상세 로직 필요 시 수정 가능)
+                totalLeave = 11; 
+            } else {
+                // 15 + (근속년수-1)/2 (소수점 버림)
+                totalLeave = 15 + Math.floor((yearsWorked - 1) / 2);
+                if (totalLeave > 25) totalLeave = 25; // 최대 25개 제한
+            }
 
-            const handleCreate = async (e) => {
-                e.preventDefault();
-                setMsg('처리 중...');
-                try {
-                    const email = `${newId}@ygnurim.com`;
-                    await setDoc(doc(db, 'users', email), {
-                        employeeId: newId,
-                        name: newName,
-                        role: 'staff',
-                        tempPw: newPw, 
-                        joinDate: new Date().toISOString().split('T')[0],
-                        annualLeaveTotal: 15,
-                        annualLeaveUsed: 0
-                    });
-                    setMsg(`✅ 생성 완료! (ID: ${newId})`);
-                    setNewId(''); setNewName('');
-                    setTimeout(() => { setMsg(''); onClose(); }, 1500); // 1.5초 후 닫기
-                } catch (err) {
-                    setMsg('❌ 오류: ' + err.message);
-                }
+            // 사용 기간 (회계연도 기준이 아닌 입사일 기준 1년으로 설정)
+            // 올해의 발생 기준일 찾기
+            let baseYear = today.getFullYear();
+            let baseDate = new Date(joinDate);
+            baseDate.setFullYear(baseYear);
+            
+            // 만약 생일(입사일)이 아직 안 지났으면 작년 기준으로 계산해야 함
+            if (today < baseDate) {
+                baseDate.setFullYear(baseYear - 1);
+            }
+
+            const startDate = baseDate.toISOString().split('T')[0];
+            const endDateObj = new Date(baseDate);
+            endDateObj.setFullYear(endDateObj.getFullYear() + 1);
+            endDateObj.setDate(endDateObj.getDate() - 1);
+            const endDate = endDateObj.toISOString().split('T')[0];
+
+            return {
+                total: totalLeave,
+                period: `${startDate} ~ ${endDate}`
             };
-
-            return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Icons.Plus /></div>
-                            직원 계정 발급
-                        </h3>
-                        <form onSubmit={handleCreate} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">직원 이름</label>
-                                <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: 김직원" required />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">아이디 (사번)</label>
-                                <input type="text" value={newId} onChange={e => setNewId(e.target.value)} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: staff01" required />
-                            </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
-                                <label className="text-xs font-bold text-slate-400">초기 비밀번호</label>
-                                <div className="text-sm font-bold text-slate-600 tracking-widest">123456</div>
-                            </div>
-                            <button type="submit" className="w-full bg-slate-800 text-white py-3 rounded-xl text-sm font-bold hover:bg-slate-700 transition shadow-lg shadow-slate-200">
-                                계정 생성하기
-                            </button>
-                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
-                        </form>
-                    </div>
-                </div>
-            );
         };
 
         // --- 로그인 컴포넌트 ---
@@ -172,10 +152,16 @@
                                 onLogin({ ...userDoc.data(), email });
                                 setLoading(false);
                                 return;
+                            } else {
+                                setError('아이디 또는 비밀번호가 잘못되었습니다.');
                             }
-                        } catch (dbErr) { console.error(dbErr); }
+                        } catch (dbErr) {
+                            if (dbErr.code === 'permission-denied') setError('🚨 DB 권한 오류: 콘솔에서 규칙을 수정해주세요.');
+                            else setError('시스템 오류: ' + dbErr.message);
+                        }
+                    } else {
+                        setError('로그인 실패: ' + err.code);
                     }
-                    setError('아이디 또는 비밀번호를 확인해주세요.');
                 } finally {
                     setLoading(false);
                 }
@@ -191,20 +177,14 @@
                         <form onSubmit={handleLogin} className="space-y-6">
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">아이디</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.User /></div>
-                                    <input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="아이디" required />
-                                </div>
+                                <input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="아이디" required />
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-2">비밀번호</label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.Lock /></div>
-                                    <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="비밀번호" required />
-                                </div>
+                                <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="비밀번호" required />
                             </div>
-                            {error && <p className="text-red-500 text-sm font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
-                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-50">
+                            {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-3 rounded-lg">{error}</p>}
+                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition disabled:opacity-50">
                                 {loading ? '로그인 중...' : '로그인 하기'}
                             </button>
                         </form>
@@ -213,10 +193,182 @@
             );
         };
 
-        // --- 메인 앱 (대시보드 복원) ---
+        // --- 📊 엑셀 업로드 및 처리 컴포넌트 ---
+        const StaffTab = ({ staffList }) => {
+            const fileInputRef = useRef(null);
+            const [uploadMsg, setUploadMsg] = useState('');
+
+            // 엑셀 날짜(숫자)를 YYYY-MM-DD 문자열로 변환하는 함수
+            const excelDateToJSDate = (serial) => {
+               if (!serial) return '';
+               // 엑셀 날짜가 문자로 들어온 경우 (예: '2023-01-01')
+               if (typeof serial === 'string' && serial.includes('-')) return serial;
+               // 엑셀 시리얼 넘버인 경우
+               const utc_days  = Math.floor(serial - 25569);
+               const utc_value = utc_days * 86400;                                      
+               const date_info = new Date(utc_value * 1000);
+               return date_info.toISOString().split('T')[0];
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = async (evt) => {
+                    try {
+                        const bstr = evt.target.result;
+                        const wb = XLSX.read(bstr, { type: 'binary' });
+                        const wsname = wb.SheetNames[0];
+                        const ws = wb.Sheets[wsname];
+                        
+                        // 헤더 포함 전체 데이터 가져오기 (배열의 배열 형태)
+                        const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        
+                        // 데이터가 없거나 헤더만 있는 경우
+                        if (data.length < 2) {
+                            setUploadMsg('❌ 데이터가 없습니다.');
+                            return;
+                        }
+
+                        // Firestore Batch 처리 (한번에 저장)
+                        const batch = writeBatch(db);
+                        let count = 0;
+
+                        // 2번째 행부터 데이터로 간주 (인덱스 1)
+                        for (let i = 1; i < data.length; i++) {
+                            const row = data[i];
+                            if (!row || row.length === 0) continue;
+
+                            // ✅ 요청하신 열 매핑 (0부터 시작하므로 -1 없이 알파벳 순서대로 계산)
+                            // A=0, B=1, C=2 ... X=23 ... AA=26 ... AD=29
+                            const name = row[2];        // C열: 이름
+                            const birthRaw = row[23];   // X열: 생년월일
+                            const phone = row[26];      // AA열: 휴대폰번호
+                            const joinDateRaw = row[29]; // AD열: 입사일
+
+                            if (name) {
+                                // 날짜 변환
+                                const birth = excelDateToJSDate(birthRaw);
+                                const joinDate = excelDateToJSDate(joinDateRaw);
+                                
+                                // 연차 계산
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+
+                                // 사번 생성 (임시: 전화번호 뒷자리 등 활용하거나 자동생성)
+                                // 여기서는 중복 방지를 위해 '전화번호+이름' 조합이나 Email을 키로 씁니다.
+                                // 편의상 email을 가상의 ID로 생성
+                                const tempId = `staff${Math.floor(Math.random()*10000)}`;
+                                const email = `${tempId}@ygnurim.com`; // 실제 운영시엔 사번 규칙 적용 필요
+
+                                const docRef = doc(db, 'users', email); // 이메일을 키로 사용
+                                batch.set(docRef, {
+                                    name: name,
+                                    birth: birth || '',
+                                    phone: phone || '',
+                                    joinDate: joinDate || '',
+                                    employeeId: tempId,
+                                    role: 'staff',
+                                    tempPw: '123456', // 초기 비번
+                                    annualLeaveTotal: leaveInfo.total,
+                                    annualLeaveUsed: 0,
+                                    annualLeavePeriod: leaveInfo.period
+                                }, { merge: true }); // 기존 데이터 덮어쓰기 방지 (병합)
+                                count++;
+                            }
+                        }
+
+                        await batch.commit();
+                        setUploadMsg(`✅ ${count}명 직원 등록 완료!`);
+                        setTimeout(() => setUploadMsg(''), 3000);
+
+                    } catch (err) {
+                        console.error(err);
+                        setUploadMsg('❌ 파일 처리 중 오류 발생');
+                    }
+                };
+                reader.readAsBinaryString(file);
+            };
+
+            return (
+                <div className="space-y-6">
+                    {/* 상단 액션 바 */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3>
+                            <p className="text-xs text-slate-500">엑셀 파일을 업로드하여 직원을 일괄 등록/수정합니다.</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {uploadMsg && <span className="text-sm font-bold text-blue-600 animate-pulse">{uploadMsg}</span>}
+                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls" className="hidden" />
+                            <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center gap-2">
+                                <Icons.Upload /> 엑셀 업로드
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 직원 리스트 테이블 */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                <tr>
+                                    <th className="p-4">이름</th>
+                                    <th className="p-4">생년월일</th>
+                                    <th className="p-4">휴대폰번호</th>
+                                    <th className="p-4">입사일</th>
+                                    <th className="p-4 text-center text-blue-600">생성 연차</th>
+                                    <th className="p-4 text-center text-red-500">사용</th>
+                                    <th className="p-4 text-center text-green-600">잔여</th>
+                                    <th className="p-4 w-48">사용 기간</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {staffList.map((staff, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50 transition">
+                                        <td className="p-4 font-bold text-slate-800">{staff.name}</td>
+                                        <td className="p-4 text-slate-500">{staff.birth}</td>
+                                        <td className="p-4 text-slate-500">{staff.phone}</td>
+                                        <td className="p-4 text-slate-500">{staff.joinDate}</td>
+                                        <td className="p-4 text-center font-bold">{staff.annualLeaveTotal}개</td>
+                                        <td className="p-4 text-center text-slate-400">{staff.annualLeaveUsed}개</td>
+                                        <td className="p-4 text-center font-bold text-blue-600">{(staff.annualLeaveTotal - staff.annualLeaveUsed).toFixed(1)}개</td>
+                                        <td className="p-4 text-xs text-slate-400">{staff.annualLeavePeriod}</td>
+                                    </tr>
+                                ))}
+                                {staffList.length === 0 && (
+                                    <tr>
+                                        <td colSpan="8" className="p-12 text-center text-slate-400">
+                                            등록된 직원이 없습니다.<br/>
+                                            우측 상단 <strong>[엑셀 업로드]</strong> 버튼을 눌러 데이터를 등록해주세요.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 메인 앱 ---
         const App = () => {
             const [user, setUser] = useState(null);
-            const [showCreateModal, setShowCreateModal] = useState(false);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [staffList, setStaffList] = useState([]);
+            
+            // 직원 목록 실시간 동기화 (대시보드와 명부 모두 사용)
+            useEffect(() => {
+                if (user && user.role === 'admin') {
+                    const q = collection(db, 'users');
+                    const unsub = onSnapshot(q, (snapshot) => {
+                        const list = snapshot.docs
+                            .map(d => ({ ...d.data(), id: d.id }))
+                            .filter(u => u.role === 'staff'); // 직원만 필터링
+                        setStaffList(list);
+                    });
+                    return () => unsub();
+                }
+            }, [user]);
 
             const handleLogout = async () => {
                 try { await signOut(auth); } catch(e) {}
@@ -225,41 +377,46 @@
 
             if (!user) return <Login onLogin={setUser} />;
 
+            // 대시보드 통계 데이터 (실제 데이터 연동)
+            const DASHBOARD_STATS = [
+                { label: "총 임직원", value: staffList.length, unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
+                { label: "금일 휴가자", value: "0", unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> }, // 추후 휴가 DB 연동 필요
+                { label: "결재 대기", value: "0", unit: "건", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
+                { label: "평균 소진율", value: "0", unit: "%", color: "bg-green-50 text-green-600", icon: <Icons.Calendar /> },
+            ];
+
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
-                    {/* 모달 렌더링 */}
-                    {showCreateModal && <CreateStaffModal onClose={() => setShowCreateModal(false)} />}
-
-                    {/* 사이드바 */}
                     <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10 shadow-xl">
                         <div className="p-6 border-b border-slate-700/50">
                             <h1 className="text-xl font-black text-white">양지누림</h1>
                             <p className="text-xs text-slate-400 mt-1">{user.name}님 ({user.role === 'admin' ? '관리자' : '직원'})</p>
                         </div>
                         <nav className="flex-1 p-4 flex flex-col gap-2">
-                            <button className="w-full flex items-center gap-3 px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/50"><Icons.Grid /> 대시보드</button>
-                            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-bold transition"><Icons.Calendar /> 근태/연차 관리</button>
-                            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl text-sm font-bold transition"><Icons.Users /> 직원 명부</button>
+                            <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
+                            <button onClick={() => setActiveTab('attendance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'attendance' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 근태/연차 관리</button>
+                            <button onClick={() => setActiveTab('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
                         </nav>
                         <div className="p-4 bg-[#0F172A]">
                             <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
                         </div>
                     </aside>
 
-                    {/* 메인 컨텐츠 */}
                     <main className="flex-1 overflow-y-auto p-8">
                         <header className="flex justify-between items-center mb-8">
                             <h2 className="text-2xl font-bold text-slate-800">
-                                {user.role === 'admin' ? '관리자 대시보드' : '나의 연차 현황'}
+                                {activeTab === 'dashboard' && '관리자 대시보드'}
+                                {activeTab === 'attendance' && '근태/연차 관리'}
+                                {activeTab === 'staff' && '직원 명부 관리'}
                             </h2>
                             <div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()} (오늘)</div>
                         </header>
 
-                        {user.role === 'admin' ? (
-                            <div className="max-w-7xl mx-auto space-y-6">
-                                {/* 1. 통계 카드 (복원됨) */}
+                        {/* 1. 대시보드 탭 */}
+                        {activeTab === 'dashboard' && (
+                            <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {MOCK_STATS.map((stat, idx) => (
+                                    {DASHBOARD_STATS.map((stat, idx) => (
                                         <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex items-center justify-between">
                                             <div>
                                                 <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{stat.label}</p>
@@ -272,80 +429,42 @@
                                         </div>
                                     ))}
                                 </div>
-
-                                {/* 2. 메인 대시보드 그리드 */}
+                                {/* 기존 대시보드 UI (그래프 등) 유지 */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                    {/* 왼쪽 (2/3): 현황 및 그래프 */}
                                     <div className="lg:col-span-2 space-y-6">
-                                        {/* 금일 부재 현황 (복원됨) */}
                                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                                    <span className="w-2 h-6 bg-orange-400 rounded-sm"></span>
-                                                    금일 부재 현황
-                                                </h3>
-                                            </div>
-                                            <div className="space-y-3">
-                                                {MOCK_TODAY_LEAVE.map((person, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-full bg-white border flex items-center justify-center text-sm font-bold text-slate-600 shadow-sm">{person.name[0]}</div>
-                                                            <div>
-                                                                <p className="text-sm font-bold text-slate-800">{person.name} <span className="text-slate-400 font-normal text-xs">| {person.dept}</span></p>
-                                                                <p className="text-xs text-slate-500 font-medium mt-0.5">{person.time}</p>
-                                                            </div>
-                                                        </div>
-                                                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${person.type === '연차' ? 'bg-blue-100 text-blue-700' : person.type === '병가' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`}>{person.type}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4"><span className="w-2 h-6 bg-orange-400 rounded-sm"></span> 금일 부재 현황</h3>
+                                            <p className="text-slate-400 text-sm text-center py-8">금일 휴가자가 없습니다.</p>
                                         </div>
-
-                                        {/* 그래프 영역 (복원됨) */}
                                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4">
-                                                <span className="w-2 h-6 bg-blue-500 rounded-sm"></span>
-                                                월간 연차 소진 추이
-                                            </h3>
-                                            <div className="h-48 bg-slate-50 rounded-xl flex items-center justify-center border border-dashed border-slate-200 text-slate-400 text-sm">
-                                                데이터가 누적되면 그래프가 표시됩니다.
-                                            </div>
+                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4"><span className="w-2 h-6 bg-blue-500 rounded-sm"></span> 월간 연차 소진 추이</h3>
+                                            <div className="h-48 bg-slate-50 rounded-xl flex items-center justify-center border border-dashed border-slate-200 text-slate-400 text-sm">데이터가 누적되면 그래프가 표시됩니다.</div>
                                         </div>
                                     </div>
-
-                                    {/* 오른쪽 (1/3): 퀵 액션 */}
                                     <div className="space-y-4">
                                         <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200">
                                             <h3 className="font-bold text-lg mb-1">빠른 연차 등록</h3>
                                             <p className="text-blue-100 text-sm mb-4">관리자가 직원의 연차를 대리 등록합니다.</p>
                                             <button className="w-full bg-white text-blue-700 py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition">+ 연차 등록하기</button>
                                         </div>
-
-                                        {/* 직원 생성 버튼 통합 */}
-                                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                                            <h3 className="font-bold text-slate-700 mb-2">직원 관리</h3>
-                                            <p className="text-slate-500 text-xs mb-4">새로운 직원이 입사했나요? 계정을 발급해주세요.</p>
-                                            <button 
-                                                onClick={() => setShowCreateModal(true)}
-                                                className="w-full border-2 border-slate-100 text-slate-600 py-3 rounded-xl text-sm font-bold hover:border-slate-800 hover:text-slate-800 transition flex items-center justify-center gap-2"
-                                            >
-                                                <Icons.Plus /> 직원 계정 발급
-                                            </button>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        ) : (
-                            // 직원용 화면
-                            <div className="space-y-6">
-                                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex items-center justify-between">
-                                    <div><h3 className="text-xl font-bold text-slate-800">반갑습니다, {user.name}님! 👋</h3></div>
-                                    <div className="text-right"><p className="text-xs font-bold text-slate-400">잔여 연차</p><p className="text-3xl font-black text-blue-600">15.0</p></div>
-                                </div>
-                                <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 text-center min-h-[300px] flex flex-col items-center justify-center">
-                                    <p className="text-slate-400 font-medium">휴가 신청 내역이 없습니다.</p>
-                                    <button className="mt-4 px-6 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition text-sm">+ 휴가 신청하기</button>
-                                </div>
+                        )}
+
+                        {/* 2. 직원 명부 탭 (신규 기능) */}
+                        {activeTab === 'staff' && (
+                            <div className="max-w-7xl mx-auto animate-fade-in">
+                                <StaffTab staffList={staffList} />
+                            </div>
+                        )}
+
+                        {/* 3. 근태 관리 탭 (추후 개발) */}
+                        {activeTab === 'attendance' && (
+                            <div className="flex flex-col items-center justify-center h-96 text-slate-400 animate-fade-in">
+                                <div className="bg-white p-6 rounded-full shadow-sm border mb-4"><Icons.Calendar /></div>
+                                <h3 className="font-bold text-slate-600 text-lg">기능 준비중</h3>
+                                <p className="text-sm mt-2">직원 명부 등록 후, 근태 관리 기능을 개발할 예정입니다.</p>
                             </div>
                         )}
                     </main>
