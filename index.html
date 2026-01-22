@@ -81,7 +81,7 @@
                 yearsWorked--;
             }
 
-            // 발생 연차 (1년 미만: 11개, 1년 이상: 15개 + 2년마다 1개 가산)
+            // 발생 연차
             let totalLeave = 0;
             if (yearsWorked < 1) {
                 totalLeave = 11; 
@@ -180,21 +180,27 @@
             );
         };
 
-        // --- 📊 엑셀/CSV 업로드 처리 (생년월일 수정 버전) ---
+        // --- 📊 엑셀/CSV 업로드 처리 (수정된 로직 적용) ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
 
-            // 🛠️ 날짜 변환 함수 (6자리 숫자 대응 추가)
+            // 🛠️ 날짜 변환 함수 (새 형식 지원 강화)
             const safeDate = (val) => {
                 if (!val) return '';
                 const str = String(val).trim();
 
-                // 1. 이미 YYYY-MM-DD 형식이면 통과
-                if (str.includes('-') && str.length >= 10) return str;
+                // 1. 표준 날짜 포맷 우선 처리 (YYYY-MM-DD, YYYY.MM.DD 등)
+                // 구분자가 -, ., / 인 경우를 모두 잡아내고 표준형(YYYY-MM-DD)으로 변환
+                const stdMatch = str.match(/^(\d{4})[\-\.\/](\d{1,2})[\-\.\/](\d{1,2})$/);
+                if (stdMatch) {
+                    const y = stdMatch[1];
+                    const m = stdMatch[2].padStart(2, '0'); // 월이 3이면 03으로
+                    const d = stdMatch[3].padStart(2, '0'); // 일이 9면 09로
+                    return `${y}-${m}-${d}`;
+                }
 
-                // 2. 6자리 숫자 (예: 790319) 처리 [✅ 중요]
-                // 30 이상이면 1900년대, 아니면 2000년대로 가정
+                // 2. 6자리 숫자 (예: 790319) - 보조 수단
                 if (/^\d{6}$/.test(str)) {
                     const yy = parseInt(str.substring(0, 2), 10);
                     const mm = str.substring(2, 4);
@@ -203,7 +209,7 @@
                     return `${prefix}${yy}-${mm}-${dd}`;
                 }
 
-                // 3. 엑셀 시리얼 넘버 (숫자) 처리
+                // 3. 엑셀 시리얼 넘버 처리
                 if (!isNaN(val) && val > 30000) {
                     try {
                         const date = new Date((val - 25569) * 86400 * 1000);
@@ -241,15 +247,16 @@
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
 
-                            // 📌 열 매핑 (0부터 시작) -> C=2, X=23, AA=26, AD=29
+                            // 📌 열 매핑 (C=2, X=23, AA=26, AD=29)
                             const name = row[2];
                             
                             if (name) {
-                                const birthRaw = row[23];  // X열 (생일)
-                                const phoneRaw = row[26];  // AA열 (폰)
-                                const joinRaw = row[29];   // AD열 (입사일)
+                                const birthRaw = row[23];  
+                                const phoneRaw = row[26];  
+                                const joinRaw = row[29];   
 
-                                const birthDate = safeDate(birthRaw); // 🛠️ 수정된 변환 함수 적용
+                                // 수정된 로직으로 날짜 변환
+                                const birthDate = safeDate(birthRaw);
                                 const joinDate = safeDate(joinRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
 
