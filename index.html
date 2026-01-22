@@ -6,9 +6,7 @@
     <title>양지누림 연차 관리 시스템</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
     <script type="importmap">
     {
         "imports": {
@@ -24,7 +22,6 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -33,15 +30,13 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo, useRef } from 'react';
+        import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
-        // ------------------------------------------------------------------
         // ✅ Firebase 설정
-        // ------------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
             authDomain: "ygnurim-attendance-management.firebaseapp.com",
@@ -73,36 +68,34 @@
 
         // --- 📅 근로기준법 연차 계산 로직 ---
         const calculateAnnualLeave = (joinDateStr) => {
-            if (!joinDateStr) return { total: 0, period: '-' };
+            if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-' };
             
             const joinDate = new Date(joinDateStr);
             const today = new Date();
+            if (isNaN(joinDate.getTime())) return { total: 0, period: '-' };
             
-            // 근속 연수 계산
+            // 근속 연수
             let yearsWorked = today.getFullYear() - joinDate.getFullYear();
             const m = today.getMonth() - joinDate.getMonth();
             if (m < 0 || (m === 0 && today.getDate() < joinDate.getDate())) {
                 yearsWorked--;
             }
 
-            // 발생 연차 계산 (1년 미만: 11개, 1년 이상: 15개 + @)
+            // 발생 연차 (1년 미만: 11개, 1년 이상: 15개 + 2년마다 1개 가산)
             let totalLeave = 0;
             if (yearsWorked < 1) {
-                // 1년 미만: 1개월 만근 시 1개 (최대 11개) -> 여기선 단순화하여 11개 부여 (상세 로직 필요 시 수정 가능)
                 totalLeave = 11; 
             } else {
-                // 15 + (근속년수-1)/2 (소수점 버림)
                 totalLeave = 15 + Math.floor((yearsWorked - 1) / 2);
-                if (totalLeave > 25) totalLeave = 25; // 최대 25개 제한
+                if (totalLeave > 25) totalLeave = 25;
             }
 
-            // 사용 기간 (회계연도 기준이 아닌 입사일 기준 1년으로 설정)
-            // 올해의 발생 기준일 찾기
+            // 사용 기간 (입사일 기준 1년)
             let baseYear = today.getFullYear();
             let baseDate = new Date(joinDate);
             baseDate.setFullYear(baseYear);
             
-            // 만약 생일(입사일)이 아직 안 지났으면 작년 기준으로 계산해야 함
+            // 아직 생일(입사일) 전이라면, 작년 입사일 ~ 올해 입사일 전날까지가 사용 기간
             if (today < baseDate) {
                 baseDate.setFullYear(baseYear - 1);
             }
@@ -152,16 +145,11 @@
                                 onLogin({ ...userDoc.data(), email });
                                 setLoading(false);
                                 return;
-                            } else {
-                                setError('아이디 또는 비밀번호가 잘못되었습니다.');
-                            }
+                            } else setError('아이디 또는 비밀번호가 잘못되었습니다.');
                         } catch (dbErr) {
-                            if (dbErr.code === 'permission-denied') setError('🚨 DB 권한 오류: 콘솔에서 규칙을 수정해주세요.');
-                            else setError('시스템 오류: ' + dbErr.message);
+                            setError('시스템 오류: ' + dbErr.message);
                         }
-                    } else {
-                        setError('로그인 실패: ' + err.code);
-                    }
+                    } else setError('로그인 실패: ' + err.code);
                 } finally {
                     setLoading(false);
                 }
@@ -193,21 +181,23 @@
             );
         };
 
-        // --- 📊 엑셀 업로드 및 처리 컴포넌트 ---
+        // --- 📊 엑셀/CSV 업로드 처리 ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
 
-            // 엑셀 날짜(숫자)를 YYYY-MM-DD 문자열로 변환하는 함수
-            const excelDateToJSDate = (serial) => {
-               if (!serial) return '';
-               // 엑셀 날짜가 문자로 들어온 경우 (예: '2023-01-01')
-               if (typeof serial === 'string' && serial.includes('-')) return serial;
-               // 엑셀 시리얼 넘버인 경우
-               const utc_days  = Math.floor(serial - 25569);
-               const utc_value = utc_days * 86400;                                      
-               const date_info = new Date(utc_value * 1000);
-               return date_info.toISOString().split('T')[0];
+            // 안전한 날짜 변환 (오류 방지)
+            const safeDate = (val) => {
+                if (!val) return '';
+                if (typeof val === 'string') return val; // 이미 문자열이면 그대로 반환 (YYYY-MM-DD)
+                try {
+                    // 엑셀 숫자 날짜 변환
+                    const date = new Date((val - 25569) * 86400 * 1000);
+                    if (isNaN(date.getTime())) return String(val); // 변환 실패시 원본 반환
+                    return date.toISOString().split('T')[0];
+                } catch (e) {
+                    return String(val);
+                }
             };
 
             const handleFileUpload = (e) => {
@@ -215,99 +205,89 @@
                 if (!file) return;
 
                 const reader = new FileReader();
+                // BinaryString 대신 ArrayBuffer 사용 (CSV/Excel 호환성 향상)
+                reader.readAsArrayBuffer(file);
+
                 reader.onload = async (evt) => {
                     try {
-                        const bstr = evt.target.result;
-                        const wb = XLSX.read(bstr, { type: 'binary' });
-                        const wsname = wb.SheetNames[0];
-                        const ws = wb.Sheets[wsname];
-                        
-                        // 헤더 포함 전체 데이터 가져오기 (배열의 배열 형태)
-                        const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                        
-                        // 데이터가 없거나 헤더만 있는 경우
-                        if (data.length < 2) {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 }); // 배열의 배열로 가져오기
+
+                        if (jsonData.length < 2) {
                             setUploadMsg('❌ 데이터가 없습니다.');
                             return;
                         }
 
-                        // Firestore Batch 처리 (한번에 저장)
                         const batch = writeBatch(db);
                         let count = 0;
 
-                        // 2번째 행부터 데이터로 간주 (인덱스 1)
-                        for (let i = 1; i < data.length; i++) {
-                            const row = data[i];
+                        // 2번째 행부터 데이터 (인덱스 1)
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
                             if (!row || row.length === 0) continue;
 
-                            // ✅ 요청하신 열 매핑 (0부터 시작하므로 -1 없이 알파벳 순서대로 계산)
-                            // A=0, B=1, C=2 ... X=23 ... AA=26 ... AD=29
-                            const name = row[2];        // C열: 이름
-                            const birthRaw = row[23];   // X열: 생년월일
-                            const phone = row[26];      // AA열: 휴대폰번호
-                            const joinDateRaw = row[29]; // AD열: 입사일
-
+                            // 📌 요청하신 열 매핑 (A=0, B=1, C=2 ...)
+                            // C(2): 이름, X(23): 생년월일, AA(26): 휴대폰, AD(29): 입사일
+                            const name = row[2];
+                            
                             if (name) {
-                                // 날짜 변환
-                                const birth = excelDateToJSDate(birthRaw);
-                                const joinDate = excelDateToJSDate(joinDateRaw);
-                                
-                                // 연차 계산
-                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                const birthRaw = row[23];  // X열
+                                const phoneRaw = row[26];  // AA열
+                                const joinRaw = row[29];   // AD열
 
-                                // 사번 생성 (임시: 전화번호 뒷자리 등 활용하거나 자동생성)
-                                // 여기서는 중복 방지를 위해 '전화번호+이름' 조합이나 Email을 키로 씁니다.
-                                // 편의상 email을 가상의 ID로 생성
-                                const tempId = `staff${Math.floor(Math.random()*10000)}`;
-                                const email = `${tempId}@ygnurim.com`; // 실제 운영시엔 사번 규칙 적용 필요
+                                const joinDate = safeDate(joinRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate); // 연차 계산
 
-                                const docRef = doc(db, 'users', email); // 이메일을 키로 사용
+                                // 가상 ID 생성 (실제로는 전화번호나 이메일 사용 권장)
+                                const tempId = `staff_${count}_${Date.now()}`; 
+                                const email = `${tempId}@ygnurim.com`;
+
+                                const docRef = doc(db, 'users', email);
                                 batch.set(docRef, {
                                     name: name,
-                                    birth: birth || '',
-                                    phone: phone || '',
-                                    joinDate: joinDate || '',
+                                    birth: safeDate(birthRaw),
+                                    phone: phoneRaw || '',
+                                    joinDate: joinDate,
                                     employeeId: tempId,
                                     role: 'staff',
-                                    tempPw: '123456', // 초기 비번
+                                    tempPw: '123456',
                                     annualLeaveTotal: leaveInfo.total,
                                     annualLeaveUsed: 0,
                                     annualLeavePeriod: leaveInfo.period
-                                }, { merge: true }); // 기존 데이터 덮어쓰기 방지 (병합)
+                                }, { merge: true });
                                 count++;
                             }
                         }
 
                         await batch.commit();
-                        setUploadMsg(`✅ ${count}명 직원 등록 완료!`);
+                        setUploadMsg(`✅ ${count}명 처리 완료!`);
                         setTimeout(() => setUploadMsg(''), 3000);
 
                     } catch (err) {
                         console.error(err);
-                        setUploadMsg('❌ 파일 처리 중 오류 발생');
+                        setUploadMsg('❌ 파일 처리 오류: ' + err.message);
                     }
                 };
-                reader.readAsBinaryString(file);
             };
 
             return (
                 <div className="space-y-6">
-                    {/* 상단 액션 바 */}
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3>
-                            <p className="text-xs text-slate-500">엑셀 파일을 업로드하여 직원을 일괄 등록/수정합니다.</p>
+                            <p className="text-xs text-slate-500">엑셀/CSV 업로드 시 C(이름), X(생일), AA(폰), AD(입사일)열을 읽습니다.</p>
                         </div>
                         <div className="flex items-center gap-3">
                             {uploadMsg && <span className="text-sm font-bold text-blue-600 animate-pulse">{uploadMsg}</span>}
-                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls" className="hidden" />
+                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls, .csv" className="hidden" />
                             <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center gap-2">
-                                <Icons.Upload /> 엑셀 업로드
+                                <Icons.Upload /> 파일 업로드
                             </button>
                         </div>
                     </div>
 
-                    {/* 직원 리스트 테이블 */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -339,7 +319,7 @@
                                     <tr>
                                         <td colSpan="8" className="p-12 text-center text-slate-400">
                                             등록된 직원이 없습니다.<br/>
-                                            우측 상단 <strong>[엑셀 업로드]</strong> 버튼을 눌러 데이터를 등록해주세요.
+                                            우측 상단 <strong>[파일 업로드]</strong> 버튼을 눌러 데이터를 등록해주세요.
                                         </td>
                                     </tr>
                                 )}
@@ -356,14 +336,13 @@
             const [activeTab, setActiveTab] = useState('dashboard');
             const [staffList, setStaffList] = useState([]);
             
-            // 직원 목록 실시간 동기화 (대시보드와 명부 모두 사용)
             useEffect(() => {
                 if (user && user.role === 'admin') {
                     const q = collection(db, 'users');
                     const unsub = onSnapshot(q, (snapshot) => {
                         const list = snapshot.docs
                             .map(d => ({ ...d.data(), id: d.id }))
-                            .filter(u => u.role === 'staff'); // 직원만 필터링
+                            .filter(u => u.role === 'staff');
                         setStaffList(list);
                     });
                     return () => unsub();
@@ -377,10 +356,10 @@
 
             if (!user) return <Login onLogin={setUser} />;
 
-            // 대시보드 통계 데이터 (실제 데이터 연동)
+            // 대시보드 통계 (실제 데이터 연동)
             const DASHBOARD_STATS = [
                 { label: "총 임직원", value: staffList.length, unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
-                { label: "금일 휴가자", value: "0", unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> }, // 추후 휴가 DB 연동 필요
+                { label: "금일 휴가자", value: "0", unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> },
                 { label: "결재 대기", value: "0", unit: "건", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
                 { label: "평균 소진율", value: "0", unit: "%", color: "bg-green-50 text-green-600", icon: <Icons.Calendar /> },
             ];
@@ -412,7 +391,7 @@
                             <div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()} (오늘)</div>
                         </header>
 
-                        {/* 1. 대시보드 탭 */}
+                        {/* 대시보드 */}
                         {activeTab === 'dashboard' && (
                             <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -429,7 +408,6 @@
                                         </div>
                                     ))}
                                 </div>
-                                {/* 기존 대시보드 UI (그래프 등) 유지 */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                     <div className="lg:col-span-2 space-y-6">
                                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
@@ -452,14 +430,14 @@
                             </div>
                         )}
 
-                        {/* 2. 직원 명부 탭 (신규 기능) */}
+                        {/* 직원 명부 */}
                         {activeTab === 'staff' && (
                             <div className="max-w-7xl mx-auto animate-fade-in">
                                 <StaffTab staffList={staffList} />
                             </div>
                         )}
 
-                        {/* 3. 근태 관리 탭 (추후 개발) */}
+                        {/* 근태 관리 (Placeholder) */}
                         {activeTab === 'attendance' && (
                             <div className="flex flex-col items-center justify-center h-96 text-slate-400 animate-fade-in">
                                 <div className="bg-white p-6 rounded-full shadow-sm border mb-4"><Icons.Calendar /></div>
