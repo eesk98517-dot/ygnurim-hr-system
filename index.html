@@ -26,16 +26,25 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect } from 'react';
         import { createRoot } from 'react-dom/client';
-        import { initializeApp, getApps } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
         import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
-        // --- Firebase 설정 (데모 모드) ---
-        // 실제 서버 연결 전까지는 이 설정이 오류를 뱉으므로, 아래 코드에서 예외 처리를 합니다.
-        const firebaseConfig = { apiKey: "demo", authDomain: "demo", projectId: "demo" };
-        
+        // ------------------------------------------------------------------
+        // ✅ 사용자 제공 Firebase 설정 적용 완료
+        // ------------------------------------------------------------------
+        const firebaseConfig = {
+            apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
+            authDomain: "ygnurim-attendance-management.firebaseapp.com",
+            projectId: "ygnurim-attendance-management",
+            storageBucket: "ygnurim-attendance-management.firebasestorage.app",
+            messagingSenderId: "17124870776",
+            appId: "1:17124870776:web:49839a4bfd982a65d4fb8d",
+            measurementId: "G-EELTZ41FTR"
+        };
+
         // 앱 초기화
-        const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
@@ -48,7 +57,70 @@
             Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
         };
 
-        // --- 로그인 컴포넌트 ---
+        // --- 관리자: 직원 계정 생성 (DB 등록) ---
+        const CreateStaffAccount = () => {
+            const [newId, setNewId] = useState('');
+            const [newName, setNewName] = useState('');
+            const [newPw, setNewPw] = useState('123456'); 
+            const [msg, setMsg] = useState('');
+
+            const handleCreate = async (e) => {
+                e.preventDefault();
+                setMsg('처리 중...');
+                
+                try {
+                    const email = `${newId}@ygnurim.com`;
+                    
+                    // Firestore에 직원 정보 저장
+                    // 관리자가 여기서 등록해두면, 직원이 처음 로그인할 때 이 정보를 바탕으로 계정이 활성화됩니다.
+                    await setDoc(doc(db, 'users', email), {
+                        employeeId: newId,
+                        name: newName,
+                        role: 'staff',
+                        tempPw: newPw, 
+                        joinDate: new Date().toISOString().split('T')[0],
+                        annualLeaveTotal: 15,
+                        annualLeaveUsed: 0
+                    });
+
+                    setMsg(`✅ 생성 완료! (ID: ${newId})`);
+                    setNewId(''); setNewName('');
+                    setTimeout(() => setMsg(''), 5000);
+
+                } catch (err) {
+                    console.error(err);
+                    setMsg('❌ 오류: ' + err.message);
+                }
+            };
+
+            return (
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                        <Icons.Plus /> 직원 계정 발급
+                    </h3>
+                    <form onSubmit={handleCreate} className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">직원 이름</label>
+                            <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded-lg p-2 text-sm" placeholder="예: 김직원" required />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 mb-1">아이디 (사번)</label>
+                            <input type="text" value={newId} onChange={e => setNewId(e.target.value)} className="w-full border rounded-lg p-2 text-sm" placeholder="예: staff01" required />
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <label className="block text-xs font-bold text-slate-400 mb-1">초기 비밀번호</label>
+                            <div className="text-sm font-bold text-slate-600">123456</div>
+                        </div>
+                        <button type="submit" className="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">
+                            직원 등록하기
+                        </button>
+                        {msg && <p className="text-xs text-center font-bold text-blue-600 break-keep">{msg}</p>}
+                    </form>
+                </div>
+            );
+        };
+
+        // --- 로그인 화면 (자동 가입 로직 포함) ---
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -60,32 +132,49 @@
                 setError('');
                 setLoading(true);
 
-                // [수정됨] 1. 관리자 프리패스 로직 (서버 연결 없이 즉시 통과)
+                // 1. 관리자 프리패스 로그인
                 if (id === 'ygnurim' && pw === 'ygnr00383') {
-                    setTimeout(() => { // 로그인하는 척 0.5초 대기
-                        onLogin({ role: 'admin', name: '관리자', email: 'admin@ygnurim.com' });
-                        setLoading(false);
-                    }, 500);
+                    onLogin({ role: 'admin', name: '관리자', email: 'admin@ygnurim.com' });
+                    setLoading(false);
                     return;
                 }
 
+                const email = id.includes('@') ? id : `${id}@ygnurim.com`;
+
                 try {
-                    // 2. 일반 직원 로그인 시도 (데모 환경에서는 실패할 수 있음)
-                    const email = id.includes('@') ? id : `${id}@ygnurim.com`;
+                    // 2. 일반 로그인 시도
                     await signInWithEmailAndPassword(auth, email, pw);
-                    onLogin({ role: 'staff', name: id, email: email }); // 성공 시
+                    
+                    // 로그인 성공 시 DB에서 추가 정보(이름 등) 가져오기
+                    const userDoc = await getDoc(doc(db, 'users', email));
+                    if (userDoc.exists()) {
+                        onLogin({ ...userDoc.data(), email });
+                    } else {
+                        onLogin({ role: 'staff', name: id, email });
+                    }
+
                 } catch (err) {
-                    // 3. 데모 모드일 경우, 방금 만든 직원 아이디라면 통과시켜 줌 (로컬 스토리지 확인)
-                    const localUser = localStorage.getItem('local_user_' + id);
-                    if (localUser) {
-                        const userData = JSON.parse(localUser);
-                        if (userData.pw === pw) {
-                             onLogin({ role: 'staff', name: userData.name, email: `${id}@ygnurim.com` });
-                             setLoading(false);
-                             return;
+                    // 3. 계정이 없다는 에러 발생 시 (관리자가 DB에는 등록했는데 Auth 계정이 없는 경우)
+                    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+                        try {
+                            // DB 확인
+                            const userDoc = await getDoc(doc(db, 'users', email));
+                            if (userDoc.exists()) {
+                                const userData = userDoc.data();
+                                // 초기 비밀번호 일치 확인
+                                if (userData.tempPw === pw) {
+                                    // 일치하면 실제 계정 생성 후 로그인
+                                    await createUserWithEmailAndPassword(auth, email, pw);
+                                    onLogin({ ...userData, email });
+                                    setLoading(false);
+                                    return;
+                                }
+                            }
+                        } catch (dbErr) {
+                            console.error("DB Check Error", dbErr);
                         }
                     }
-                    console.error("Login Error:", err);
+                    console.error("Login Fail", err);
                     setError('아이디 또는 비밀번호를 확인해주세요.');
                 } finally {
                     setLoading(false);
@@ -105,7 +194,7 @@
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.User /></div>
                                     <input type="text" value={id} onChange={(e) => setId(e.target.value)} 
-                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" 
                                         placeholder="아이디를 입력하세요" required />
                                 </div>
                             </div>
@@ -114,7 +203,7 @@
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.Lock /></div>
                                     <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} 
-                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition" 
+                                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition" 
                                         placeholder="비밀번호를 입력하세요" required />
                                 </div>
                             </div>
@@ -125,82 +214,6 @@
                             </button>
                         </form>
                     </div>
-                </div>
-            );
-        };
-
-        // --- 관리자: 직원 계정 생성 컴포넌트 ---
-        const CreateStaffAccount = () => {
-            const [newId, setNewId] = useState('');
-            const [newName, setNewName] = useState('');
-            const [newPw, setNewPw] = useState('123456'); 
-            const [msg, setMsg] = useState('');
-
-            const handleCreate = async (e) => {
-                e.preventDefault();
-                setMsg('처리 중...');
-                
-                try {
-                    // [수정됨] 데모 모드이므로 브라우저 저장소(LocalStorage)에 저장하여 테스트 가능하게 함
-                    const email = `${newId}@ygnurim.com`;
-                    
-                    // 1. 실제 DB 저장 시도 (설정 없으면 실패함)
-                    try {
-                        await setDoc(doc(db, 'users', email), {
-                            employeeId: newId,
-                            name: newName,
-                            role: 'staff',
-                            tempPw: newPw,
-                            joinDate: new Date().toISOString().split('T')[0]
-                        });
-                    } catch(dbErr) {
-                        console.log("DB 연결 안됨(데모 모드): 로컬 저장소에 저장합니다.");
-                    }
-
-                    // 2. 로컬 테스트용 저장 (이걸로 로그인 테스트 가능)
-                    localStorage.setItem('local_user_' + newId, JSON.stringify({
-                        id: newId,
-                        pw: newPw,
-                        name: newName,
-                        role: 'staff'
-                    }));
-
-                    setMsg(`✅ 생성 완료! (ID: ${newId})`);
-                    setNewId(''); setNewName('');
-                    
-                    // 3초 후 메시지 초기화
-                    setTimeout(() => setMsg(''), 3000);
-
-                } catch (err) {
-                    console.error(err);
-                    setMsg('❌ 오류 발생');
-                }
-            };
-
-            return (
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                        <Icons.Plus /> 직원 계정 발급
-                    </h3>
-                    <form onSubmit={handleCreate} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">직원 이름</label>
-                            <input type="text" value={newName} onChange={e => setNewName(e.target.value)} className="w-full border rounded-lg p-2 text-sm" placeholder="예: 김직원" required />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">아이디 (사번)</label>
-                            <input type="text" value={newId} onChange={e => setNewId(e.target.value)} className="w-full border rounded-lg p-2 text-sm" placeholder="예: staff01" required />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-slate-500 mb-1">초기 비밀번호</label>
-                            <input type="text" value={newPw} onChange={e => setNewPw(e.target.value)} className="w-full border rounded-lg p-2 text-sm bg-slate-50 text-slate-400" readOnly />
-                            <p className="text-[10px] text-slate-400 mt-1">*초기 비밀번호는 123456으로 고정됩니다.</p>
-                        </div>
-                        <button type="submit" className="w-full bg-slate-800 text-white py-2 rounded-lg text-sm font-bold hover:bg-slate-700 transition">
-                            계정 생성하기
-                        </button>
-                        {msg && <p className="text-xs text-center font-bold text-blue-600 animate-pulse">{msg}</p>}
-                    </form>
                 </div>
             );
         };
@@ -253,8 +266,11 @@
                                 {/* 왼쪽: 현황판 */}
                                 <div className="lg:col-span-2 space-y-6">
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                                        <h3 className="font-bold text-slate-700 mb-4">📢 시스템 안내</h3>
-                                        <p className="text-slate-600 text-sm">현재 <strong>데모 모드</strong>로 작동 중입니다.<br/>관리자(ygnurim)로 접속되었습니다. 오른쪽 패널에서 직원을 등록해보세요.</p>
+                                        <h3 className="font-bold text-slate-700 mb-4">📢 관리자 안내</h3>
+                                        <p className="text-slate-600 text-sm leading-relaxed">
+                                            정상적으로 <strong>서버(Firebase)</strong>와 연결되었습니다.<br/>
+                                            오른쪽 패널에서 직원을 등록하면, 해당 직원은 ID와 초기 비밀번호(123456)로 로그인할 수 있습니다.
+                                        </p>
                                     </div>
                                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-64 flex items-center justify-center text-slate-400 flex-col gap-2">
                                         <div className="p-4 bg-slate-50 rounded-full"><Icons.Grid /></div>
@@ -281,9 +297,9 @@
                                 </div>
 
                                 <div className="bg-white p-10 rounded-3xl shadow-sm border border-slate-100 text-center min-h-[300px] flex flex-col items-center justify-center">
-                                    <p className="text-slate-400 font-medium">휴가 신청 내역이 없습니다.</p>
+                                    <p className="text-slate-400 font-medium">아직 휴가 신청 내역이 없습니다.</p>
                                     <button className="mt-4 px-6 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition text-sm">
-                                        + 첫 휴가 신청하기
+                                        + 휴가 신청하기
                                     </button>
                                 </div>
                             </div>
