@@ -181,41 +181,60 @@
             );
         };
 
-        // --- 📅 연차 등록 모달 ---
-        const RegisterLeaveModal = ({ onClose, staffList }) => {
-            const [selectedStaffId, setSelectedStaffId] = useState('');
-            const [leaveDate, setLeaveDate] = useState(new Date().toISOString().split('T')[0]);
-            const [leaveType, setLeaveType] = useState('1'); // 1: 연차, 0.5: 반차
-            const [reason, setReason] = useState('');
+        // --- 📅 연차 등록/수정 모달 ---
+        const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
+            const isEdit = !!initialData; // 수정 모드 여부
+            const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
+            const [leaveDate, setLeaveDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+            const [leaveType, setLeaveType] = useState(initialData ? String(initialData.days) : '1');
+            const [reason, setReason] = useState(initialData?.reason || '');
             const [msg, setMsg] = useState('');
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 if (!selectedStaffId) { setMsg('❌ 직원을 선택해주세요.'); return; }
                 
-                setMsg('등록 중...');
+                setMsg('처리 중...');
                 try {
-                    // 선택된 직원 찾기
                     const staff = staffList.find(s => s.id === selectedStaffId);
                     if (!staff) throw new Error('직원 정보 오류');
 
-                    const usedAmount = parseFloat(leaveType);
-                    const newUsed = (staff.annualLeaveUsed || 0) + usedAmount;
-
-                    // 업데이트할 데이터
-                    const updateData = {
-                        annualLeaveUsed: newUsed,
-                        leaveHistory: arrayUnion({
+                    const newUsedAmount = parseFloat(leaveType);
+                    let newHistory = [...(staff.leaveHistory || [])];
+                    
+                    if (isEdit) {
+                        // 수정: 기존 항목 찾아서 업데이트
+                        // (단순화를 위해 index로 찾음. 실제론 ID가 좋음)
+                        const idx = initialData.index; 
+                        const oldAmount = newHistory[idx].days;
+                        
+                        newHistory[idx] = {
+                            ...newHistory[idx],
                             date: leaveDate,
-                            days: usedAmount,
-                            type: usedAmount === 1 ? '연차' : '반차',
+                            days: newUsedAmount,
+                            type: newUsedAmount === 1 ? '연차' : '반차',
+                            reason: reason
+                        };
+                    } else {
+                        // 신규 등록
+                        newHistory.push({
+                            date: leaveDate,
+                            days: newUsedAmount,
+                            type: newUsedAmount === 1 ? '연차' : '반차',
                             reason: reason,
                             createdAt: new Date().toISOString()
-                        })
-                    };
+                        });
+                    }
 
-                    await updateDoc(doc(db, 'users', selectedStaffId), updateData);
-                    setMsg('✅ 연차 등록 완료!');
+                    // 총 사용량 재계산 (데이터 무결성 보장)
+                    const totalUsed = newHistory.reduce((acc, curr) => acc + (curr.days || 0), 0);
+
+                    await updateDoc(doc(db, 'users', selectedStaffId), {
+                        annualLeaveUsed: totalUsed,
+                        leaveHistory: newHistory
+                    });
+
+                    setMsg(isEdit ? '✅ 수정 완료!' : '✅ 등록 완료!');
                     setTimeout(() => { setMsg(''); onClose(); }, 1500);
                 } catch (err) {
                     setMsg('❌ 오류: ' + err.message);
@@ -227,16 +246,17 @@
                     <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">
-                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Icons.Briefcase /></div>
-                            연차 등록
+                            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">{isEdit ? <Icons.Edit /> : <Icons.Briefcase />}</div>
+                            {isEdit ? '연차 수정' : '연차 등록'}
                         </h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">직원 선택</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">직원</label>
                                 <select 
-                                    className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                    className="w-full border rounded-xl p-3 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={selectedStaffId}
                                     onChange={(e) => setSelectedStaffId(e.target.value)}
+                                    disabled={isEdit} // 수정 시 직원 변경 불가
                                     required
                                 >
                                     <option value="">직원을 선택하세요</option>
@@ -254,20 +274,20 @@
                                 <div className="flex gap-2">
                                     <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveType === '1' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'hover:bg-slate-50'}`}>
                                         <input type="radio" name="ltype" value="1" checked={leaveType === '1'} onChange={() => setLeaveType('1')} className="hidden"/>
-                                        연차 (1일)
+                                        연차 (1.0)
                                     </label>
                                     <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveType === '0.5' ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold' : 'hover:bg-slate-50'}`}>
                                         <input type="radio" name="ltype" value="0.5" checked={leaveType === '0.5'} onChange={() => setLeaveType('0.5')} className="hidden"/>
-                                        반차 (0.5일)
+                                        반차 (0.5)
                                     </label>
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1">사유 (선택)</label>
+                                <label className="block text-xs font-bold text-slate-500 mb-1">사유</label>
                                 <input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="예: 개인사정" />
                             </div>
                             <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
-                                등록하기
+                                {isEdit ? '수정 저장' : '등록하기'}
                             </button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
@@ -276,29 +296,49 @@
             );
         };
 
-        // --- 📋 연차 관리 탭 (목록형) ---
-        const LeaveManagementTab = ({ staffList, onOpenModal }) => {
+        // --- 📋 연차 관리 탭 (수정/삭제 추가됨) ---
+        const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick }) => {
             const [searchTerm, setSearchTerm] = useState('');
 
-            // 필터링
             const filteredList = useMemo(() => {
                 if (!searchTerm) return staffList;
                 return staffList.filter(s => s.name.includes(searchTerm));
             }, [staffList, searchTerm]);
+
+            // 연차 삭제 핸들러
+            const handleDeleteLeave = async (staff, leaveIndex) => {
+                if (!window.confirm('정말 이 연차 기록을 삭제하시겠습니까?\n삭제된 연차일수는 복구됩니다.')) return;
+
+                try {
+                    const newHistory = [...staff.leaveHistory];
+                    newHistory.splice(leaveIndex, 1); // 배열에서 해당 항목 제거
+
+                    // 사용량 재계산
+                    const totalUsed = newHistory.reduce((acc, curr) => acc + (curr.days || 0), 0);
+
+                    await updateDoc(doc(db, 'users', staff.id), {
+                        annualLeaveUsed: totalUsed,
+                        leaveHistory: newHistory
+                    });
+                    alert('삭제되었습니다.');
+                } catch (err) {
+                    alert('오류: ' + err.message);
+                }
+            };
 
             return (
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-lg text-slate-800">연차 관리</h3>
-                            <p className="text-xs text-slate-500">직원별 연차 사용 내역 및 잔여일수 조회</p>
+                            <p className="text-xs text-slate-500">사용 내역을 수정하거나 삭제하면 잔여 연차가 자동 계산됩니다.</p>
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.Search /></div>
                                 <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-48 transition" />
                             </div>
-                            <button onClick={onOpenModal} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center gap-2">
+                            <button onClick={() => onOpenModal()} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center gap-2">
                                 <Icons.Plus /> 연차 등록
                             </button>
                         </div>
@@ -309,11 +349,11 @@
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
                                     <th className="p-4">이름</th>
-                                    <th className="p-4 text-center text-blue-600">생성 연차</th>
-                                    <th className="p-4 text-center text-red-500">사용 연차</th>
-                                    <th className="p-4 text-center text-green-600">남은 연차</th>
-                                    <th className="p-4 w-40">연차 리셋일</th>
-                                    <th className="p-4">연차 사용 내역 (날짜 | 개수)</th>
+                                    <th className="p-4 text-center text-blue-600">생성</th>
+                                    <th className="p-4 text-center text-red-500">사용</th>
+                                    <th className="p-4 text-center text-green-600">잔여</th>
+                                    <th className="p-4 w-32">리셋일</th>
+                                    <th className="p-4">사용 내역 (수정/삭제 가능)</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -322,8 +362,9 @@
                                     const resetDate = staff.annualLeavePeriod ? staff.annualLeavePeriod.split('~')[1] : '-';
                                     const history = staff.leaveHistory || [];
                                     
-                                    // 내역 날짜순 정렬
-                                    history.sort((a,b) => new Date(b.date) - new Date(a.date));
+                                    // 내역을 날짜순으로 정렬하되, 원본 인덱스를 추적하기 위해 map 사용
+                                    const indexedHistory = history.map((item, idx) => ({ ...item, originalIndex: idx }));
+                                    indexedHistory.sort((a,b) => new Date(b.date) - new Date(a.date));
 
                                     return (
                                         <tr key={staff.id} className="hover:bg-slate-50 transition">
@@ -334,14 +375,30 @@
                                             <td className="p-4 text-xs text-slate-400">{resetDate}</td>
                                             <td className="p-4">
                                                 {history.length > 0 ? (
-                                                    <div className="max-h-24 overflow-y-auto pr-2 space-y-1 scrollbar-thin">
-                                                        {history.map((rec, i) => (
-                                                            <div key={i} className="flex items-center gap-2 text-xs bg-slate-50 p-1.5 rounded border border-slate-100">
-                                                                <span className="font-bold text-slate-600">{rec.date}</span>
-                                                                <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days === 1 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
-                                                                    {rec.days}개
-                                                                </span>
-                                                                <span className="text-slate-400 truncate max-w-[100px]">{rec.reason}</span>
+                                                    <div className="max-h-32 overflow-y-auto pr-2 space-y-1 scrollbar-thin">
+                                                        {indexedHistory.map((rec, i) => (
+                                                            <div key={i} className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-100 group hover:border-blue-200 transition">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-slate-600">{rec.date}</span>
+                                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${rec.days === 1 ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>
+                                                                        {rec.days}
+                                                                    </span>
+                                                                    <span className="text-slate-400 truncate max-w-[80px]">{rec.reason}</span>
+                                                                </div>
+                                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                                                                    <button 
+                                                                        onClick={() => onEditClick(staff.id, rec.originalIndex, rec)}
+                                                                        className="p-1 text-blue-500 hover:bg-blue-100 rounded" title="수정"
+                                                                    >
+                                                                        <Icons.Edit />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => handleDeleteLeave(staff, rec.originalIndex)}
+                                                                        className="p-1 text-red-500 hover:bg-red-100 rounded" title="삭제"
+                                                                    >
+                                                                        <Icons.Trash />
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -362,7 +419,7 @@
             );
         };
 
-        // --- 수정 모달 (기존 유지) ---
+        // --- 수정 모달 (직원정보) ---
         const EditStaffModal = ({ staff, onClose }) => {
             const [formData, setFormData] = useState({ ...staff });
             const [msg, setMsg] = useState('');
@@ -400,7 +457,7 @@
             );
         };
 
-        // --- 📊 명부 및 엑셀 처리 (기존 유지) ---
+        // --- 📊 명부 및 엑셀 처리 ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
@@ -589,6 +646,7 @@
             const [activeTab, setActiveTab] = useState('dashboard');
             const [staffList, setStaffList] = useState([]);
             const [showLeaveModal, setShowLeaveModal] = useState(false);
+            const [editingLeaveData, setEditingLeaveData] = useState(null);
             
             useEffect(() => {
                 if (user && user.role === 'admin') {
@@ -602,11 +660,21 @@
             }, [user]);
 
             const handleLogout = async () => { try { await signOut(auth); } catch(e) {} setUser(null); };
+            
+            // 연차 수정 모달 열기
+            const handleEditLeave = (staffId, index, data) => {
+                setEditingLeaveData({ ...data, staffId, index });
+                setShowLeaveModal(true);
+            };
+
+            const closeLeaveModal = () => {
+                setShowLeaveModal(false);
+                setEditingLeaveData(null);
+            };
+
             if (!user) return <Login onLogin={setUser} />;
 
-            // 대시보드 통계 계산
             const totalStaff = staffList.length;
-            // 오늘 휴가자 계산 (leaveHistory 확인)
             const todayStr = new Date().toISOString().split('T')[0];
             const todayLeaveCount = staffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length;
             const totalLeaveUsed = staffList.reduce((acc, cur) => acc + (cur.annualLeaveUsed || 0), 0);
@@ -622,7 +690,7 @@
 
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
-                    {showLeaveModal && <RegisterLeaveModal staffList={staffList} onClose={() => setShowLeaveModal(false)} />}
+                    {showLeaveModal && <LeaveActionModal staffList={staffList} onClose={closeLeaveModal} initialData={editingLeaveData} />}
                     <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10 shadow-xl">
                         <div className="p-6 border-b border-slate-700/50">
                             <h1 className="text-xl font-black text-white">양지누림</h1>
@@ -698,7 +766,7 @@
 
                         {activeTab === 'leave' && (
                             <div className="max-w-7xl mx-auto animate-fade-in">
-                                <LeaveManagementTab staffList={staffList} onOpenModal={() => setShowLeaveModal(true)} />
+                                <LeaveManagementTab staffList={staffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} />
                             </div>
                         )}
 
