@@ -32,7 +32,6 @@
 
     <script>
         window.onerror = function(msg, url, line, col, error) {
-            // alert("⚠️ 시스템 오류 발생:\n" + msg); 
             return false;
         };
     </script>
@@ -80,39 +79,75 @@
             Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
             SortAsc: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>,
             SortDesc: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>,
+            History: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
         };
 
-        const calculateAnnualLeave = (joinDateStr) => {
+        // --- 📅 날짜 및 연차 유틸리티 ---
+        
+        // 특정 연도 기준 사용 기간 및 발생 연차 계산
+        const calculateLeaveForYear = (joinDateStr, targetYear) => {
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-' };
-            const joinDate = new Date(joinDateStr);
-            const today = new Date();
-            if (isNaN(joinDate.getTime())) return { total: 0, period: '-' };
             
-            let yearsWorked = today.getFullYear() - joinDate.getFullYear();
-            const m = today.getMonth() - joinDate.getMonth();
-            if (m < 0 || (m === 0 && today.getDate() < joinDate.getDate())) yearsWorked--;
+            const joinDate = new Date(joinDateStr);
+            if (isNaN(joinDate.getTime())) return { total: 0, period: '-' };
 
+            // 해당 연도의 시작일 (입사일의 월/일 기준)
+            let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
+            
+            // 만약 입사년도가 타겟 연도보다 미래면 아직 입사 안함
+            if (joinDate.getFullYear() > targetYear) {
+                return { total: 0, period: '입사 전', notJoined: true };
+            }
+
+            // 종료일: 다음 해 입사일 하루 전
+            let endDate = new Date(targetYear + 1, joinDate.getMonth(), joinDate.getDate());
+            endDate.setDate(endDate.getDate() - 1);
+
+            // 근속 연수 계산 (타겟 연도 기준)
+            let yearsWorked = targetYear - joinDate.getFullYear();
+            
+            // 발생 연차 계산
             let totalLeave = 0;
-            if (yearsWorked < 1) totalLeave = 11; 
-            else {
+            if (yearsWorked < 1) {
+                // 입사한 해 (1년 미만)
+                totalLeave = 11; 
+            } else {
+                // 1년 이상
                 totalLeave = 15 + Math.floor((yearsWorked - 1) / 2);
                 if (totalLeave > 25) totalLeave = 25;
             }
 
-            let baseYear = today.getFullYear();
-            let baseDate = new Date(joinDate);
-            baseDate.setFullYear(baseYear);
-            if (today < baseDate) baseDate.setFullYear(baseYear - 1);
+            // 날짜 포맷팅
+            const sStr = startDate.toISOString().split('T')[0];
+            const eStr = endDate.toISOString().split('T')[0];
 
-            const startDate = baseDate.toISOString().split('T')[0];
-            const endDateObj = new Date(baseDate);
-            endDateObj.setFullYear(endDateObj.getFullYear() + 1);
-            endDateObj.setDate(endDateObj.getDate() - 1);
-            const endDate = endDateObj.toISOString().split('T')[0];
-
-            return { total: totalLeave, period: `${startDate} ~ ${endDate}` };
+            return {
+                total: totalLeave,
+                period: `${sStr} ~ ${eStr}`,
+                startDate: sStr,
+                endDate: eStr,
+                notJoined: false
+            };
         };
 
+        // 현재 시점(오늘) 기준 계산 (기존 로직 유지)
+        const calculateAnnualLeave = (joinDateStr) => {
+            const today = new Date();
+            // 현재 연도 기준으로 계산하되, 아직 입사일(월일)이 안 지났으면 작년 기준
+            let baseYear = today.getFullYear();
+            const joinDate = new Date(joinDateStr);
+            
+            // 아직 입사일 데이터가 없으면 리턴
+            if(!joinDateStr) return { total: 0, period: '-' };
+
+            const currentAnniversary = new Date(baseYear, joinDate.getMonth(), joinDate.getDate());
+            if (today < currentAnniversary) {
+                baseYear = baseYear - 1;
+            }
+            return calculateLeaveForYear(joinDateStr, baseYear);
+        };
+
+        // --- 로그인 컴포넌트 ---
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -146,9 +181,7 @@
                                 setLoading(false);
                                 return;
                             } else setError('아이디 또는 비밀번호가 잘못되었습니다.');
-                        } catch (dbErr) {
-                            setError('시스템 오류: ' + dbErr.message);
-                        }
+                        } catch (dbErr) { setError('시스템 오류: ' + dbErr.message); }
                     } else setError('로그인 실패: ' + err.code);
                 } finally {
                     setLoading(false);
@@ -183,7 +216,7 @@
 
         // --- 📅 연차 등록/수정 모달 ---
         const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
-            const isEdit = !!initialData; // 수정 모드 여부
+            const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             const [leaveDate, setLeaveDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
             const [leaveType, setLeaveType] = useState(initialData ? String(initialData.days) : '1');
@@ -203,11 +236,7 @@
                     let newHistory = [...(staff.leaveHistory || [])];
                     
                     if (isEdit) {
-                        // 수정: 기존 항목 찾아서 업데이트
-                        // (단순화를 위해 index로 찾음. 실제론 ID가 좋음)
                         const idx = initialData.index; 
-                        const oldAmount = newHistory[idx].days;
-                        
                         newHistory[idx] = {
                             ...newHistory[idx],
                             date: leaveDate,
@@ -216,7 +245,6 @@
                             reason: reason
                         };
                     } else {
-                        // 신규 등록
                         newHistory.push({
                             date: leaveDate,
                             days: newUsedAmount,
@@ -226,11 +254,21 @@
                         });
                     }
 
-                    // 총 사용량 재계산 (데이터 무결성 보장)
-                    const totalUsed = newHistory.reduce((acc, curr) => acc + (curr.days || 0), 0);
+                    // 🚨 중요: 현재 활성화된(오늘 기준) 기간의 사용량을 재계산하여 저장
+                    // 이렇게 해야 과거 데이터를 수정해도 현재 연차 숫자가 꼬이지 않음
+                    const currentInfo = calculateAnnualLeave(staff.joinDate);
+                    const currentStart = currentInfo.startDate;
+                    const currentEnd = currentInfo.endDate;
+
+                    const totalUsedCurrent = newHistory.reduce((acc, curr) => {
+                        if (curr.date >= currentStart && curr.date <= currentEnd) {
+                            return acc + (curr.days || 0);
+                        }
+                        return acc;
+                    }, 0);
 
                     await updateDoc(doc(db, 'users', selectedStaffId), {
-                        annualLeaveUsed: totalUsed,
+                        annualLeaveUsed: totalUsedCurrent,
                         leaveHistory: newHistory
                     });
 
@@ -256,7 +294,7 @@
                                     className="w-full border rounded-xl p-3 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                                     value={selectedStaffId}
                                     onChange={(e) => setSelectedStaffId(e.target.value)}
-                                    disabled={isEdit} // 수정 시 직원 변경 불가
+                                    disabled={isEdit} 
                                     required
                                 >
                                     <option value="">직원을 선택하세요</option>
@@ -296,28 +334,36 @@
             );
         };
 
-        // --- 📋 연차 관리 탭 (수정/삭제 추가됨) ---
-        const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick }) => {
+        // --- 📋 통합 연차 관리 탭 (현재/과년도 공용) ---
+        const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
+            const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); // 과년도 기본값: 작년
 
+            // 필터링
             const filteredList = useMemo(() => {
                 if (!searchTerm) return staffList;
                 return staffList.filter(s => s.name.includes(searchTerm));
             }, [staffList, searchTerm]);
 
-            // 연차 삭제 핸들러
+            // 연차 삭제 핸들러 (데이터 무결성 유지)
             const handleDeleteLeave = async (staff, leaveIndex) => {
-                if (!window.confirm('정말 이 연차 기록을 삭제하시겠습니까?\n삭제된 연차일수는 복구됩니다.')) return;
+                if (!window.confirm('정말 이 연차 기록을 삭제하시겠습니까?')) return;
 
                 try {
                     const newHistory = [...staff.leaveHistory];
-                    newHistory.splice(leaveIndex, 1); // 배열에서 해당 항목 제거
+                    newHistory.splice(leaveIndex, 1); 
 
-                    // 사용량 재계산
-                    const totalUsed = newHistory.reduce((acc, curr) => acc + (curr.days || 0), 0);
+                    // 현재(오늘 기준) 구간 재계산
+                    const currentInfo = calculateAnnualLeave(staff.joinDate);
+                    const totalUsedCurrent = newHistory.reduce((acc, curr) => {
+                        if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) {
+                            return acc + (curr.days || 0);
+                        }
+                        return acc;
+                    }, 0);
 
                     await updateDoc(doc(db, 'users', staff.id), {
-                        annualLeaveUsed: totalUsed,
+                        annualLeaveUsed: totalUsedCurrent,
                         leaveHistory: newHistory
                     });
                     alert('삭제되었습니다.');
@@ -328,11 +374,31 @@
 
             return (
                 <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                        <div>
-                            <h3 className="font-bold text-lg text-slate-800">연차 관리</h3>
-                            <p className="text-xs text-slate-500">사용 내역을 수정하거나 삭제하면 잔여 연차가 자동 계산됩니다.</p>
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도 연차 관리' : '연차 관리'}</h3>
+                                <p className="text-xs text-slate-500">{isPastMode ? '과거 기간의 연차 내역을 조회합니다.' : '현재 기간의 연차 현황입니다.'}</p>
+                            </div>
+                            
+                            {/* 과년도 모드일 때만 연도 선택기 표시 */}
+                            {isPastMode && (
+                                <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+                                    <span className="text-xs font-bold text-slate-500 px-2">조회 연도:</span>
+                                    <select 
+                                        value={selectedYear} 
+                                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                        className="bg-white border border-slate-200 text-sm font-bold rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        {[...Array(5)].map((_, i) => {
+                                            const y = new Date().getFullYear() - i;
+                                            return <option key={y} value={y}>{y}년</option>
+                                        })}
+                                    </select>
+                                </div>
+                            )}
                         </div>
+
                         <div className="flex items-center gap-3">
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Icons.Search /></div>
@@ -352,31 +418,58 @@
                                     <th className="p-4 text-center text-blue-600">생성</th>
                                     <th className="p-4 text-center text-red-500">사용</th>
                                     <th className="p-4 text-center text-green-600">잔여</th>
-                                    <th className="p-4 w-32">리셋일</th>
-                                    <th className="p-4">사용 내역 (수정/삭제 가능)</th>
+                                    <th className="p-4 w-44">리셋일 (사용기간)</th>
+                                    <th className="p-4">사용 내역 (날짜 | 개수)</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredList.map(staff => {
-                                    const remaining = (staff.annualLeaveTotal || 0) - (staff.annualLeaveUsed || 0);
-                                    const resetDate = staff.annualLeavePeriod ? staff.annualLeavePeriod.split('~')[1] : '-';
-                                    const history = staff.leaveHistory || [];
+                                    let leaveInfo, usedCount = 0;
+                                    let activeHistory = [];
+
+                                    if (isPastMode) {
+                                        // 과년도 계산
+                                        leaveInfo = calculateLeaveForYear(staff.joinDate, selectedYear);
+                                        // 해당 기간 내 사용 내역 필터링
+                                        activeHistory = (staff.leaveHistory || []).filter(h => 
+                                            h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate
+                                        );
+                                        usedCount = activeHistory.reduce((acc, cur) => acc + (cur.days || 0), 0);
+                                    } else {
+                                        // 현재 년도 계산
+                                        leaveInfo = calculateAnnualLeave(staff.joinDate);
+                                        // DB에 저장된 현재 사용량 사용 or 재계산
+                                        activeHistory = (staff.leaveHistory || []).filter(h => 
+                                            h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate
+                                        );
+                                        usedCount = staff.annualLeaveUsed || 0; // 현재는 DB값 신뢰 (단, History 필터링과 일치해야 함)
+                                    }
+
+                                    const remaining = (leaveInfo.total || 0) - usedCount;
                                     
-                                    // 내역을 날짜순으로 정렬하되, 원본 인덱스를 추적하기 위해 map 사용
-                                    const indexedHistory = history.map((item, idx) => ({ ...item, originalIndex: idx }));
-                                    indexedHistory.sort((a,b) => new Date(b.date) - new Date(a.date));
+                                    // 내역 정렬 및 인덱싱 (수정/삭제를 위해 원본 인덱스 필요)
+                                    // staff.leaveHistory 전체에서 해당 항목의 인덱스를 찾아야 함
+                                    const displayHistory = activeHistory.map(h => {
+                                        const originalIdx = (staff.leaveHistory || []).indexOf(h);
+                                        return { ...h, originalIndex: originalIdx };
+                                    }).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+                                    if (leaveInfo.notJoined) return null; // 입사 전이면 숨김
 
                                     return (
                                         <tr key={staff.id} className="hover:bg-slate-50 transition">
                                             <td className="p-4 font-bold text-slate-800">{staff.name}</td>
-                                            <td className="p-4 text-center font-bold text-blue-600">{staff.annualLeaveTotal}</td>
-                                            <td className="p-4 text-center font-bold text-red-500">{staff.annualLeaveUsed}</td>
+                                            <td className="p-4 text-center font-bold text-blue-600">{leaveInfo.total}</td>
+                                            <td className="p-4 text-center font-bold text-red-500">{usedCount}</td>
                                             <td className="p-4 text-center font-black text-green-600 text-lg">{remaining.toFixed(1)}</td>
-                                            <td className="p-4 text-xs text-slate-400">{resetDate}</td>
+                                            <td className="p-4 text-xs text-slate-400">
+                                                <div className="font-bold text-slate-500">{selectedYear}년도 귀속</div>
+                                                {leaveInfo.period}
+                                            </td>
                                             <td className="p-4">
-                                                {history.length > 0 ? (
+                                                {displayHistory.length > 0 ? (
                                                     <div className="max-h-32 overflow-y-auto pr-2 space-y-1 scrollbar-thin">
-                                                        {indexedHistory.map((rec, i) => (
+                                                        {displayHistory.map((rec, i) => (
                                                             <div key={i} className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-100 group hover:border-blue-200 transition">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="font-bold text-slate-600">{rec.date}</span>
@@ -403,7 +496,7 @@
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-300 text-xs">- 사용 내역 없음 -</span>
+                                                    <span className="text-slate-300 text-xs">- 내역 없음 -</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -429,6 +522,7 @@
                 setMsg('저장 중...');
                 try {
                     let updates = { ...formData };
+                    // 정보만 수정하고 연차 재계산은 단순 업데이트
                     if (formData.joinDate !== staff.joinDate) {
                         const leaveInfo = calculateAnnualLeave(formData.joinDate);
                         updates.annualLeaveTotal = leaveInfo.total;
@@ -661,7 +755,6 @@
 
             const handleLogout = async () => { try { await signOut(auth); } catch(e) {} setUser(null); };
             
-            // 연차 수정 모달 열기
             const handleEditLeave = (staffId, index, data) => {
                 setEditingLeaveData({ ...data, staffId, index });
                 setShowLeaveModal(true);
@@ -699,6 +792,8 @@
                         <nav className="flex-1 p-4 flex flex-col gap-2">
                             <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
                             <button onClick={() => setActiveTab('leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'leave' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 연차 관리</button>
+                            {/* 과년도 연차관리 탭 추가 */}
+                            <button onClick={() => setActiveTab('past_leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'past_leave' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.History /> 과년도 연차관리</button>
                             <button onClick={() => setActiveTab('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
                         </nav>
                         <div className="p-4 bg-[#0F172A]">
@@ -711,6 +806,7 @@
                             <h2 className="text-2xl font-bold text-slate-800">
                                 {activeTab === 'dashboard' && '관리자 대시보드'}
                                 {activeTab === 'leave' && '연차 관리'}
+                                {activeTab === 'past_leave' && '과년도 연차 관리'}
                                 {activeTab === 'staff' && '직원 명부 관리'}
                             </h2>
                             <div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()} (오늘)</div>
@@ -767,6 +863,13 @@
                         {activeTab === 'leave' && (
                             <div className="max-w-7xl mx-auto animate-fade-in">
                                 <LeaveManagementTab staffList={staffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} />
+                            </div>
+                        )}
+
+                        {/* 과년도 탭 */}
+                        {activeTab === 'past_leave' && (
+                            <div className="max-w-7xl mx-auto animate-fade-in">
+                                <LeaveManagementTab staffList={staffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} isPastMode={true} />
                             </div>
                         )}
 
