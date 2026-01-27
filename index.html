@@ -355,7 +355,6 @@
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            {/* 근무시간 수정 필드 추가 */}
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
                             <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
@@ -366,7 +365,7 @@
             );
         };
 
-        // --- 📊 명부 및 엑셀 처리 ---
+        // --- 📊 명부 및 엑셀 처리 (업데이트된 로직) ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
@@ -407,7 +406,7 @@
                 return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
             };
             
-            // ✅ 생년월일 자동 보정 로직 (6자리, 8자리, Excel Serial 모두 처리)
+            // ✅ 날짜 변환 (강력한 호환성)
             const safeDate = (val) => {
                 if (!val) return '';
                 let str = String(val).trim();
@@ -416,30 +415,23 @@
                 if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
 
                 // 2. YYYYMMDD (8자리) -> YYYY-MM-DD
-                if (/^\d{8}$/.test(str)) {
-                    return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
-                }
+                if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
+                
                 // 3. YYMMDD (6자리) -> 19YY or 20YY
                 if (/^\d{6}$/.test(str)) {
                     const yy = parseInt(str.substring(0, 2), 10);
-                    // 30년 이상이면 1900년대 (예: 79 -> 1979), 이하면 2000년대 (예: 10 -> 2010)
+                    // 30년 이상이면 1900년대, 이하면 2000년대
                     const prefix = yy > 30 ? '19' : '20'; 
                     return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`;
                 }
-                // 4. 구분자가 있는 경우 (., /, -) -> -로 통일
+                // 4. 구분자가 있는 경우
                 const match = str.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
-                if (match) {
-                    const y = match[1];
-                    const m = match[2].padStart(2, '0');
-                    const d = match[3].padStart(2, '0');
-                    return `${y}-${m}-${d}`;
-                }
-                // 5. 엑셀 숫자 포맷 (Serial Number)
+                if (match) return `${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}`;
+                
+                // 5. 엑셀 숫자 포맷
                 if (!isNaN(val) && val > 20000) {
                     try {
                         const date = new Date((val - 25569) * 86400 * 1000);
-                        // 시차 보정
-                        date.setHours(date.getHours() + 9);
                         return date.toISOString().split('T')[0];
                     } catch(e) { return str; }
                 }
@@ -459,40 +451,35 @@
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
                         
-                        const headerRow = jsonData[0]; 
-                        const idxName = headerRow.findIndex(h => h && String(h).includes('이름'));
-                        const idxBirth = headerRow.findIndex(h => h && String(h).includes('생년월일'));
-                        // ✅ 근무시간 열 찾기 (W열 또는 '근로시간' 포함 헤더)
-                        let idxWorkTime = headerRow.findIndex(h => h && String(h).includes('근로시간'));
-                        if (idxWorkTime === -1) idxWorkTime = 22; // 기본값 W열(22)
-
-                        const idxPhone = headerRow.findIndex(h => h && (String(h).includes('휴대폰') || String(h).includes('전화')));
-                        const idxJoin = headerRow.findIndex(h => h && String(h).includes('입사일'));
-
-                        if (idxName === -1) { setUploadMsg('❌ "이름" 열 없음'); return; }
                         const batch = writeBatch(db);
                         let count = 0;
+                        
+                        // 1행부터 데이터 시작 (0행은 헤더)
                         for (let i = 1; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
-                            const name = row[idxName];
+
+                            // 🚨 고정된 열 매핑: A(0), B(1), C(2), D(3), E(4)
+                            const name = row[0]; // A열: 이름
+                            
                             if (name) {
-                                const birthRaw = idxBirth > -1 ? row[idxBirth] : '';
-                                const workRaw = idxWorkTime > -1 ? row[idxWorkTime] : '';
-                                const phoneRaw = idxPhone > -1 ? row[idxPhone] : '';
-                                const joinRaw = idxJoin > -1 ? row[idxJoin] : '';
+                                const birthRaw = row[1]; // B열
+                                const phoneRaw = row[2]; // C열
+                                const joinRaw = row[3];  // D열
+                                const workRaw = row[4];  // E열 (근무시간)
                                 
                                 const joinDate = safeDate(joinRaw);
                                 const birthDate = safeDate(birthRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 
-                                // ✅ 중복 방지 Key 생성: 이름 + 전화번호 뒤 4자리
-                                const phoneStr = String(phoneRaw).trim();
+                                // ✅ 중복 방지 (이름+전화번호 뒤4자리)
+                                const phoneStr = String(phoneRaw || '').trim();
                                 const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
-                                const email = `${uniqueKey}@ygnurim.com`; // ID로 사용
+                                const email = `${uniqueKey}@ygnurim.com`;
 
                                 const docRef = doc(db, 'users', email);
-                                // merge: true 옵션으로 기존 데이터(사용 내역 등)는 유지하고 정보만 업데이트
+                                
+                                // merge: true 옵션으로 기존 정보(사용기록 등) 보존
                                 batch.set(docRef, {
                                     name: name, 
                                     birth: birthDate, 
@@ -503,7 +490,6 @@
                                     role: 'staff', 
                                     tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total, 
-                                    // 사용 연차는 기존 값 유지하거나 없으면 0
                                     annualLeavePeriod: leaveInfo.period
                                 }, { merge: true });
                                 count++;
@@ -568,8 +554,8 @@
                                     <th className="p-4 sortable" onClick={() => handleSort('birth')}><div className="flex items-center">생년월일 {getSortIcon('birth')}</div></th>
                                     <th className="p-4">휴대폰번호</th>
                                     <th className="p-4 sortable" onClick={() => handleSort('joinDate')}><div className="flex items-center">입사일 {getSortIcon('joinDate')}</div></th>
-                                    {/* ✅ 근무시간 열 추가 */}
-                                    <th className="p-4 text-center">일일 근무</th>
+                                    {/* ✅ 근무시간 열 표시 */}
+                                    <th className="p-4 text-center">일일근무</th>
                                     <th className="p-4 text-center text-blue-600">발생</th>
                                     <th className="p-4 text-center text-red-500">사용</th>
                                     <th className="p-4 text-center text-green-600 sortable" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여 {getSortIcon('remaining')}</div></th>
@@ -585,7 +571,7 @@
                                         <td className="p-4 text-slate-500">{staff.birth}</td>
                                         <td className="p-4 text-slate-500">{staff.phone}</td>
                                         <td className="p-4 text-slate-500">{staff.joinDate}</td>
-                                        {/* ✅ 근무시간 데이터 표시 */}
+                                        {/* ✅ 근무시간 데이터 */}
                                         <td className="p-4 text-center text-slate-500 font-bold">{staff.workHours}시간</td>
                                         <td className="p-4 text-center font-bold">{staff.annualLeaveTotal}</td>
                                         <td className="p-4 text-center text-slate-400">{staff.annualLeaveUsed}</td>
