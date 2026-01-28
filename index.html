@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Safe Ver)</title>
+    <title>양지누림 연차 관리 시스템 (Secure & Safe Ver)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -31,6 +31,22 @@
         th.sortable:hover { background-color: #e2e8f0; }
         .cursor-pointer:hover { opacity: 0.8; }
     </style>
+
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            document.body.innerHTML = `
+                <div style="display:flex; justify-content:center; align-items:center; height:100vh; background:#fee2e2;">
+                    <div style="text-align:center; padding:30px; background:white; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1);">
+                        <h1 style="color:#dc2626; font-size:24px; margin-bottom:10px;">⚠️ 시스템 오류 발생</h1>
+                        <p style="color:#4b5563; margin-bottom:20px;">죄송합니다. 예상치 못한 문제가 발생했습니다.</p>
+                        <p style="color:#6b7280; font-size:12px; background:#f3f4f6; padding:10px; border-radius:5px; margin-bottom:20px;">${msg} (Line: ${line})</p>
+                        <button onclick="location.reload()" style="background:#1f2937; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold;">새로고침하여 복구</button>
+                    </div>
+                </div>
+            `;
+            return false;
+        };
+    </script>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
@@ -39,8 +55,8 @@
         import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
-        import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
-        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, setDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
         // ------------------------------------------------------------------
         // ✅ 1. Firebase 설정
@@ -60,20 +76,20 @@
         const db = getFirestore(app);
 
         // ------------------------------------------------------------------
-        // 🛡️ 2. 에러 방어벽 (Error Boundary) - 빈 화면 방지 핵심
+        // 🛡️ 2. 리액트 에러 방어벽 (Error Boundary)
         // ------------------------------------------------------------------
         class ErrorBoundary extends Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            componentDidCatch(error, errorInfo) { console.error("Critical Error:", error, errorInfo); }
+            componentDidCatch(error, errorInfo) { console.error("React Error:", error, errorInfo); }
             render() {
                 if (this.state.hasError) {
                     return (
-                        <div className="flex items-center justify-center h-screen bg-red-50">
-                            <div className="text-center p-8 bg-white rounded-2xl shadow-xl border border-red-100">
-                                <h2 className="text-2xl font-bold text-red-600 mb-2">⚠️ 시스템 오류 발생</h2>
-                                <p className="text-slate-600 mb-4">데이터 처리 중 문제가 발생했습니다.<br/>(원인: {this.state.error?.message})</p>
-                                <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-700">새로고침하여 복구</button>
+                        <div className="flex items-center justify-center h-screen bg-slate-50">
+                            <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
+                                <h2 className="text-xl font-bold text-red-600 mb-2">일시적인 오류입니다.</h2>
+                                <p className="text-sm text-slate-500 mb-4">{this.state.error?.message}</p>
+                                <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-6 py-2 rounded-xl hover:bg-slate-700">다시 로드하기</button>
                             </div>
                         </div>
                     );
@@ -103,7 +119,7 @@
             History: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
         };
 
-        // --- 🔒 안전한 데이터 파싱 함수 (Helper) ---
+        // --- 🔒 안전한 데이터 처리 함수 (Helper) ---
         const safeParseFloat = (val) => {
             const num = parseFloat(val);
             return isNaN(num) ? 0 : num;
@@ -113,14 +129,13 @@
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
             
-            // YYYY-MM-DD
             if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-            // YYYYMMDD
             if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
-            // 엑셀 숫자 및 YYMMDD 처리
+            
+            // 엑셀 숫자 or YYMMDD
             if (/^\d{5,6}$/.test(str)) {
                 const n = parseInt(str);
-                // 5000~60000은 엑셀 날짜 (1913~2064년)
+                // 1913~2064년 엑셀 숫자 범위 (5000~60000)
                 if (n > 5000 && n < 60000) {
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
@@ -138,7 +153,7 @@
             return str;
         };
 
-        // --- 📅 날짜/연차 계산 (Safety Guard 적용) ---
+        // --- 📅 날짜/연차 계산 (Safe Guard) ---
         const calculateLeaveForYear = (joinDateStr, targetYear) => {
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
@@ -175,7 +190,9 @@
             return calculateLeaveForYear(joinDateStr, baseYear);
         };
 
-        // --- 로그인 컴포넌트 ---
+        // ------------------------------------------------------------------
+        // 🔐 3. 로그인 컴포넌트 (보안 패치 완료)
+        // ------------------------------------------------------------------
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -186,32 +203,79 @@
                 e.preventDefault();
                 setError('');
                 setLoading(true);
-                if (id === 'ygnurim' && pw === 'ygnr00383') {
-                    onLogin({ role: 'admin', name: '관리자', email: 'admin@ygnurim.com' });
-                    setLoading(false);
-                    return;
+
+                // 1. 아이디 매핑: ygnurim -> admin@ygnurim.com
+                let email = id;
+                if (id === 'ygnurim') {
+                    email = 'admin@ygnurim.com';
+                } else if (!id.includes('@')) {
+                    email = `${id}@ygnurim.com`;
                 }
-                const email = id.includes('@') ? id : `${id}@ygnurim.com`;
+
                 try {
+                    // 2. Firebase 인증 (비밀번호 검증은 구글 서버가 담당)
                     await signInWithEmailAndPassword(auth, email, pw);
+                    
+                    // 3. 권한(Role) 확인
                     const userDoc = await getDoc(doc(db, 'users', email));
-                    if (userDoc.exists()) onLogin({ ...userDoc.data(), email });
-                    else onLogin({ role: 'staff', name: id, email });
+                    
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        // 관리자 체크
+                        if (userData.role === 'admin') {
+                            onLogin({ ...userData, role: 'admin', name: '관리자', email });
+                        } else {
+                            onLogin({ ...userData, email });
+                        }
+                    } else {
+                        // 정보 없으면 일반 접속
+                        onLogin({ role: 'staff', name: id, email });
+                    }
                 } catch (err) {
-                    setError('로그인 실패: 정보를 확인해주세요.');
-                } finally { setLoading(false); }
+                    console.error("Login Error:", err.code);
+                    
+                    // 신규 직원 자동 가입 로직 (관리자는 제외)
+                    if (id !== 'ygnurim' && (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found')) {
+                        try {
+                            const userDoc = await getDoc(doc(db, 'users', email));
+                            if (userDoc.exists() && userDoc.data().tempPw === pw) {
+                                await createUserWithEmailAndPassword(auth, email, pw);
+                                onLogin({ ...userDoc.data(), email });
+                                setLoading(false);
+                                return;
+                            }
+                        } catch (dbErr) { /* ignore */ }
+                    }
+                    setError('로그인 실패: 아이디 또는 비밀번호를 확인하세요.');
+                } finally {
+                    setLoading(false);
+                }
             };
 
             return (
                 <div className="flex h-screen items-center justify-center bg-slate-100">
                     <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
-                        <div className="text-center mb-8"><h1 className="text-3xl font-black text-blue-600 mb-2">양지누림</h1><p className="text-slate-500 font-bold">연차 관리 시스템 로그인</p></div>
+                        <div className="text-center mb-8">
+                            <h1 className="text-3xl font-black text-blue-600 mb-2">양지누림</h1>
+                            <p className="text-slate-500 font-bold">연차 관리 시스템 로그인</p>
+                        </div>
                         <form onSubmit={handleLogin} className="space-y-6">
-                            <div><label className="block text-sm font-bold text-slate-700 mb-2">아이디</label><input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full px-4 py-3 border rounded-xl outline-none" placeholder="아이디" required /></div>
-                            <div><label className="block text-sm font-bold text-slate-700 mb-2">비밀번호</label><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="w-full px-4 py-3 border rounded-xl outline-none" required /></div>
-                            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
-                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition disabled:opacity-50">{loading ? '로그인 중...' : '로그인 하기'}</button>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">아이디</label>
+                                <input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="아이디" required />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 mb-2">비밀번호</label>
+                                <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="w-full px-4 py-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="비밀번호" required />
+                            </div>
+                            {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-3 rounded-lg">{error}</p>}
+                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition disabled:opacity-50">
+                                {loading ? '로그인 확인 중...' : '로그인 하기'}
+                            </button>
                         </form>
+                        <p className="text-center text-xs text-slate-400 mt-6 flex justify-center items-center gap-1">
+                            <Icons.Lock /> 보안 연결이 적용되었습니다.
+                        </p>
                     </div>
                 </div>
             );
@@ -255,13 +319,8 @@
             useEffect(() => {
                 if (initialData) {
                     const days = safeParseFloat(initialData.days);
-                    if (days === 1 || days === 0.5) {
-                        setInputType('day');
-                        setLeaveDayType(String(days));
-                    } else {
-                        setInputType('hour');
-                        setLeaveHourValue(String(days)); 
-                    }
+                    if (days === 1 || days === 0.5) { setInputType('day'); setLeaveDayType(String(days)); }
+                    else { setInputType('hour'); setLeaveHourValue(String(days)); }
                 }
             }, [initialData]);
 
@@ -287,13 +346,7 @@
                 setMsg('처리 중...');
                 try {
                     let newHistory = [...(staff.leaveHistory || [])];
-                    const record = {
-                        date: leaveDate,
-                        days: deductHours, 
-                        type: typeText,
-                        reason: reason,
-                        createdAt: new Date().toISOString()
-                    };
+                    const record = { date: leaveDate, days: deductHours, type: typeText, reason: reason, createdAt: new Date().toISOString() };
 
                     if (isEdit) newHistory[initialData.index] = record;
                     else newHistory.push(record);
@@ -310,7 +363,7 @@
                         annualLeaveUsed: totalUsedHours, 
                         leaveHistory: newHistory 
                     });
-                    setMsg('✅ 성공!');
+                    setMsg('✅ 완료!');
                     setTimeout(() => { setMsg(''); onClose(); }, 1000);
                 } catch (err) { setMsg('❌ 오류: ' + err.message); }
             };
@@ -323,12 +376,11 @@
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">직원</label><select className="w-full border rounded-xl p-3 text-sm bg-white outline-none" value={selectedStaffId} onChange={(e) => setSelectedStaffId(e.target.value)} disabled={isEdit} required><option value="">선택...</option>{staffList.sort((a,b) => a.name.localeCompare(b.name)).map(s => (<option key={s.id} value={s.id}>{s.name} (일 {s.workHours || 8}h)</option>))}</select></div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">날짜</label><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">등록 단위</label>
                                 <div className="flex gap-2 mb-2">
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'day' ? 'bg-slate-800 text-white font-bold' : ''}`}><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'hour' ? 'bg-slate-800 text-white font-bold' : ''}`}><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
+                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'day' ? 'bg-slate-800 text-white font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
+                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'hour' ? 'bg-slate-800 text-white font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
                                 </div>
                                 {inputType === 'day' ? (
                                     <div className="flex gap-2">
@@ -340,7 +392,7 @@
                                 )}
                             </div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="사유 입력" /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정 저장' : '등록하기'}</button>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정' : '등록'}</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
                     </div>
@@ -348,7 +400,7 @@
             );
         };
 
-        // --- 📋 통합 연차 관리 탭 ---
+        // --- 📋 통합 연차 관리 탭 (수정/덮어쓰기 기능 완비) ---
         const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
@@ -359,14 +411,14 @@
                 return staffList.filter(s => s.name && s.name.includes(searchTerm));
             }, [staffList, searchTerm]);
 
-            // 📂 엑셀 일괄 업로드 (중복 수정 포함)
+            // 📂 엑셀 일괄 업로드 (수정 기능 포함)
             const handleLeaveFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 
                 const fileName = file.name;
                 const match = fileName.match(/(\d{4})[\.\-](\d{1,2})/);
-                if (!match) { alert("파일명 오류: 연도.월 (예: 2025.12) 형식이어야 합니다."); return; }
+                if (!match) { alert("파일명 오류: '2025.12' 형식 필요"); return; }
                 
                 const year = match[1];
                 const month = match[2].padStart(2, '0');
@@ -407,16 +459,19 @@
                                     const existingIdx = newHistory.findIndex(h => h.date === uploadDate && h.type === uploadType);
                                     
                                     if (existingIdx !== -1) {
-                                        // Update
-                                        newHistory[existingIdx] = { ...newHistory[existingIdx], days: leaveHours, reason: '엑셀 수정됨' };
+                                        // 덮어쓰기
+                                        newHistory[existingIdx] = {
+                                            ...newHistory[existingIdx],
+                                            days: leaveHours,
+                                            reason: '엑셀 업데이트'
+                                        };
                                     } else if (leaveHours > 0) {
-                                        // Insert (0시간은 추가 안 함)
+                                        // 추가 (0보다 클 때만)
                                         newHistory.push({
                                             date: uploadDate, days: leaveHours, type: uploadType, reason: '엑셀 업로드', createdAt: new Date().toISOString()
                                         });
                                     }
 
-                                    // 사용량 재계산
                                     const currentInfo = calculateAnnualLeave(targetStaff.joinDate);
                                     const totalUsedHours = newHistory.reduce((acc, curr) => {
                                         if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) {
@@ -492,7 +547,6 @@
                                     const totalHours = totalDays * dailyHours; 
                                     const remainingHours = totalHours - usedHours;
                                     const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
-                                    
                                     const displayHistory = activeHistory.map(h => ({ ...h, originalIndex: (staff.leaveHistory || []).indexOf(h) })).sort((a,b) => new Date(b.date) - new Date(a.date));
                                     if (leaveInfo.notJoined) return null;
                                     
@@ -523,46 +577,7 @@
             );
         };
 
-        // --- 수정 모달 (직원정보) ---
-        const EditStaffModal = ({ staff, onClose }) => {
-            const [formData, setFormData] = useState({ ...staff });
-            const [msg, setMsg] = useState('');
-            const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-            const handleSave = async (e) => {
-                e.preventDefault();
-                setMsg('저장 중...');
-                try {
-                    let updates = { ...formData };
-                    if (formData.joinDate !== staff.joinDate) {
-                        const leaveInfo = calculateAnnualLeave(formData.joinDate);
-                        updates.annualLeaveTotal = leaveInfo.total;
-                        updates.annualLeavePeriod = leaveInfo.period;
-                    }
-                    await updateDoc(doc(db, 'users', staff.id), updates);
-                    setMsg('✅ 수정 완료!');
-                    setTimeout(() => { setMsg(''); onClose(); }, 1000);
-                } catch (err) { setMsg('❌ 오류: ' + err.message); }
-            };
-            return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg"><div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Icons.Edit /></div>직원 정보 수정</h3>
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
-                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- 📊 직원 명부 탭 (엑셀 업로드 수정됨) ---
+        // --- 📊 직원 명부 탭 ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
@@ -708,7 +723,7 @@
                                 {processedStaffList.map((staff, idx) => {
                                     const dailyHours = safeParseFloat(staff.workHours) || 8;
                                     const totalDays = staff.annualLeaveTotal || 0;
-                                    const totalHours = totalDays * dailyHours; // 🚨 시간 환산
+                                    const totalHours = totalDays * dailyHours; 
                                     const usedHours = staff.annualLeaveUsed || 0;
                                     const remainingHours = totalHours - usedHours;
                                     const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
