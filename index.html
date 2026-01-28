@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Smart Update)</title>
+    <title>양지누림 연차 관리 시스템</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -34,7 +34,7 @@
 
     <script>
         window.onerror = function(msg, url, line, col, error) {
-            // console.error("Error: " + msg + "\nLine: " + line);
+            document.body.innerHTML = '<div style="padding:20px; color:red;"><h2>⚠️ 시스템 오류</h2><p>' + msg + '</p><p>Line: ' + line + '</p><button onclick="location.reload()" style="padding:10px; background:#333; color:#fff;">새로고침</button></div>';
             return false;
         };
     </script>
@@ -96,14 +96,16 @@
             History: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
         };
 
-        // --- 📅 날짜/연차 로직 ---
+        // --- 📅 날짜/연차 로직 (Safe Logic) ---
         const safeDate = (val) => {
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
+            
             if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
             if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
             if (/^\d{6}$/.test(str)) {
                 const n = parseInt(str);
+                // 엑셀 시리얼 (5000~60000 범위)
                 if (n > 5000 && n < 60000) {
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
@@ -122,6 +124,7 @@
             if (!joinDateStr || typeof joinDateStr !== 'string' || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
+
             if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
 
             let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
@@ -135,8 +138,10 @@
                 totalLeave = 15 + Math.floor((yearsWorked - 1) / 2);
                 if (totalLeave > 25) totalLeave = 25;
             }
+
             const sStr = startDate.toISOString().split('T')[0];
             const eStr = endDate.toISOString().split('T')[0];
+
             return { total: totalLeave, period: `${sStr} ~ ${eStr}`, startDate: sStr, endDate: eStr, notJoined: false };
         };
 
@@ -174,16 +179,7 @@
                     if (userDoc.exists()) onLogin({ ...userDoc.data(), email });
                     else onLogin({ role: 'staff', name: id, email });
                 } catch (err) {
-                    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
-                        try {
-                            const userDoc = await getDoc(doc(db, 'users', email));
-                            if (userDoc.exists() && userDoc.data().tempPw === pw) {
-                                await createUserWithEmailAndPassword(auth, email, pw);
-                                onLogin({ ...userDoc.data(), email });
-                                setLoading(false); return;
-                            } else setError('아이디 또는 비밀번호가 잘못되었습니다.');
-                        } catch (dbErr) { setError('시스템 오류: ' + dbErr.message); }
-                    } else setError('로그인 실패: ' + err.code);
+                    setError('로그인 실패: 아이디/비밀번호 확인');
                 } finally { setLoading(false); }
             };
 
@@ -210,7 +206,7 @@
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
                         <div className="text-center mb-6">
                             <div className="w-20 h-20 bg-blue-50 rounded-full mx-auto flex items-center justify-center mb-3"><span className="text-3xl font-black text-blue-600">{(staff.name || '?')[0]}</span></div>
-                            <h3 className="text-2xl font-bold text-slate-800">{staff.name}</h3><p className="text-sm text-slate-500 font-medium">상세 정보</p>
+                            <h3 className="text-2xl font-bold text-slate-800">{staff.name || '알수없음'}</h3><p className="text-sm text-slate-500 font-medium">상세 정보</p>
                         </div>
                         <div className="space-y-4">
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">생년월일</span><span className="text-sm font-bold text-slate-800">{staff.birth || '-'}</span></div>
@@ -229,7 +225,6 @@
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             const [leaveDate, setLeaveDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
-            
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
@@ -239,13 +234,8 @@
             useEffect(() => {
                 if (initialData) {
                     const days = parseFloat(initialData.days);
-                    if (days === 1 || days === 0.5) {
-                        setInputType('day');
-                        setLeaveDayType(String(days));
-                    } else {
-                        setInputType('hour');
-                        setLeaveHourValue(String(days)); 
-                    }
+                    if (days === 1 || days === 0.5) { setInputType('day'); setLeaveDayType(String(days)); }
+                    else { setInputType('hour'); setLeaveHourValue(String(days)); }
                 }
             }, [initialData]);
 
@@ -271,30 +261,19 @@
                 setMsg('처리 중...');
                 try {
                     let newHistory = [...(staff.leaveHistory || [])];
-                    const record = {
-                        date: leaveDate,
-                        days: deductHours, 
-                        type: typeText,
-                        reason: reason,
-                        createdAt: new Date().toISOString()
-                    };
+                    const record = { date: leaveDate, days: deductHours, type: typeText, reason: reason, createdAt: new Date().toISOString() };
 
                     if (isEdit) newHistory[initialData.index] = record;
                     else newHistory.push(record);
 
                     const currentInfo = calculateAnnualLeave(staff.joinDate);
                     const totalUsedHours = newHistory.reduce((acc, curr) => {
-                        if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) {
-                            return acc + (parseFloat(curr.days) || 0);
-                        }
+                        if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) return acc + (parseFloat(curr.days) || 0);
                         return acc;
                     }, 0);
 
-                    await updateDoc(doc(db, 'users', selectedStaffId), { 
-                        annualLeaveUsed: totalUsedHours, 
-                        leaveHistory: newHistory 
-                    });
-                    setMsg(isEdit ? '✅ 수정 완료!' : '✅ 등록 완료!');
+                    await updateDoc(doc(db, 'users', selectedStaffId), { annualLeaveUsed: totalUsedHours, leaveHistory: newHistory });
+                    setMsg('✅ 완료!');
                     setTimeout(() => { setMsg(''); onClose(); }, 1500);
                 } catch (err) { setMsg('❌ 오류: ' + err.message); }
             };
@@ -310,23 +289,20 @@
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">등록 단위</label>
                                 <div className="flex gap-2 mb-2">
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'day' ? 'bg-slate-800 text-white font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'hour' ? 'bg-slate-800 text-white font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
+                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'day' ? 'bg-slate-800 text-white font-bold' : ''}`}><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
+                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'hour' ? 'bg-slate-800 text-white font-bold' : ''}`}><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
                                 </div>
                                 {inputType === 'day' ? (
                                     <div className="flex gap-2">
-                                        <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer ${leaveDayType === '1' ? 'bg-blue-50 border-blue-500 font-bold text-blue-700' : ''}`}><input type="radio" name="dtype" value="1" checked={leaveDayType === '1'} onChange={() => setLeaveDayType('1')} className="hidden"/>연차 (1일)</label>
-                                        <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer ${leaveDayType === '0.5' ? 'bg-blue-50 border-blue-500 font-bold text-blue-700' : ''}`}><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label>
+                                        <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer ${leaveDayType === '1' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}><input type="radio" name="dtype" value="1" checked={leaveDayType === '1'} onChange={() => setLeaveDayType('1')} className="hidden"/>연차 (1일)</label>
+                                        <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer ${leaveDayType === '0.5' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-2">
-                                        <input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간 입력 (예: 2)" min="0.5" step="0.5" />
-                                        <span className="text-sm font-bold text-slate-600">시간</span>
-                                    </div>
+                                    <div className="flex items-center gap-2"><input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간" min="0.5" step="0.5" /><span className="text-sm font-bold text-slate-600">시간</span></div>
                                 )}
                             </div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="사유 입력" /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정 저장' : '등록하기'}</button>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="입력" /></div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정' : '등록'}</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
                     </div>
@@ -334,7 +310,7 @@
             );
         };
 
-        // --- 📋 통합 연차 관리 탭 ---
+        // --- 📋 통합 연차 관리 탭 (수정/덮어쓰기 기능 완비) ---
         const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
@@ -345,16 +321,20 @@
                 return staffList.filter(s => s.name && s.name.includes(searchTerm));
             }, [staffList, searchTerm]);
 
+            // 📂 엑셀 일괄 업로드 (수정 기능 포함)
             const handleLeaveFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 
+                // 파일명에서 연월 추출
                 const fileName = file.name;
                 const match = fileName.match(/(\d{4})[\.\-](\d{1,2})/);
-                if (!match) { alert("파일명에 연도와 월이 포함되어야 합니다. (예: 2025.12월 연차.xlsx)"); return; }
+                if (!match) { alert("파일명 오류: '2025.12' 형식 필요"); return; }
+                
                 const year = match[1];
                 const month = match[2].padStart(2, '0');
                 const uploadDate = `${year}-${month}-01`;
+                const uploadType = `${year}.${month} 일괄등록`;
 
                 const reader = new FileReader();
                 reader.readAsArrayBuffer(file);
@@ -365,12 +345,12 @@
                         const ws = wb.Sheets[wb.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-                        if (jsonData.length < 3) { alert("데이터가 없습니다."); return; }
+                        if (jsonData.length < 3) { alert("데이터 없음"); return; }
 
                         const batch = writeBatch(db);
                         let updateCount = 0;
 
-                        // 3행부터 시작 (Index 2)
+                        // 3행(Index 2)부터 데이터
                         for (let i = 2; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
@@ -384,27 +364,30 @@
                                 const targetStaff = staffList.find(s => s.name === name && s.birth === birthDate);
                                 
                                 if (targetStaff) {
-                                    const typeName = `${year}.${month} 일괄등록`;
-                                    let newHistory = [...(targetStaff.leaveHistory || [])];
+                                    const newHistory = [...(targetStaff.leaveHistory || [])];
                                     
-                                    // 🚀 중복 방지 (Upsert): 같은 날짜, 같은 타입이면 덮어쓰기
-                                    const existingIdx = newHistory.findIndex(h => h.date === uploadDate && h.type === typeName);
+                                    // 🔍 기존 데이터 확인 (같은 날짜, 같은 타입)
+                                    const existingIdx = newHistory.findIndex(h => h.date === uploadDate && h.type === uploadType);
+                                    
                                     if (existingIdx !== -1) {
+                                        // 🔄 기존 데이터가 있으면 '수정(덮어쓰기)'
                                         newHistory[existingIdx] = {
                                             ...newHistory[existingIdx],
-                                            days: leaveHours, // 시간 업데이트
+                                            days: leaveHours,
                                             reason: '엑셀 업데이트'
                                         };
                                     } else {
+                                        // ➕ 없으면 '추가'
                                         newHistory.push({
                                             date: uploadDate,
                                             days: leaveHours,
-                                            type: typeName,
+                                            type: uploadType,
                                             reason: '엑셀 업로드',
                                             createdAt: new Date().toISOString()
                                         });
                                     }
 
+                                    // 사용량 재계산
                                     const currentInfo = calculateAnnualLeave(targetStaff.joinDate);
                                     const totalUsedHours = newHistory.reduce((acc, curr) => {
                                         if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) {
@@ -420,8 +403,8 @@
                             }
                         }
                         await batch.commit();
-                        alert(`✅ ${updateCount}명의 연차 내역이 등록/수정 되었습니다.`);
-                    } catch (err) { alert("파일 오류: " + err.message); }
+                        alert(`✅ ${updateCount}명 처리 완료 (추가/수정 포함)`);
+                    } catch (err) { alert("오류: " + err.message); }
                 };
             };
 
@@ -444,7 +427,7 @@
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-4">
-                            <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도 연차 관리' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
+                            <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
                             {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
                         </div>
                         <div className="flex items-center gap-3">
@@ -458,12 +441,7 @@
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
-                                    <th className="p-4">이름</th>
-                                    <th className="p-4 text-center text-blue-600">총 연차(시간)</th>
-                                    <th className="p-4 text-center text-red-500">사용(시간)</th>
-                                    <th className="p-4 text-center text-green-600">잔여(시간)</th>
-                                    <th className="p-4 w-44">기간</th>
-                                    <th className="p-4">내역</th>
+                                    <th className="p-4">이름</th><th className="p-4 text-center text-blue-600">총 연차(시간)</th><th className="p-4 text-center text-red-500">사용(시간)</th><th className="p-4 text-center text-green-600">잔여(시간)</th><th className="p-4 w-44">기간</th><th className="p-4">내역</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -485,13 +463,12 @@
                                     const totalHours = totalDays * dailyHours; 
                                     const remainingHours = totalHours - usedHours;
                                     const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
-                                    
                                     const displayHistory = activeHistory.map(h => ({ ...h, originalIndex: (staff.leaveHistory || []).indexOf(h) })).sort((a,b) => new Date(b.date) - new Date(a.date));
                                     if (leaveInfo.notJoined) return null;
                                     
                                     return (
                                         <tr key={staff.id} className="hover:bg-slate-50 transition">
-                                            <td className="p-4"><div className="font-bold text-slate-800">{staff.name}</div>{staff.workHours && <div className="text-xs text-slate-500">일 {staff.workHours}시간</div>}</td>
+                                            <td className="p-4"><div className="font-bold text-slate-800">{staff.name}</div>{staff.workHours && <div className="text-xs text-slate-500">일 {staff.workHours}h</div>}</td>
                                             <td className="p-4 text-center font-bold text-blue-600">{totalHours}h <span className="text-xs font-normal text-slate-400">({totalDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-red-500">{usedHours}h</td>
                                             <td className="p-4 text-center font-black text-green-600 text-lg">{remainingHours}h <span className="text-xs font-normal text-slate-400">({remainingDays}일)</span></td>
@@ -500,11 +477,7 @@
                                                 <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin">
                                                     {displayHistory.map((rec, i) => (
                                                         <div key={i} className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border group hover:border-blue-200">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="font-bold">{rec.date}</span>
-                                                                <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{rec.days}h ({rec.type})</span>
-                                                                <span className="text-slate-400 truncate max-w-[80px]">{rec.reason}</span>
-                                                            </div>
+                                                            <div className="flex items-center gap-2"><span className="font-bold">{rec.date}</span><span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{rec.days}h ({rec.type})</span></div>
                                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100"><button onClick={() => onEditClick(staff.id, rec.originalIndex, rec)} className="text-blue-500"><Icons.Edit /></button><button onClick={() => handleDeleteLeave(staff, rec.originalIndex)} className="text-red-500"><Icons.Trash /></button></div>
                                                         </div>
                                                     ))}
@@ -515,45 +488,6 @@
                                 })}
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- 수정 모달 (직원정보) ---
-        const EditStaffModal = ({ staff, onClose }) => {
-            const [formData, setFormData] = useState({ ...staff });
-            const [msg, setMsg] = useState('');
-            const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-            const handleSave = async (e) => {
-                e.preventDefault();
-                setMsg('저장 중...');
-                try {
-                    let updates = { ...formData };
-                    if (formData.joinDate !== staff.joinDate) {
-                        const leaveInfo = calculateAnnualLeave(formData.joinDate);
-                        updates.annualLeaveTotal = leaveInfo.total;
-                        updates.annualLeavePeriod = leaveInfo.period;
-                    }
-                    await updateDoc(doc(db, 'users', staff.id), updates);
-                    setMsg('✅ 수정 완료!');
-                    setTimeout(() => { setMsg(''); onClose(); }, 1000);
-                } catch (err) { setMsg('❌ 오류: ' + err.message); }
-            };
-            return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg"><div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Icons.Edit /></div>직원 정보 수정</h3>
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
-                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
-                        </form>
                     </div>
                 </div>
             );
