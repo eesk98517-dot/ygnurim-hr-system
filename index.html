@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Safe Mode)</title>
+    <title>양지누림 연차 관리 시스템 (Smart Update)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -34,14 +34,7 @@
 
     <script>
         window.onerror = function(msg, url, line, col, error) {
-            document.body.innerHTML = `
-                <div style="padding: 20px; color: red; font-family: sans-serif;">
-                    <h1>⚠️ 시스템 오류 발생</h1>
-                    <p>죄송합니다. 치명적인 오류가 발생했습니다.</p>
-                    <pre style="background: #eee; padding: 10px; border-radius: 5px;">${msg}\nLine: ${line}</pre>
-                    <button onclick="location.reload()" style="padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">새로고침</button>
-                </div>
-            `;
+            // console.error("Error: " + msg + "\nLine: " + line);
             return false;
         };
     </script>
@@ -71,21 +64,13 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 🛡️ Error Boundary (리액트 에러 방어벽)
+        // 🛡️ Error Boundary
         class ErrorBoundary extends Component {
-            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            constructor(props) { super(props); this.state = { hasError: false }; }
+            static getDerivedStateFromError(error) { return { hasError: true }; }
             componentDidCatch(error, errorInfo) { console.error("React Error:", error, errorInfo); }
             render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="p-8 text-center text-red-600">
-                            <h2 className="text-xl font-bold mb-2">일시적인 오류가 발생했습니다.</h2>
-                            <p className="text-sm text-slate-500 mb-4">{this.state.error?.message}</p>
-                            <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-4 py-2 rounded">새로고침</button>
-                        </div>
-                    );
-                }
+                if (this.state.hasError) return <div className="p-8 text-center text-red-600">오류가 발생했습니다. 새로고침 해주세요.</div>;
                 return this.props.children;
             }
         }
@@ -111,19 +96,14 @@
             History: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
         };
 
-        // --- 📅 날짜/연차 로직 (Safety Guard 적용) ---
+        // --- 📅 날짜/연차 로직 ---
         const safeDate = (val) => {
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
-            
-            // YYYY-MM-DD
             if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
-            // YYYYMMDD
             if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
-            // YYMMDD (5000 이상만 엑셀로 간주, 그 외는 YYMMDD)
             if (/^\d{6}$/.test(str)) {
                 const n = parseInt(str);
-                // 엑셀 시리얼 넘버 범위 (1913년 ~ 2064년) 체크
                 if (n > 5000 && n < 60000) {
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
@@ -131,7 +111,6 @@
                         return date.toISOString().split('T')[0];
                     } catch(e) { return str; }
                 }
-                // YYMMDD 처리
                 const yy = parseInt(str.substring(0, 2), 10);
                 const prefix = yy > 40 ? '19' : '20'; 
                 return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`;
@@ -140,10 +119,9 @@
         };
 
         const calculateLeaveForYear = (joinDateStr, targetYear) => {
-            if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
+            if (!joinDateStr || typeof joinDateStr !== 'string' || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
-
             if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
 
             let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
@@ -157,10 +135,8 @@
                 totalLeave = 15 + Math.floor((yearsWorked - 1) / 2);
                 if (totalLeave > 25) totalLeave = 25;
             }
-
             const sStr = startDate.toISOString().split('T')[0];
             const eStr = endDate.toISOString().split('T')[0];
-
             return { total: totalLeave, period: `${sStr} ~ ${eStr}`, startDate: sStr, endDate: eStr, notJoined: false };
         };
 
@@ -344,7 +320,7 @@
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간 입력" min="0.5" step="0.5" />
+                                        <input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간 입력 (예: 2)" min="0.5" step="0.5" />
                                         <span className="text-sm font-bold text-slate-600">시간</span>
                                     </div>
                                 )}
@@ -358,7 +334,7 @@
             );
         };
 
-        // --- 📋 통합 연차 관리 탭 (일괄 업로드 기능) ---
+        // --- 📋 통합 연차 관리 탭 ---
         const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
@@ -408,14 +384,26 @@
                                 const targetStaff = staffList.find(s => s.name === name && s.birth === birthDate);
                                 
                                 if (targetStaff) {
-                                    const newHistory = [...(targetStaff.leaveHistory || [])];
-                                    newHistory.push({
-                                        date: uploadDate,
-                                        days: leaveHours,
-                                        type: `${year}.${month} 일괄등록`,
-                                        reason: '엑셀 업로드',
-                                        createdAt: new Date().toISOString()
-                                    });
+                                    const typeName = `${year}.${month} 일괄등록`;
+                                    let newHistory = [...(targetStaff.leaveHistory || [])];
+                                    
+                                    // 🚀 중복 방지 (Upsert): 같은 날짜, 같은 타입이면 덮어쓰기
+                                    const existingIdx = newHistory.findIndex(h => h.date === uploadDate && h.type === typeName);
+                                    if (existingIdx !== -1) {
+                                        newHistory[existingIdx] = {
+                                            ...newHistory[existingIdx],
+                                            days: leaveHours, // 시간 업데이트
+                                            reason: '엑셀 업데이트'
+                                        };
+                                    } else {
+                                        newHistory.push({
+                                            date: uploadDate,
+                                            days: leaveHours,
+                                            type: typeName,
+                                            reason: '엑셀 업로드',
+                                            createdAt: new Date().toISOString()
+                                        });
+                                    }
 
                                     const currentInfo = calculateAnnualLeave(targetStaff.joinDate);
                                     const totalUsedHours = newHistory.reduce((acc, curr) => {
@@ -432,7 +420,7 @@
                             }
                         }
                         await batch.commit();
-                        alert(`✅ ${updateCount}명의 연차 내역이 등록되었습니다.`);
+                        alert(`✅ ${updateCount}명의 연차 내역이 등록/수정 되었습니다.`);
                     } catch (err) { alert("파일 오류: " + err.message); }
                 };
             };
@@ -456,7 +444,7 @@
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
                         <div className="flex items-center gap-4">
-                            <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
+                            <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도 연차 관리' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
                             {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
                         </div>
                         <div className="flex items-center gap-3">
@@ -613,6 +601,27 @@
                 return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
             };
             
+            const safeDate = (val) => {
+                if (!val) return '';
+                let str = String(val).trim();
+                str = str.replace(/[\.\/]/g, '-');
+                if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+                if (/^\d{8}$/.test(str)) { return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`; }
+                if (/^\d{6}$/.test(str)) {
+                    const yy = parseInt(str.substring(0, 2), 10);
+                    const prefix = yy > 30 ? '19' : '20'; 
+                    return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`;
+                }
+                if (!isNaN(val) && val > 5000 && val < 60000) { 
+                    try {
+                        const date = new Date((val - 25569) * 86400 * 1000);
+                        date.setHours(date.getHours() + 9); 
+                        return date.toISOString().split('T')[0];
+                    } catch(e) { return str; }
+                }
+                return str;
+            };
+
             const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -739,120 +748,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
-            );
-        };
-
-        // --- 메인 앱 ---
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [activeTab, setActiveTab] = useState('dashboard');
-            const [staffList, setStaffList] = useState([]);
-            const [showLeaveModal, setShowLeaveModal] = useState(false);
-            const [editingLeaveData, setEditingLeaveData] = useState(null);
-            
-            useEffect(() => {
-                if (user && user.role === 'admin') {
-                    const q = collection(db, 'users');
-                    const unsub = onSnapshot(q, (snapshot) => {
-                        const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
-                        setStaffList(list);
-                    });
-                    return () => unsub();
-                }
-            }, [user]);
-
-            const handleLogout = async () => { try { await signOut(auth); } catch(e) {} setUser(null); };
-            const handleEditLeave = (staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); };
-            const closeLeaveModal = () => { setShowLeaveModal(false); setEditingLeaveData(null); };
-
-            if (!user) return <Login onLogin={setUser} />;
-
-            const totalStaff = staffList.length;
-            const todayStr = new Date().toISOString().split('T')[0];
-            const todayLeaveCount = staffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length;
-            const totalLeaveUsed = staffList.reduce((acc, cur) => acc + (cur.annualLeaveUsed || 0), 0);
-            const totalLeaveGen = staffList.reduce((acc, cur) => acc + (cur.annualLeaveTotal || 0), 0);
-            const usageRate = totalLeaveGen > 0 ? Math.round((totalLeaveUsed / totalLeaveGen) * 100) : 0;
-
-            const DASHBOARD_STATS = [
-                { label: "총 임직원", value: totalStaff, unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
-                { label: "금일 휴가자", value: todayLeaveCount, unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> },
-                { label: "누적 사용 연차", value: totalLeaveUsed, unit: "개", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
-                { label: "전사 소진율", value: usageRate, unit: "%", color: "bg-green-50 text-green-600", icon: <Icons.Calendar /> },
-            ];
-
-            return (
-                <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
-                    <ErrorBoundary>
-                        {showLeaveModal && <LeaveActionModal staffList={staffList} onClose={closeLeaveModal} initialData={editingLeaveData} />}
-                        <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10 shadow-xl">
-                            <div className="p-6 border-b border-slate-700/50">
-                                <h1 className="text-xl font-black text-white">양지누림</h1>
-                                <p className="text-xs text-slate-400 mt-1">{user.name}님 ({user.role === 'admin' ? '관리자' : '직원'})</p>
-                            </div>
-                            <nav className="flex-1 p-4 flex flex-col gap-2">
-                                <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
-                                <button onClick={() => setActiveTab('leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'leave' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 연차 관리</button>
-                                <button onClick={() => setActiveTab('past_leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'past_leave' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.History /> 과년도 연차관리</button>
-                                <button onClick={() => setActiveTab('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
-                            </nav>
-                            <div className="p-4 bg-[#0F172A]">
-                                <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                            </div>
-                        </aside>
-
-                        <main className="flex-1 overflow-y-auto p-8">
-                            <header className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold text-slate-800">
-                                    {activeTab === 'dashboard' && '관리자 대시보드'}
-                                    {activeTab === 'leave' && '연차 관리'}
-                                    {activeTab === 'past_leave' && '과년도 연차 관리'}
-                                    {activeTab === 'staff' && '직원 명부 관리'}
-                                </h2>
-                                <div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()} (오늘)</div>
-                            </header>
-
-                            {activeTab === 'dashboard' && (
-                                <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        {DASHBOARD_STATS.map((stat, idx) => (
-                                            <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition flex items-center justify-between">
-                                                <div><p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">{stat.label}</p><div className="flex items-baseline gap-1"><span className="text-2xl font-black text-slate-800">{stat.value}</span><span className="text-sm font-medium text-slate-500">{stat.unit}</span></div></div><div className={`p-3 rounded-xl ${stat.color} bg-opacity-50`}>{stat.icon}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div className="lg:col-span-2 space-y-6">
-                                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                                                <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4"><span className="w-2 h-6 bg-orange-400 rounded-sm"></span> 금일 부재 현황</h3>
-                                                <div className="space-y-3">
-                                                    {staffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length > 0 ? (
-                                                        staffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).map(s => (
-                                                            <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                                <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-white border flex items-center justify-center text-sm font-bold text-slate-600 shadow-sm">{s.name[0]}</div><div><p className="text-sm font-bold text-slate-800">{s.name}</p><p className="text-xs text-slate-500 font-medium mt-0.5">휴가 중</p></div></div><span className="px-3 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700">휴가</span>
-                                                            </div>
-                                                        ))
-                                                    ) : (<p className="text-slate-400 text-sm text-center py-8">금일 휴가자가 없습니다.</p>)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200">
-                                                <h3 className="font-bold text-lg mb-1">빠른 연차 등록</h3>
-                                                <p className="text-blue-100 text-sm mb-4">관리자가 직원의 연차를 대리 등록합니다.</p>
-                                                <button onClick={() => setShowLeaveModal(true)} className="w-full bg-white text-blue-700 py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition">+ 연차 등록하기</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'leave' && <LeaveManagementTab staffList={staffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} />}
-                            {activeTab === 'past_leave' && <LeaveManagementTab staffList={staffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} isPastMode={true} />}
-                            {activeTab === 'staff' && <StaffTab staffList={staffList} />}
-                        </main>
-                    </ErrorBoundary>
                 </div>
             );
         };
