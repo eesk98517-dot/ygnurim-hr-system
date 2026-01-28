@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템</title>
+    <title>양지누림 연차 관리 시스템 (Safe Mode)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -34,7 +34,14 @@
 
     <script>
         window.onerror = function(msg, url, line, col, error) {
-            document.body.innerHTML = '<div style="padding:20px; color:red;"><h2>⚠️ 시스템 오류</h2><p>' + msg + '</p><p>Line: ' + line + '</p><button onclick="location.reload()" style="padding:10px; background:#333; color:#fff;">새로고침</button></div>';
+            document.body.innerHTML = `
+                <div style="padding: 20px; color: red; font-family: sans-serif;">
+                    <h1>⚠️ 시스템 오류 발생</h1>
+                    <p>죄송합니다. 치명적인 오류가 발생했습니다.</p>
+                    <pre style="background: #eee; padding: 10px; border-radius: 5px;">${msg}\nLine: ${line}</pre>
+                    <button onclick="location.reload()" style="padding: 10px 20px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px;">새로고침</button>
+                </div>
+            `;
             return false;
         };
     </script>
@@ -64,13 +71,21 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 🛡️ Error Boundary
+        // 🛡️ Error Boundary (리액트 에러 방어벽)
         class ErrorBoundary extends Component {
-            constructor(props) { super(props); this.state = { hasError: false }; }
-            static getDerivedStateFromError(error) { return { hasError: true }; }
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
             componentDidCatch(error, errorInfo) { console.error("React Error:", error, errorInfo); }
             render() {
-                if (this.state.hasError) return <div className="p-8 text-center text-red-600">오류가 발생했습니다. 새로고침 해주세요.</div>;
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-8 text-center text-red-600">
+                            <h2 className="text-xl font-bold mb-2">일시적인 오류가 발생했습니다.</h2>
+                            <p className="text-sm text-slate-500 mb-4">{this.state.error?.message}</p>
+                            <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-4 py-2 rounded">새로고침</button>
+                        </div>
+                    );
+                }
                 return this.props.children;
             }
         }
@@ -101,11 +116,14 @@
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
             
+            // YYYY-MM-DD
             if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            // YYYYMMDD
             if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
+            // YYMMDD (5000 이상만 엑셀로 간주, 그 외는 YYMMDD)
             if (/^\d{6}$/.test(str)) {
                 const n = parseInt(str);
-                // 엑셀 시리얼 (5000~60000 범위)
+                // 엑셀 시리얼 넘버 범위 (1913년 ~ 2064년) 체크
                 if (n > 5000 && n < 60000) {
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
@@ -113,6 +131,7 @@
                         return date.toISOString().split('T')[0];
                     } catch(e) { return str; }
                 }
+                // YYMMDD 처리
                 const yy = parseInt(str.substring(0, 2), 10);
                 const prefix = yy > 40 ? '19' : '20'; 
                 return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`;
@@ -121,7 +140,7 @@
         };
 
         const calculateLeaveForYear = (joinDateStr, targetYear) => {
-            if (!joinDateStr || typeof joinDateStr !== 'string' || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
+            if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
 
@@ -225,6 +244,7 @@
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             const [leaveDate, setLeaveDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+            
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
@@ -234,8 +254,13 @@
             useEffect(() => {
                 if (initialData) {
                     const days = parseFloat(initialData.days);
-                    if (days === 1 || days === 0.5) { setInputType('day'); setLeaveDayType(String(days)); }
-                    else { setInputType('hour'); setLeaveHourValue(String(days)); }
+                    if (days === 1 || days === 0.5) {
+                        setInputType('day');
+                        setLeaveDayType(String(days));
+                    } else {
+                        setInputType('hour');
+                        setLeaveHourValue(String(days)); 
+                    }
                 }
             }, [initialData]);
 
@@ -261,19 +286,30 @@
                 setMsg('처리 중...');
                 try {
                     let newHistory = [...(staff.leaveHistory || [])];
-                    const record = { date: leaveDate, days: deductHours, type: typeText, reason: reason, createdAt: new Date().toISOString() };
+                    const record = {
+                        date: leaveDate,
+                        days: deductHours, 
+                        type: typeText,
+                        reason: reason,
+                        createdAt: new Date().toISOString()
+                    };
 
                     if (isEdit) newHistory[initialData.index] = record;
                     else newHistory.push(record);
 
                     const currentInfo = calculateAnnualLeave(staff.joinDate);
                     const totalUsedHours = newHistory.reduce((acc, curr) => {
-                        if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) return acc + (parseFloat(curr.days) || 0);
+                        if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) {
+                            return acc + (parseFloat(curr.days) || 0);
+                        }
                         return acc;
                     }, 0);
 
-                    await updateDoc(doc(db, 'users', selectedStaffId), { annualLeaveUsed: totalUsedHours, leaveHistory: newHistory });
-                    setMsg('✅ 완료!');
+                    await updateDoc(doc(db, 'users', selectedStaffId), { 
+                        annualLeaveUsed: totalUsedHours, 
+                        leaveHistory: newHistory 
+                    });
+                    setMsg(isEdit ? '✅ 수정 완료!' : '✅ 등록 완료!');
                     setTimeout(() => { setMsg(''); onClose(); }, 1500);
                 } catch (err) { setMsg('❌ 오류: ' + err.message); }
             };
@@ -289,8 +325,8 @@
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">등록 단위</label>
                                 <div className="flex gap-2 mb-2">
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'day' ? 'bg-slate-800 text-white font-bold' : ''}`}><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'hour' ? 'bg-slate-800 text-white font-bold' : ''}`}><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
+                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'day' ? 'bg-slate-800 text-white font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
+                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer ${inputType === 'hour' ? 'bg-slate-800 text-white font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
                                 </div>
                                 {inputType === 'day' ? (
                                     <div className="flex gap-2">
@@ -298,11 +334,14 @@
                                         <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer ${leaveDayType === '0.5' ? 'bg-blue-50 text-blue-700 font-bold' : ''}`}><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label>
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-2"><input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간" min="0.5" step="0.5" /><span className="text-sm font-bold text-slate-600">시간</span></div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간 입력" min="0.5" step="0.5" />
+                                        <span className="text-sm font-bold text-slate-600">시간</span>
+                                    </div>
                                 )}
                             </div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="입력" /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정' : '등록'}</button>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="사유 입력" /></div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정 저장' : '등록하기'}</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
                     </div>
@@ -441,7 +480,12 @@
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
-                                    <th className="p-4">이름</th><th className="p-4 text-center text-blue-600">총 연차(시간)</th><th className="p-4 text-center text-red-500">사용(시간)</th><th className="p-4 text-center text-green-600">잔여(시간)</th><th className="p-4 w-44">기간</th><th className="p-4">내역</th>
+                                    <th className="p-4">이름</th>
+                                    <th className="p-4 text-center text-blue-600">총 연차(시간)</th>
+                                    <th className="p-4 text-center text-red-500">사용(시간)</th>
+                                    <th className="p-4 text-center text-green-600">잔여(시간)</th>
+                                    <th className="p-4 w-44">기간</th>
+                                    <th className="p-4">내역</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -463,6 +507,7 @@
                                     const totalHours = totalDays * dailyHours; 
                                     const remainingHours = totalHours - usedHours;
                                     const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
+                                    
                                     const displayHistory = activeHistory.map(h => ({ ...h, originalIndex: (staff.leaveHistory || []).indexOf(h) })).sort((a,b) => new Date(b.date) - new Date(a.date));
                                     if (leaveInfo.notJoined) return null;
                                     
@@ -477,7 +522,11 @@
                                                 <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin">
                                                     {displayHistory.map((rec, i) => (
                                                         <div key={i} className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border group hover:border-blue-200">
-                                                            <div className="flex items-center gap-2"><span className="font-bold">{rec.date}</span><span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{rec.days}h ({rec.type})</span></div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-bold">{rec.date}</span>
+                                                                <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{rec.days}h ({rec.type})</span>
+                                                                <span className="text-slate-400 truncate max-w-[80px]">{rec.reason}</span>
+                                                            </div>
                                                             <div className="flex gap-1 opacity-0 group-hover:opacity-100"><button onClick={() => onEditClick(staff.id, rec.originalIndex, rec)} className="text-blue-500"><Icons.Edit /></button><button onClick={() => handleDeleteLeave(staff, rec.originalIndex)} className="text-red-500"><Icons.Trash /></button></div>
                                                         </div>
                                                     ))}
@@ -660,10 +709,10 @@
                                 {processedStaffList.map((staff, idx) => {
                                     const dailyHours = parseFloat(staff.workHours) || 8;
                                     const totalDays = staff.annualLeaveTotal || 0;
-                                    const totalHours = totalDays * dailyHours; 
+                                    const totalHours = totalDays * dailyHours; // 🚨 시간 환산
                                     const usedHours = staff.annualLeaveUsed || 0;
                                     const remainingHours = totalHours - usedHours;
-                                    const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
+                                    const remainingDays = Math.round((remainingHours / dailyHours) * 10) / 10;
 
                                     return (
                                         <tr key={idx} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
