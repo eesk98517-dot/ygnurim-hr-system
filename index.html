@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Resigned Update)</title>
+    <title>양지누림 연차 관리 시스템 (Final Fix & Upgrade)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -248,8 +248,8 @@
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">휴대폰</span><span className="text-sm font-bold text-slate-800">{staff.phone || '-'}</span></div>
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">입사일</span><span className="text-sm font-bold text-slate-800">{staff.joinDate || '-'}</span></div>
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">근무시간</span><span className="text-sm font-bold text-blue-600">{staff.workHours || 8}시간</span></div>
-                            {/* 퇴사자용 표시 */}
-                            {staff.resignDate && <div className="flex justify-between p-3 bg-red-50 rounded-xl"><span className="text-xs font-bold text-red-500">퇴사일</span><span className="text-sm font-bold text-red-600">{staff.resignDate}</span></div>}
+                            {/* 퇴사일 표시 */}
+                            {staff.resignDate && <div className="flex justify-between p-3 bg-red-50 rounded-xl border border-red-100"><span className="text-xs font-bold text-red-500">퇴사일</span><span className="text-sm font-bold text-red-600">{staff.resignDate}</span></div>}
                         </div>
                         <button onClick={onClose} className="w-full mt-6 bg-slate-800 text-white py-3 rounded-xl text-sm font-bold hover:bg-slate-700 transition">닫기</button>
                     </div>
@@ -379,7 +379,7 @@
                     })).sort((a,b) => new Date(b.date) - new Date(a.date));
 
                     return {
-                        ...staff, dailyHours, leaveInfo, totalDays, totalHours, usedHours, remainingHours, displayHistory, notJoined: leaveInfo.notJoined
+                        ...staff, dailyHours, leaveInfo, totalDays, totalHours, usedHours, remainingHours, displayHistory, notJoined: leaveInfo.notJoined, resignDate: staff.resignDate
                     };
                 });
             }, [staffList, selectedYear, isPastMode]);
@@ -539,31 +539,14 @@
             );
         };
 
-        // --- 메인 앱 ---
-        const App = () => {
-            const [user, setUser] = useState(null);
-            const [activeTab, setActiveTab] = useState('dashboard');
-            const [staffList, setStaffList] = useState([]);
-            const [showLeaveModal, setShowLeaveModal] = useState(false);
-            const [editingLeaveData, setEditingLeaveData] = useState(null);
-            const resignedFileInputRef = useRef(null); 
-            
-            useEffect(() => {
-                if (user && user.role === 'admin') {
-                    const q = collection(db, 'users');
-                    const unsub = onSnapshot(q, (snapshot) => {
-                        const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
-                        setStaffList(list);
-                    });
-                    return () => unsub();
-                }
-            }, [user]);
+        // --- 🆕 퇴사자 관리 탭 (과년도 조회 기능 추가) ---
+        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick }) => {
+            const [isPastMode, setIsPastMode] = useState(false); // 과년도 조회 모드
+            const resignedFileInputRef = useRef(null);
 
-            const handleLogout = async () => { try { await signOut(auth); } catch(e) {} setUser(null); };
-            const handleEditLeave = (staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); };
-            const closeLeaveModal = () => { setShowLeaveModal(false); setEditingLeaveData(null); };
+            // 퇴사자만 필터링
+            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned'), [staffList]);
 
-            // 📂 퇴사자 명부 업로드 (status='resigned', F열=퇴사일)
             const handleResignedStaffUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -585,7 +568,7 @@
                                 const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
                                 const joinDate = safeDate(joinRaw);
                                 const birthDate = safeDate(birthRaw);
-                                const resignDate = safeDate(resignRaw); // 🆕 퇴사일 파싱
+                                const resignDate = safeDate(resignRaw); 
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 const phoneStr = String(phoneRaw || '').trim();
                                 const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
@@ -595,8 +578,7 @@
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: 'resigned', // 🚨 퇴사자 표시
-                                    resignDate: resignDate || '' // 🚨 퇴사일 저장
+                                    status: 'resigned', resignDate: resignDate || ''
                                 }, { merge: true });
                                 count++;
                             }
@@ -607,13 +589,287 @@
                 };
             };
 
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-orange-50 p-4 rounded-xl border border-orange-100">
+                        <div className="flex items-center gap-2 font-bold text-orange-800">
+                            <Icons.UserMinus /> 퇴사자 관리 모드
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {/* 🆕 과년도 조회 체크박스 */}
+                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition">
+                                <input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} />
+                                <span className="text-sm font-bold text-orange-700">과년도 기록 보기</span>
+                            </label>
+                            
+                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
+                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200">
+                                <Icons.Upload /> 퇴사자 명부 업로드
+                            </button>
+                        </div>
+                    </div>
+                    {/* 과년도 모드 상태를 props로 전달 */}
+                    <LeaveManagementTab staffList={resignedList} onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} />
+                </div>
+            );
+        };
+
+        // --- 수정 모달 (직원정보) ---
+        const EditStaffModal = ({ staff, onClose }) => {
+            const [formData, setFormData] = useState({ ...staff });
+            const [msg, setMsg] = useState('');
+            const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+            const handleSave = async (e) => {
+                e.preventDefault();
+                setMsg('저장 중...');
+                try {
+                    let updates = { ...formData };
+                    if (formData.joinDate !== staff.joinDate) {
+                        const leaveInfo = calculateAnnualLeave(formData.joinDate);
+                        updates.annualLeaveTotal = leaveInfo.total;
+                        updates.annualLeavePeriod = leaveInfo.period;
+                    }
+                    await updateDoc(doc(db, 'users', staff.id), updates);
+                    setMsg('✅ 수정 완료!');
+                    setTimeout(() => { setMsg(''); onClose(); }, 1000);
+                } catch (err) { setMsg('❌ 오류: ' + err.message); }
+            };
+            return (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg"><div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><Icons.Edit /></div>직원 정보 수정</h3>
+                        <form onSubmit={handleSave} className="space-y-4">
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            {/* 퇴사일 수정 필드 추가 */}
+                            <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={formData.resignDate || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
+                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 📊 직원 명부 탭 (빈 화면 오류 수정됨) ---
+        const StaffTab = ({ staffList }) => {
+            const fileInputRef = useRef(null);
+            const [uploadMsg, setUploadMsg] = useState('');
+            const [editingStaff, setEditingStaff] = useState(null);
+            const [viewingStaff, setViewingStaff] = useState(null);
+            const [selectedIds, setSelectedIds] = useState(new Set());
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+            
+            // 🚨 중요: 여기서 'resigned'가 아닌 직원만 보여줍니다.
+            const activeStaffList = useMemo(() => staffList.filter(s => s.status !== 'resigned'), [staffList]);
+
+            const processedStaffList = useMemo(() => {
+                let data = [...activeStaffList];
+                // 1. 검색 필터링
+                if (searchTerm) {
+                    const lowerTerm = searchTerm.toLowerCase();
+                    data = data.filter(s => (s.name && s.name.toLowerCase().includes(lowerTerm)) || (s.phone && s.phone.includes(lowerTerm)));
+                }
+                
+                // 2. 데이터 미리 계산 (Pre-calculation) - 안전성 확보
+                data = data.map(staff => {
+                    const leaveInfo = calculateAnnualLeave(staff.joinDate);
+                    const dailyHours = safeParseFloat(staff.workHours) || 8;
+                    const totalDays = leaveInfo.total || 0;
+                    const totalHours = totalDays * dailyHours;
+                    const usedHours = staff.annualLeaveUsed || 0;
+                    const remainingHours = totalHours - usedHours;
+                    
+                    return {
+                        ...staff,
+                        dailyHours,
+                        totalDays,
+                        totalHours,
+                        usedHours,
+                        remainingHours,
+                        remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0
+                    };
+                });
+
+                // 3. 정렬
+                if (sortConfig.key) {
+                    data.sort((a, b) => {
+                        let aVal = a[sortConfig.key];
+                        let bVal = b[sortConfig.key];
+                        if (sortConfig.key === 'remaining') {
+                            aVal = a.remainingHours;
+                            bVal = b.remainingHours;
+                        }
+                        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                }
+                return data;
+            }, [activeStaffList, searchTerm, sortConfig]);
+
+            const handleSort = (key) => {
+                let direction = 'asc';
+                if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+                setSortConfig({ key, direction });
+            };
+            const getSortIcon = (key) => {
+                if (sortConfig.key !== key) return <span className="text-slate-300 ml-1">⇅</span>;
+                return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
+            };
+            
+            const handleFileUpload = (e, isResignedUpload = false) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
+                        
+                        const batch = writeBatch(db);
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0]; 
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4];
+                                const joinDate = safeDate(joinRaw);
+                                const birthDate = safeDate(birthRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                const phoneStr = String(phoneRaw || '').trim();
+                                const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
+                                const email = `${uniqueKey}@ygnurim.com`;
+                                const docRef = doc(db, 'users', email);
+                                batch.set(docRef, {
+                                    name: name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate: joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: isResignedUpload ? 'resigned' : 'active' 
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        setUploadMsg(`✅ ${count}명 처리 완료!`);
+                        setTimeout(() => setUploadMsg(''), 3000);
+                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
+                };
+            };
+
+            const handleDeleteOne = async (staff) => {
+                if (window.confirm(`정말 [${staff.name}] 직원을 삭제하시겠습니까?`)) {
+                    try { await deleteDoc(doc(db, 'users', staff.id)); alert('삭제되었습니다.'); } catch (err) { alert('삭제 실패: ' + err.message); }
+                }
+            };
+            const handleSelectAll = (e) => {
+                if (e.target.checked) { const allIds = new Set(processedStaffList.map(s => s.id)); setSelectedIds(allIds); } else setSelectedIds(new Set());
+            };
+            const handleSelectOne = (id) => {
+                const newSet = new Set(selectedIds);
+                if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+                setSelectedIds(newSet);
+            };
+            const handleBulkDelete = async () => {
+                if (selectedIds.size === 0) return;
+                if (!window.confirm(`선택한 ${selectedIds.size}명을 삭제하시겠습니까?`)) return;
+                try {
+                    const batch = writeBatch(db);
+                    selectedIds.forEach(id => { batch.delete(doc(db, 'users', id)); });
+                    await batch.commit();
+                    alert(`${selectedIds.size}명 삭제 완료`);
+                    setSelectedIds(new Set());
+                } catch (err) { alert('오류: ' + err.message); }
+            };
+
+            return (
+                <div className="space-y-6">
+                    {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} />}
+                    {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
+                    
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                        <div className="flex items-center gap-4 flex-1">
+                            <div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 (퇴사자 제외)</p></div>
+                            <div className="relative group"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64 transition" /></div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
+                            {uploadMsg && <span className="text-sm font-bold text-blue-600 animate-pulse">{uploadMsg}</span>}
+                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, false)} accept=".xlsx, .xls, .csv" className="hidden" />
+                            <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                <tr>
+                                    <th className="p-4 w-12 text-center"><input type="checkbox" checked={processedStaffList.length > 0 && selectedIds.size === processedStaffList.length} onChange={handleSelectAll} /></th>
+                                    <th className="p-4 sortable" onClick={() => handleSort('name')}><div className="flex items-center">이름 (상세보기) {getSortIcon('name')}</div></th>
+                                    <th className="p-4 text-center text-blue-600">발생(시간)</th>
+                                    <th className="p-4 text-center text-red-500">사용(시간)</th>
+                                    <th className="p-4 text-center text-green-600 sortable" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여(시간) {getSortIcon('remaining')}</div></th>
+                                    <th className="p-4 text-center w-24 bg-slate-100">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {processedStaffList.map((staff, idx) => {
+                                    return (
+                                        <tr key={idx} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
+                                            <td className="p-4 text-center"><input type="checkbox" checked={selectedIds.has(staff.id)} onChange={() => handleSelectOne(staff.id)} /></td>
+                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>
+                                                {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-blue-600">{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></td>
+                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h</td>
+                                            <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
+                                            <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
+                                        </tr>
+                                    );
+                                })}
+                                {processedStaffList.length === 0 && (<tr><td colSpan="6" className="p-12 text-center text-slate-400">데이터가 없습니다.</td></tr>)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 메인 앱 ---
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [staffList, setStaffList] = useState([]);
+            const [showLeaveModal, setShowLeaveModal] = useState(false);
+            const [editingLeaveData, setEditingLeaveData] = useState(null);
+            
+            useEffect(() => {
+                if (user && user.role === 'admin') {
+                    const q = collection(db, 'users');
+                    const unsub = onSnapshot(q, (snapshot) => {
+                        const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
+                        setStaffList(list);
+                    });
+                    return () => unsub();
+                }
+            }, [user]);
+
+            const handleLogout = async () => { try { await signOut(auth); } catch(e) {} setUser(null); };
+            const handleEditLeave = (staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); };
+            const closeLeaveModal = () => { setShowLeaveModal(false); setEditingLeaveData(null); };
+
             if (!user) return <Login onLogin={setUser} />;
 
-            // 탭별 데이터 분리
             const activeStaffList = staffList.filter(s => s.status !== 'resigned');
-            const resignedStaffList = staffList.filter(s => s.status === 'resigned');
-
-            const totalStaff = activeStaffList.length;
             const todayStr = new Date().toISOString().split('T')[0];
             const todayLeaveCount = activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length;
             const totalLeaveUsed = activeStaffList.reduce((acc, cur) => acc + (cur.annualLeaveUsed || 0), 0);
@@ -621,7 +877,7 @@
             const usageRate = totalLeaveGen > 0 ? Math.round((totalLeaveUsed / totalLeaveGen) * 100) : 0;
 
             const DASHBOARD_STATS = [
-                { label: "총 임직원", value: totalStaff, unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
+                { label: "총 임직원", value: activeStaffList.length, unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
                 { label: "금일 휴가자", value: todayLeaveCount, unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> },
                 { label: "누적 사용 연차", value: fmt(totalLeaveUsed), unit: "h", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
                 { label: "전사 소진율", value: usageRate, unit: "%", color: "bg-green-50 text-green-600", icon: <Icons.Calendar /> },
@@ -697,16 +953,8 @@
 
                             {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} />}
                             {activeTab === 'past_leave' && <LeaveManagementTab staffList={activeStaffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} isPastMode={true} />}
-                            {activeTab === 'resigned' && (
-                                <div>
-                                    <div className="mb-4 flex justify-end">
-                                        <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
-                                        <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition"><Icons.UserMinus /> 퇴사자 명부 업로드</button>
-                                    </div>
-                                    <LeaveManagementTab staffList={resignedStaffList} onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={handleEditLeave} />
-                                </div>
-                            )}
-                            {activeTab === 'staff' && <StaffTab staffList={activeStaffList} />}
+                            {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={setShowLeaveModal} onEditClick={handleEditLeave} />}
+                            {activeTab === 'staff' && <StaffTab staffList={staffList} />}
                         </main>
                     </ErrorBoundary>
                 </div>
