@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Corrected)</title>
+    <title>양지누림 연차 관리 시스템 (Final Complete)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -13,9 +13,9 @@
         "imports": {
             "react": "https://esm.sh/react@18.2.0",
             "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
-            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
-            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+            "firebase/app": "https://esm.sh/firebase@10.8.1/app",
+            "firebase/auth": "https://esm.sh/firebase@10.8.1/auth",
+            "firebase/firestore": "https://esm.sh/firebase@10.8.1/firestore"
         }
     }
     </script>
@@ -31,12 +31,31 @@
         th.sortable:hover { background-color: #e2e8f0; }
         .cursor-pointer:hover { opacity: 0.8; }
     </style>
+
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                const root = document.getElementById('root');
+                // 아직도 로딩 스피너가 있다면 에러 메시지 표시
+                if (root && root.innerHTML.includes('animate-spin')) {
+                    root.innerHTML = `
+                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:#fff1f2; color:#be123c;">
+                            <h2 style="font-size:20px; font-weight:bold; margin-bottom:10px;">⚠️ 시스템 로딩 지연</h2>
+                            <p>네트워크 상태가 좋지 않거나 브라우저 호환성 문제일 수 있습니다.</p>
+                            <p style="font-size:12px; margin-top:5px;">(크롬 브라우저 사용을 권장합니다)</p>
+                            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; background:#1f2937; color:white; border-radius:8px; border:none; cursor:pointer;">새로고침</button>
+                        </div>
+                    `;
+                }
+            }, 8000); // 8초 대기
+        };
+    </script>
 </head>
 <body class="bg-slate-50">
     <div id="root">
         <div class="flex h-screen items-center justify-center flex-col gap-4 text-slate-400">
             <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="font-bold">시스템 로딩 중...</p>
+            <p class="font-bold animate-pulse">시스템 초기화 중...</p>
         </div>
     </div>
 
@@ -47,7 +66,9 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
         import { getFirestore, doc, getDoc, updateDoc, deleteDoc, setDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
-        // ✅ Firebase 설정
+        // ------------------------------------------------------------------
+        // ✅ 1. Firebase 설정
+        // ------------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
             authDomain: "ygnurim-attendance-management.firebaseapp.com",
@@ -58,18 +79,27 @@
             measurementId: "G-EELTZ41FTR"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // 초기화 에러 방지
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            document.getElementById('root').innerHTML = `<div style="padding:20px; color:red;">Firebase 설정 오류: ${e.message}</div>`;
+        }
 
-        // 🛡️ Error Boundary
+        // ------------------------------------------------------------------
+        // 🛡️ 2. 에러 방어벽
+        // ------------------------------------------------------------------
         class ErrorBoundary extends Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            componentDidCatch(error, errorInfo) { console.error("React Error:", error, errorInfo); }
+            componentDidCatch(error, errorInfo) { console.error("Runtime Error:", error, errorInfo); }
             render() {
                 if (this.state.hasError) {
-                    return <div className="p-8 text-center text-red-600 font-bold bg-white rounded-xl shadow-lg mt-10 mx-auto max-w-md">⚠️ 오류 발생<br/><span className="text-xs font-normal text-slate-500">{this.state.error?.message}</span><br/><button onClick={()=>window.location.reload()} className="mt-4 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm">새로고침</button></div>;
+                    return <div className="p-10 text-center"><h2 className="text-xl font-bold text-red-600">오류가 발생했습니다.</h2><p className="text-slate-500 my-4">{this.state.error?.message}</p><button onClick={()=>window.location.reload()} className="bg-slate-800 text-white px-4 py-2 rounded">새로고침</button></div>;
                 }
                 return this.props.children;
             }
@@ -113,6 +143,7 @@
             return str;
         };
 
+        // 연차 계산 로직
         const calculateLeaveForYear = (joinDateStr, targetYear) => {
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
@@ -160,6 +191,16 @@
                         onLogin(userData.role === 'admin' ? { ...userData, role: 'admin', name: '관리자', email } : { ...userData, email });
                     } else onLogin({ role: 'staff', name: id, email });
                 } catch (err) {
+                    if (id !== 'ygnurim' && (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found')) {
+                        try {
+                            const userDoc = await getDoc(doc(db, 'users', email));
+                            if (userDoc.exists() && userDoc.data().tempPw === pw) {
+                                await createUserWithEmailAndPassword(auth, email, pw);
+                                onLogin({ ...userDoc.data(), email });
+                                setLoading(false); return;
+                            }
+                        } catch (dbErr) { /* ignore */ }
+                    }
                     setError('로그인 실패: 정보를 확인해주세요.');
                 } finally { setLoading(false); }
             };
@@ -642,7 +683,7 @@
                                                 {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
                                             </td>
                                             <td className="p-4 text-center font-bold text-blue-600">{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></td>
-                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h</td>
+                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
                                             <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
                                         </tr>
