@@ -3,14 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Perfect)</title>
+    <title>양지누림 연차 관리 시스템 (Final Stable)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+            "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+            "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"
+        }
+    }
+    </script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
@@ -23,27 +31,34 @@
         th.sortable:hover { background-color: #e2e8f0; }
         .cursor-pointer:hover { opacity: 0.8; }
     </style>
+
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            const root = document.getElementById('root');
+            if(root) {
+                root.innerHTML = '<div style="padding:20px; text-align:center; color:red;"><h1>⚠️ 시스템 로딩 오류</h1><p>'+msg+'</p><p>Line: '+line+'</p><button onclick="location.reload()" style="padding:10px; background:#333; color:white; border-radius:5px;">새로고침</button></div>';
+            }
+            return false;
+        };
+    </script>
 </head>
 <body class="bg-slate-50">
     <div id="root">
         <div class="flex h-screen items-center justify-center flex-col gap-4 text-slate-400">
-            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="font-bold">시스템 접속 중...</p>
+            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p>시스템 로딩 중...</p>
         </div>
     </div>
 
     <script type="text/babel" data-type="module">
-        // ✅ React 전역 변수 사용 (importmap 제거로 안정성 확보)
-        const { useState, useEffect, useRef, useMemo, Component } = React;
-        const { createRoot } = ReactDOM;
-
-        // ✅ Firebase는 Google 공식 CDN에서 직접 모듈로 가져옴
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, setDoc, collection, onSnapshot, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { initializeApp } from 'firebase/app';
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+        import { getFirestore, doc, getDoc, updateDoc, deleteDoc, setDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
         // ------------------------------------------------------------------
-        // 1. Firebase 설정
+        // ✅ 1. Firebase 설정
         // ------------------------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -55,19 +70,12 @@
             measurementId: "G-EELTZ41FTR"
         };
 
-        // Firebase 초기화 (에러 핸들링 포함)
-        let app, auth, db;
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch (e) {
-            console.error("Firebase Init Error:", e);
-            document.getElementById('root').innerHTML = `<div style="padding:20px; text-align:center; color:red;"><h3>연결 오류</h3><p>${e.message}</p></div>`;
-        }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // ------------------------------------------------------------------
-        // 2. 에러 방어벽 (ErrorBoundary)
+        // 🛡️ 2. 에러 방어벽
         // ------------------------------------------------------------------
         class ErrorBoundary extends Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -75,15 +83,7 @@
             componentDidCatch(error, errorInfo) { console.error("Component Error:", error, errorInfo); }
             render() {
                 if (this.state.hasError) {
-                    return (
-                        <div className="flex items-center justify-center h-full p-10">
-                            <div className="text-center bg-white p-6 rounded-xl shadow-lg border border-red-100">
-                                <h2 className="text-lg font-bold text-red-600 mb-2">오류가 발생했습니다.</h2>
-                                <p className="text-sm text-slate-500 mb-4">{this.state.error?.message}</p>
-                                <button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold">새로고침</button>
-                            </div>
-                        </div>
-                    );
+                    return <div className="p-8 text-center text-red-600"><h2>일시적 오류 발생</h2><button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-4 py-2 rounded mt-4">새로고침</button></div>;
                 }
                 return this.props.children;
             }
@@ -111,60 +111,34 @@
             UserMinus: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
         };
 
-        // --- Helper ---
+        // --- Helper Functions ---
         const safeParseFloat = (val) => { const num = parseFloat(val); return isNaN(num) ? 0 : num; };
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
-        
-        // 날짜 변환 함수 (강화됨)
         const safeDate = (val) => {
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
             if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
             if (/^\d{8}$/.test(str)) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
-            // 엑셀 숫자 or YYMMDD 처리
             if (/^\d{5,6}$/.test(str)) {
                 const n = parseInt(str);
-                // 1913~2064년 엑셀 날짜 코드 (5000~60000)
-                if (n > 5000 && n < 60000) {
-                    try {
-                        const date = new Date((n - 25569) * 86400 * 1000);
-                        date.setHours(date.getHours() + 9);
-                        return date.toISOString().split('T')[0];
-                    } catch(e) { return str; }
-                }
-                // YYMMDD
-                if (str.length === 6) {
-                    const yy = parseInt(str.substring(0, 2), 10);
-                    const prefix = yy > 40 ? '19' : '20'; 
-                    return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`;
-                }
+                if (n > 5000 && n < 60000) { try { const date = new Date((n - 25569) * 86400 * 1000); date.setHours(date.getHours() + 9); return date.toISOString().split('T')[0]; } catch(e) { return str; } }
+                if (str.length === 6) { const yy = parseInt(str.substring(0, 2), 10); const prefix = yy > 40 ? '19' : '20'; return `${prefix}${yy}-${str.substring(2, 4)}-${str.substring(4, 6)}`; }
             }
             return str;
         };
 
-        // 연차 계산 (입사일 기준)
         const calculateLeaveForYear = (joinDateStr, targetYear) => {
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
-            
             if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
-
             let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
             let endDate = new Date(targetYear + 1, joinDate.getMonth(), joinDate.getDate());
             endDate.setDate(endDate.getDate() - 1);
-
             let yearsWorked = targetYear - joinDate.getFullYear();
             let totalLeave = (yearsWorked < 1) ? 11 : (15 + Math.floor((yearsWorked - 1) / 2));
             if (totalLeave > 25) totalLeave = 25;
-
-            return { 
-                total: totalLeave, 
-                period: `${startDate.toISOString().split('T')[0]} ~ ${endDate.toISOString().split('T')[0]}`, 
-                startDate: startDate.toISOString().split('T')[0], 
-                endDate: endDate.toISOString().split('T')[0], 
-                notJoined: false 
-            };
+            return { total: totalLeave, period: `${startDate.toISOString().split('T')[0]} ~ ${endDate.toISOString().split('T')[0]}`, startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0], notJoined: false };
         };
 
         const calculateAnnualLeave = (joinDateStr) => {
@@ -178,7 +152,7 @@
             return calculateLeaveForYear(joinDateStr, baseYear);
         };
 
-        // --- Login ---
+        // --- 로그인 컴포넌트 ---
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -200,16 +174,6 @@
                         onLogin(userData.role === 'admin' ? { ...userData, role: 'admin', name: '관리자', email } : { ...userData, email });
                     } else onLogin({ role: 'staff', name: id, email });
                 } catch (err) {
-                    if (id !== 'ygnurim' && (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found')) {
-                        try {
-                            const userDoc = await getDoc(doc(db, 'users', email));
-                            if (userDoc.exists() && userDoc.data().tempPw === pw) {
-                                await createUserWithEmailAndPassword(auth, email, pw);
-                                onLogin({ ...userDoc.data(), email });
-                                setLoading(false); return;
-                            }
-                        } catch (dbErr) { /* ignore */ }
-                    }
                     setError('로그인 실패: 정보를 확인해주세요.');
                 } finally { setLoading(false); }
             };
@@ -230,7 +194,7 @@
             );
         };
 
-        // --- Detail Modal ---
+        // --- 상세 정보 모달 ---
         const StaffDetailModal = ({ staff, onClose }) => {
             if (!staff) return null;
             return (
@@ -254,7 +218,7 @@
             );
         };
 
-        // --- Action Modal ---
+        // --- 연차 등록/수정 모달 ---
         const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
@@ -338,7 +302,7 @@
             );
         };
 
-        // --- Leave Management Tab ---
+        // --- 📋 통합 연차 관리 탭 ---
         const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
@@ -494,7 +458,68 @@
             );
         };
 
-        // --- Edit Staff Modal ---
+        // --- 🆕 퇴사자 탭 ---
+        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick }) => {
+            const [isPastMode, setIsPastMode] = useState(false);
+            const resignedFileInputRef = useRef(null);
+            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned'), [staffList]);
+
+            const handleResignedStaffUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        const batch = writeBatch(db);
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0];
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                const phoneStr = String(phoneRaw || '').trim();
+                                const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
+                                const email = `${uniqueKey}@ygnurim.com`;
+                                const docRef = doc(db, 'users', email);
+                                batch.set(docRef, {
+                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: 'resigned', resignDate: resignDate || ''
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        alert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
+                    } catch (err) { alert('오류: ' + err.message); }
+                };
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-orange-50 p-4 rounded-xl border border-orange-100">
+                        <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
+                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
+                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
+                        </div>
+                    </div>
+                    <LeaveManagementTab staffList={resignedList} onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} />
+                </div>
+            );
+        };
+
+        // --- 수정 모달 (직원정보) ---
         const EditStaffModal = ({ staff, onClose }) => {
             const [formData, setFormData] = useState({ ...staff });
             const [msg, setMsg] = useState('');
@@ -533,7 +558,7 @@
             );
         };
 
-        // --- Staff Tab ---
+        // --- 📊 직원 명부 탭 ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
@@ -607,8 +632,8 @@
                             if (!row || row.length === 0) continue;
                             const name = row[0]; 
                             if (name) {
-                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
-                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 const phoneStr = String(phoneRaw || '').trim();
                                 const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
@@ -618,8 +643,7 @@
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: isResignedUpload ? 'resigned' : 'active',
-                                    resignDate: isResignedUpload ? (resignDate || '') : '' // 🆕 F열 퇴사일 저장
+                                    status: isResignedUpload ? 'resigned' : 'active' 
                                 }, { merge: true });
                                 count++;
                             }
@@ -693,7 +717,7 @@
                                                 {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
                                             </td>
                                             <td className="p-4 text-center font-bold text-blue-600">{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></td>
-                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h</td>
+                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
                                             <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
                                         </tr>
@@ -707,68 +731,7 @@
             );
         };
 
-        // --- 🆕 Resigned Staff Tab ---
-        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick }) => {
-            const [isPastMode, setIsPastMode] = useState(false);
-            const resignedFileInputRef = useRef(null);
-            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned'), [staffList]);
-
-            const handleResignedStaffUpload = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.readAsArrayBuffer(file);
-                reader.onload = async (evt) => {
-                    try {
-                        const data = new Uint8Array(evt.target.result);
-                        const wb = XLSX.read(data, { type: 'array' });
-                        const ws = wb.Sheets[wb.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                        const batch = writeBatch(db);
-                        let count = 0;
-                        for (let i = 1; i < jsonData.length; i++) {
-                            const row = jsonData[i];
-                            if (!row || row.length === 0) continue;
-                            const name = row[0];
-                            if (name) {
-                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
-                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
-                                const leaveInfo = calculateAnnualLeave(joinDate);
-                                const phoneStr = String(phoneRaw || '').trim();
-                                const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
-                                const email = `${uniqueKey}@ygnurim.com`;
-                                const docRef = doc(db, 'users', email);
-                                batch.set(docRef, {
-                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
-                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
-                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: 'resigned', resignDate: resignDate || ''
-                                }, { merge: true });
-                                count++;
-                            }
-                        }
-                        await batch.commit();
-                        alert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
-                    } catch (err) { alert('오류: ' + err.message); }
-                };
-            };
-
-            return (
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center bg-orange-50 p-4 rounded-xl border border-orange-100">
-                        <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
-                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
-                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
-                        </div>
-                    </div>
-                    <LeaveManagementTab staffList={resignedList} onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} />
-                </div>
-            );
-        };
-
-        // --- App ---
+        // --- 메인 앱 ---
         const App = () => {
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('dashboard');
