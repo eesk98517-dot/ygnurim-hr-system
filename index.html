@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Stable)</title>
+    <title>양지누림 연차 관리 시스템 (Final Corrected)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -31,22 +31,12 @@
         th.sortable:hover { background-color: #e2e8f0; }
         .cursor-pointer:hover { opacity: 0.8; }
     </style>
-
-    <script>
-        window.onerror = function(msg, url, line, col, error) {
-            const root = document.getElementById('root');
-            if(root) {
-                root.innerHTML = '<div style="padding:20px; text-align:center; color:red;"><h1>⚠️ 시스템 로딩 오류</h1><p>'+msg+'</p><p>Line: '+line+'</p><button onclick="location.reload()" style="padding:10px; background:#333; color:white; border-radius:5px;">새로고침</button></div>';
-            }
-            return false;
-        };
-    </script>
 </head>
 <body class="bg-slate-50">
     <div id="root">
         <div class="flex h-screen items-center justify-center flex-col gap-4 text-slate-400">
-            <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p>시스템 로딩 중...</p>
+            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p class="font-bold">시스템 로딩 중...</p>
         </div>
     </div>
 
@@ -57,9 +47,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
         import { getFirestore, doc, getDoc, updateDoc, deleteDoc, setDoc, collection, onSnapshot, writeBatch } from 'firebase/firestore';
 
-        // ------------------------------------------------------------------
-        // ✅ 1. Firebase 설정
-        // ------------------------------------------------------------------
+        // ✅ Firebase 설정
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
             authDomain: "ygnurim-attendance-management.firebaseapp.com",
@@ -74,16 +62,14 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ------------------------------------------------------------------
-        // 🛡️ 2. 에러 방어벽
-        // ------------------------------------------------------------------
+        // 🛡️ Error Boundary
         class ErrorBoundary extends Component {
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            componentDidCatch(error, errorInfo) { console.error("Component Error:", error, errorInfo); }
+            componentDidCatch(error, errorInfo) { console.error("React Error:", error, errorInfo); }
             render() {
                 if (this.state.hasError) {
-                    return <div className="p-8 text-center text-red-600"><h2>일시적 오류 발생</h2><button onClick={() => window.location.reload()} className="bg-slate-800 text-white px-4 py-2 rounded mt-4">새로고침</button></div>;
+                    return <div className="p-8 text-center text-red-600 font-bold bg-white rounded-xl shadow-lg mt-10 mx-auto max-w-md">⚠️ 오류 발생<br/><span className="text-xs font-normal text-slate-500">{this.state.error?.message}</span><br/><button onClick={()=>window.location.reload()} className="mt-4 bg-slate-800 text-white px-4 py-2 rounded-lg text-sm">새로고침</button></div>;
                 }
                 return this.props.children;
             }
@@ -111,7 +97,7 @@
             UserMinus: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg>,
         };
 
-        // --- Helper Functions ---
+        // --- Helper ---
         const safeParseFloat = (val) => { const num = parseFloat(val); return isNaN(num) ? 0 : num; };
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const safeDate = (val) => {
@@ -152,7 +138,7 @@
             return calculateLeaveForYear(joinDateStr, baseYear);
         };
 
-        // --- 로그인 컴포넌트 ---
+        // --- 🔐 Login ---
         const Login = ({ onLogin }) => {
             const [id, setId] = useState('');
             const [pw, setPw] = useState('');
@@ -181,7 +167,7 @@
             return (
                 <div className="flex h-screen items-center justify-center bg-slate-100">
                     <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
-                        <div className="text-center mb-8"><h1 className="text-3xl font-black text-blue-600 mb-2">양지누림</h1><p className="text-slate-500 font-bold">연차 관리 시스템 로그인</p></div>
+                        <div className="text-center mb-8"><h1 className="text-3xl font-black text-blue-600 mb-2">양지누림</h1><p className="text-slate-500 font-bold">연차 관리 시스템</p></div>
                         <form onSubmit={handleLogin} className="space-y-6">
                             <div><label className="block text-sm font-bold text-slate-700 mb-2">아이디</label><input type="text" value={id} onChange={(e) => setId(e.target.value)} className="w-full px-4 py-3 border rounded-xl outline-none" required /></div>
                             <div><label className="block text-sm font-bold text-slate-700 mb-2">비밀번호</label><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} className="w-full px-4 py-3 border rounded-xl outline-none" required /></div>
@@ -194,7 +180,7 @@
             );
         };
 
-        // --- 상세 정보 모달 ---
+        // --- Detail Modal ---
         const StaffDetailModal = ({ staff, onClose }) => {
             if (!staff) return null;
             return (
@@ -218,7 +204,7 @@
             );
         };
 
-        // --- 연차 등록/수정 모달 ---
+        // --- Action Modal ---
         const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
@@ -302,7 +288,7 @@
             );
         };
 
-        // --- 📋 통합 연차 관리 탭 ---
+        // --- Leave Management Tab ---
         const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
@@ -458,68 +444,7 @@
             );
         };
 
-        // --- 🆕 퇴사자 탭 ---
-        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick }) => {
-            const [isPastMode, setIsPastMode] = useState(false);
-            const resignedFileInputRef = useRef(null);
-            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned'), [staffList]);
-
-            const handleResignedStaffUpload = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.readAsArrayBuffer(file);
-                reader.onload = async (evt) => {
-                    try {
-                        const data = new Uint8Array(evt.target.result);
-                        const wb = XLSX.read(data, { type: 'array' });
-                        const ws = wb.Sheets[wb.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
-                        const batch = writeBatch(db);
-                        let count = 0;
-                        for (let i = 1; i < jsonData.length; i++) {
-                            const row = jsonData[i];
-                            if (!row || row.length === 0) continue;
-                            const name = row[0];
-                            if (name) {
-                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
-                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
-                                const leaveInfo = calculateAnnualLeave(joinDate);
-                                const phoneStr = String(phoneRaw || '').trim();
-                                const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
-                                const email = `${uniqueKey}@ygnurim.com`;
-                                const docRef = doc(db, 'users', email);
-                                batch.set(docRef, {
-                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
-                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
-                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: 'resigned', resignDate: resignDate || ''
-                                }, { merge: true });
-                                count++;
-                            }
-                        }
-                        await batch.commit();
-                        alert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
-                    } catch (err) { alert('오류: ' + err.message); }
-                };
-            };
-
-            return (
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center bg-orange-50 p-4 rounded-xl border border-orange-100">
-                        <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
-                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
-                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
-                        </div>
-                    </div>
-                    <LeaveManagementTab staffList={resignedList} onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} />
-                </div>
-            );
-        };
-
-        // --- 수정 모달 (직원정보) ---
+        // --- Edit Staff Modal ---
         const EditStaffModal = ({ staff, onClose }) => {
             const [formData, setFormData] = useState({ ...staff });
             const [msg, setMsg] = useState('');
@@ -558,7 +483,7 @@
             );
         };
 
-        // --- 📊 직원 명부 탭 ---
+        // --- Staff Tab ---
         const StaffTab = ({ staffList }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
@@ -613,7 +538,7 @@
                 return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
             };
             
-            const handleFileUpload = (e, isResignedUpload = false) => {
+            const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
@@ -643,7 +568,7 @@
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: isResignedUpload ? 'resigned' : 'active' 
+                                    status: 'active' 
                                 }, { merge: true });
                                 count++;
                             }
@@ -717,7 +642,7 @@
                                                 {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
                                             </td>
                                             <td className="p-4 text-center font-bold text-blue-600">{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></td>
-                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
+                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h</td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
                                             <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
                                         </tr>
@@ -731,7 +656,68 @@
             );
         };
 
-        // --- 메인 앱 ---
+        // --- 🆕 Resigned Staff Tab ---
+        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick }) => {
+            const [isPastMode, setIsPastMode] = useState(false);
+            const resignedFileInputRef = useRef(null);
+            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned'), [staffList]);
+
+            const handleResignedStaffUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        const batch = writeBatch(db);
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0];
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                const phoneStr = String(phoneRaw || '').trim();
+                                const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
+                                const email = `${uniqueKey}@ygnurim.com`;
+                                const docRef = doc(db, 'users', email);
+                                batch.set(docRef, {
+                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: 'resigned', resignDate: resignDate || ''
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        alert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
+                    } catch (err) { alert('오류: ' + err.message); }
+                };
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-orange-50 p-4 rounded-xl border border-orange-100">
+                        <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
+                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
+                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
+                        </div>
+                    </div>
+                    <LeaveManagementTab staffList={resignedList} onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} />
+                </div>
+            );
+        };
+
+        // --- App ---
         const App = () => {
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('dashboard');
