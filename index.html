@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (SignOK Ready)</title>
+    <title>양지누림 연차 관리 시스템 (SignOK Final)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -36,7 +36,6 @@
     </div>
 
     <script type="text/babel">
-        // ✅ 전역 변수 사용 (안정성 확보)
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
@@ -51,7 +50,6 @@
             measurementId: "G-EELTZ41FTR"
         };
 
-        // Firebase 초기화
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -194,7 +192,7 @@
             );
         };
 
-        // --- Promotion Tab (SignOK Download Added) ---
+        // --- Promotion Tab (SignOK Logic Updated) ---
         const PromotionTab = ({ staffList }) => {
             const promotionList = useMemo(() => {
                 const list = [];
@@ -216,32 +214,42 @@
             }, [staffList]);
 
             const handleDownloadSignOK = () => {
-                if (promotionList.length === 0) { alert("다운로드할 대상자가 없습니다."); return; }
+                // 1차 촉진 대상자만 필터링 (1년미만 1차 포함)
+                const targets = promotionList.filter(p => p.promoStatus.type.includes('1차'));
+                
+                if (targets.length === 0) { alert("이번 달 1차 촉진 대상자가 없습니다."); return; }
+                
                 const today = new Date();
                 const year = today.getFullYear();
                 const month = today.getMonth() + 1;
                 const day = today.getDate();
 
-                const excelData = promotionList.map(p => ({
+                const excelData = targets.map(p => ({
                     "이메일 또는 휴대폰번호(필수)": p.phone || "",
                     "이름(필수)": p.name || "",
-                    "남길말(선택)": "연차 사용 촉진 통보입니다.",
+                    "남길말(선택)": "",
                     "연차 사용대상기간(양지누림)": p.leaveInfo.period || "",
                     "발생연차(양지누림)": p.totalDays || 0,
                     "사용연차(양지누림)": p.usedDays,
                     "미사용(양지누림)": p.remainingDays,
+                    "연차유급휴가 발생일(양지누림)": p.leaveInfo.startDate,
+                    "성명(양지누림)": p.name || "",
                     "소속(양지누림)": "",
                     "직위(양지누림)": "",
-                    "성명(양지누림)": p.name || "",
+                    // 작성일자 (-1) : 오늘 날짜
                     "연도(양지누림)-1": year,
                     "월(양지누림)-1": month,
                     "일(양지누림)-1": day,
+                    // 제출기한 : 현재 년, 현재 월, 20일 고정
+                    "연도(양지누림)": year,
+                    "월(양지누림)": month,
+                    "일(양지누림)": 20
                 }));
 
                 const ws = XLSX.utils.json_to_sheet(excelData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "싸인오케이_대량발송");
-                XLSX.writeFile(wb, `미사용연차촉진_통보대상_${year}_${month}.xlsx`);
+                XLSX.writeFile(wb, `1차촉진_통보대상_${year}_${month}.xlsx`);
             };
 
             return (
@@ -249,10 +257,10 @@
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
                         <div>
                             <h3 className="font-bold text-lg text-slate-800 mb-2 flex items-center gap-2"><Icons.Megaphone /> 이번 달 연차 촉진 대상자</h3>
-                            <p className="text-sm text-slate-500">근로기준법 기준 (1년 미만: 3개월 전 / 1년 이상: 6개월, 2개월 전)</p>
+                            <p className="text-sm text-slate-500">1차 촉진 대상자 (1년 미만: 3개월 전 / 1년 이상: 6개월 전)</p>
                         </div>
                         <button onClick={handleDownloadSignOK} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition shadow-lg shadow-green-100">
-                            <Icons.FileText /> 싸인오케이 양식 다운로드
+                            <Icons.FileText /> 싸인오케이 양식 다운로드 (1차)
                         </button>
                     </div>
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -281,6 +289,8 @@
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('dashboard');
             const [staffList, setStaffList] = useState([]);
+            const [showLeaveModal, setShowLeaveModal] = useState(false);
+            const [editingLeaveData, setEditingLeaveData] = useState(null);
             
             useEffect(() => {
                 if (user && user.role === 'admin') {
@@ -293,6 +303,8 @@
             }, [user]);
 
             const handleLogout = async () => { try { await auth.signOut(); } catch(e) {} setUser(null); };
+            const handleEditLeave = (staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); };
+            const closeLeaveModal = () => { setShowLeaveModal(false); setEditingLeaveData(null); };
 
             if (!user) return <Login onLogin={setUser} />;
 
@@ -316,8 +328,11 @@
                             <div className="p-6 border-b border-slate-700/50"><h1 className="text-xl font-black text-white">양지누림</h1><p className="text-xs text-slate-400 mt-1">{user.name}님</p></div>
                             <nav className="flex-1 p-4 flex flex-col gap-2">
                                 <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
+                                <button onClick={() => setActiveTab('leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 연차 관리</button>
+                                <button onClick={() => setActiveTab('past_leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'past_leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.History /> 과년도 연차관리</button>
                                 <button onClick={() => setActiveTab('promotion')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'promotion' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Megaphone /> 미사용 연차 촉진</button>
-                                {/* 기존 탭들은 생략 없이 모두 구현되어야 함 (코드 길이 상 핵심만 표시) */}
+                                <button onClick={() => setActiveTab('resigned')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'resigned' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.UserMinus /> 퇴사자 관리</button>
+                                <button onClick={() => setActiveTab('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
                             </nav>
                             <div className="p-4 bg-[#0F172A]"><button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button></div>
                         </aside>
@@ -326,8 +341,13 @@
                             {activeTab === 'dashboard' && (
                                 <div className="grid grid-cols-3 gap-4">{DASHBOARD_STATS.map((s,i)=><div key={i} className="bg-white p-5 rounded-2xl border shadow-sm flex justify-between"><div><p className="text-xs font-bold text-slate-400">{s.label}</p><span className="text-2xl font-black">{s.value}</span></div><div className={`p-3 rounded-xl ${s.color} bg-opacity-50`}>{s.icon}</div></div>)}</div>
                             )}
+                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} />}
+                            {activeTab === 'past_leave' && <LeaveManagementTab staffList={activeStaffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} isPastMode={true} />}
                             {activeTab === 'promotion' && <PromotionTab staffList={activeStaffList} />}
+                            {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={setShowLeaveModal} onEditClick={handleEditLeave} />}
+                            {activeTab === 'staff' && <StaffTab staffList={staffList} />}
                         </main>
+                        {showLeaveModal && <LeaveActionModal staffList={activeStaffList} onClose={closeLeaveModal} initialData={editingLeaveData} />}
                     </ErrorBoundary>
                 </div>
             );
