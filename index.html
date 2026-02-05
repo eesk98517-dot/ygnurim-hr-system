@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Ver 1.0.0)</title>
+    <title>양지누림 연차 관리 시스템 (Final Ver 8.0)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -88,6 +88,7 @@
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             const joinDate = new Date(joinDateStr);
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
+            // 퇴사자 탭 등에서 과거 연도를 조회할 때 입사일보다 이전 연도면 '입사 전' 처리
             if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
 
             let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
@@ -794,7 +795,6 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const todayLeaveCount = activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length || 0;
             
-            // 📊 1. 금년 연차 소진율 계산
             let totalGenCurrentYear = 0;
             let totalUsedCurrentYear = 0;
 
@@ -820,7 +820,6 @@
                 ? Math.round((totalUsedCurrentYear / totalGenCurrentYear) * 100) 
                 : 0;
 
-            // 📊 2. 연도별 소진율 (최근 4년) - 자동 날짜
             const currentYear = new Date().getFullYear();
             const years = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
             
@@ -887,14 +886,12 @@
                                     </div>
 
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        {/* 그래프 (수정됨: 배경 트랙 추가) */}
                                         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
                                             <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6"><Icons.Grid /> 연도별 연차 소진율 추이</h3>
                                             <div className="flex-1 flex items-end justify-around gap-4 h-64 pb-2 border-b border-slate-100">
                                                 {yearlyStats.map((stat) => (
                                                     <div key={stat.year} className="flex flex-col items-center group w-full h-full justify-end">
                                                         <div className="relative w-full max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
-                                                            {/* 데이터가 0이어도 최소 1px 보이게 (min-h-[1px]) */}
                                                             <div 
                                                                 className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-transition min-h-[1px]" 
                                                                 style={{ height: `${stat.rate}%` }}
