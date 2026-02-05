@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Graph Fixed)</title>
+    <title>양지누림 연차 관리 시스템 (Final Graph Fixed)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -24,15 +24,15 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         th { user-select: none; }
         
-        /* 그래프 애니메이션 */
-        .bar-fill { transition: height 1s ease-out; }
+        /* 그래프 애니메이션 (높이 변화) */
+        .bar-transition { transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="bg-slate-50">
     <div id="root">
         <div class="flex h-screen items-center justify-center flex-col gap-4 text-slate-400">
             <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p class="font-bold">시스템 데이터 로딩 중...</p>
+            <p class="font-bold">시스템 접속 중...</p>
         </div>
     </div>
 
@@ -40,7 +40,7 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        // --- 1. Firebase 설정 ---
+        // --- Firebase Config ---
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
             authDomain: "ygnurim-attendance-management.firebaseapp.com",
@@ -57,7 +57,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // --- 2. 헬퍼 함수 ---
+        // --- Helper Functions ---
         const safeParseFloat = (val) => { const num = parseFloat(val); return isNaN(num) ? 0 : num; };
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
@@ -794,6 +794,7 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const todayLeaveCount = activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length || 0;
             
+            // 📊 1. 금년 연차 소진율 계산
             let totalGenCurrentYear = 0;
             let totalUsedCurrentYear = 0;
 
@@ -819,7 +820,10 @@
                 ? Math.round((totalUsedCurrentYear / totalGenCurrentYear) * 100) 
                 : 0;
 
-            const years = [2023, 2024, 2025, 2026];
+            // 📊 2. 연도별 소진율 (최근 4년) - 자동 날짜
+            const currentYear = new Date().getFullYear();
+            const years = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
+            
             const yearlyStats = years.map(year => {
                 let yGen = 0;
                 let yUsed = 0;
@@ -880,17 +884,19 @@
                                     </div>
 
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                        {/* 그래프 (수정됨: 배경 트랙 추가) */}
                                         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
                                             <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6"><Icons.Grid /> 연도별 연차 소진율 추이</h3>
                                             <div className="flex-1 flex items-end justify-around gap-4 h-64 pb-2 border-b border-slate-100">
                                                 {yearlyStats.map((stat) => (
-                                                    <div key={stat.year} className="flex flex-col items-center group w-full">
-                                                        <div className="relative w-full max-w-[60px] flex items-end h-full bg-slate-100 rounded-t-lg">
+                                                    <div key={stat.year} className="flex flex-col items-center group w-full h-full justify-end">
+                                                        <div className="relative w-full max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
+                                                            {/* 데이터가 0이어도 최소 1px 보이게 (min-h-[1px]) */}
                                                             <div 
-                                                                className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-fill" 
+                                                                className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-transition min-h-[1px]" 
                                                                 style={{ height: `${stat.rate}%` }}
                                                             >
-                                                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition shadow-lg font-bold">{stat.rate}%</span>
+                                                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition shadow-lg font-bold z-10">{stat.rate}%</span>
                                                             </div>
                                                         </div>
                                                         <span className="mt-3 text-sm font-bold text-slate-500">{stat.year}</span>
