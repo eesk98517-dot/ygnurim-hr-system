@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Ver 9.1)</title>
+    <title>양지누림 연차 관리 시스템 (Final Ver 9.2)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -102,7 +102,6 @@
             let totalLeave = (yearsWorked < 1) ? 11 : (15 + Math.floor((yearsWorked - 1) / 2));
             if (totalLeave > 25) totalLeave = 25;
             
-            // KST 로컬 기준의 텍스트로 추출하여 입사일 당일이 정확히 표시되도록 수정
             const sStr = getLocalDateString(startDate);
             const eStr = getLocalDateString(endDate);
 
@@ -664,8 +663,11 @@
                         const ws = wb.Sheets[wb.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
+                        
                         const batch = db.batch();
                         let count = 0;
+                        const uploadedIds = new Set(); 
+
                         for (let i = 1; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
@@ -677,19 +679,41 @@
                                 const phoneStr = String(phoneRaw || '').trim();
                                 const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
                                 const email = `${uniqueKey}@ygnurim.com`;
+                                
+                                uploadedIds.add(email);
+
                                 const docRef = db.collection('users').doc(email);
                                 batch.set(docRef, {
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (resignDate || '') : ''
+                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (safeDate(row[5]) || '') : ''
                                 }, { merge: true });
                                 count++;
                             }
                         }
+
+                        // 🌟 엑셀에 없는 기존 직원 찾기 (스마트 동기화)
+                        if (!isResignedUpload) {
+                            const missingStaff = activeStaffList.filter(s => !uploadedIds.has(s.id));
+                            if (missingStaff.length > 0) {
+                                const confirmMsg = `엑셀 명단에 없는 기존 직원 ${missingStaff.length}명이 발견되었습니다.\n\n이들을 자동으로 [퇴사자] 명단으로 이동시킬까요?\n(취소를 누르면 이동하지 않고 기존대로 유지합니다.)`;
+                                if (window.confirm(confirmMsg)) {
+                                    const todayStr = getLocalDateString(new Date());
+                                    missingStaff.forEach(s => {
+                                        const docRef = db.collection('users').doc(s.id);
+                                        batch.update(docRef, { status: 'resigned', resignDate: todayStr });
+                                    });
+                                }
+                            }
+                        }
+
                         await batch.commit();
-                        setUploadMsg(`✅ ${count}명 처리 완료!`);
+                        setUploadMsg(`✅ ${count}명 동기화 완료!`);
                         setTimeout(() => setUploadMsg(''), 3000);
+                        
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+
                     } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
                 };
             };
@@ -709,7 +733,7 @@
             };
             const handleBulkDelete = async () => {
                 if (selectedIds.size === 0) return;
-                if (!window.confirm(`선택한 ${selectedIds.size}명을 삭제하시겠습니까?`)) return;
+                if (!window.confirm(`선택한 ${selectedIds.size}명을 완전히 삭제하시겠습니까?\n(퇴사 처리가 아닌 데이터 영구 삭제입니다)`)) return;
                 try {
                     const batch = db.batch();
                     selectedIds.forEach(id => { batch.delete(db.collection('users').doc(id)); });
@@ -797,7 +821,9 @@
                                 const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
                                 const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
-                                const email = `${name}_${String(phoneRaw||'').trim().slice(-4)}@ygnurim.com`;
+                                const phoneStr = String(phoneRaw||'').trim();
+                                const uniqueKey = `${name}_${phoneStr.slice(-4)}`;
+                                const email = `${uniqueKey}@ygnurim.com`;
                                 const docRef = db.collection('users').doc(email);
                                 batch.set(docRef, {
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
@@ -810,6 +836,7 @@
                         }
                         await batch.commit();
                         alert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
+                        if (resignedFileInputRef.current) resignedFileInputRef.current.value = '';
                     } catch (err) { alert('오류: ' + err.message); }
                 };
             };
