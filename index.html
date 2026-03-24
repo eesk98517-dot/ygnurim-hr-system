@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Ver 9.0)</title>
+    <title>양지누림 연차 관리 시스템 (Final Ver 9.1)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -24,7 +24,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         th { user-select: none; }
         
-        /* 그래프 애니메이션 */
         .bar-transition { transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
@@ -58,6 +57,12 @@
         const db = firebase.firestore();
 
         // --- Helper Functions ---
+        // 🌟 타임존(UTC) 변환 시 하루 밀림 현상을 방지하는 로컬 시간 포맷터
+        const getLocalDateString = (d) => {
+            if (!d || isNaN(d.getTime())) return '';
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        };
+
         const safeParseFloat = (val) => { const num = parseFloat(val); return isNaN(num) ? 0 : num; };
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
@@ -75,8 +80,7 @@
                 if (n > 20000 && n < 60000) {
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
-                        date.setHours(date.getHours() + 9);
-                        return date.toISOString().split('T')[0];
+                        return getLocalDateString(date);
                     } catch(e) { return str; }
                 }
             }
@@ -90,17 +94,17 @@
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
 
-            // 🌟 핵심 변경: 대상 기간을 '해당 연도 입사일 ~ 다음 연도 입사일 전일'로 엄격히 고정
             let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
             let endDate = new Date(targetYear + 1, joinDate.getMonth(), joinDate.getDate());
-            endDate.setDate(endDate.getDate() - 1); // 다음 연도 입사일에서 정확히 하루를 뺌 (윤년 등 완벽 대응)
+            endDate.setDate(endDate.getDate() - 1);
 
             let yearsWorked = targetYear - joinDate.getFullYear();
             let totalLeave = (yearsWorked < 1) ? 11 : (15 + Math.floor((yearsWorked - 1) / 2));
             if (totalLeave > 25) totalLeave = 25;
             
-            const sStr = startDate.toISOString().split('T')[0];
-            const eStr = endDate.toISOString().split('T')[0];
+            // KST 로컬 기준의 텍스트로 추출하여 입사일 당일이 정확히 표시되도록 수정
+            const sStr = getLocalDateString(startDate);
+            const eStr = getLocalDateString(endDate);
 
             return { total: totalLeave, period: `${sStr} ~ ${eStr}`, startDate: sStr, endDate: eStr, notJoined: false, yearsWorked };
         };
@@ -293,7 +297,7 @@
         const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
-            const [leaveDate, setLeaveDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+            const [leaveDate, setLeaveDate] = useState(initialData?.date || getLocalDateString(new Date()));
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
@@ -899,7 +903,7 @@
             if (!user) return <Login onLogin={setUser} />;
 
             const activeStaffList = staffList.filter(s => s.status !== 'resigned');
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getLocalDateString(new Date());
             const todayLeaveCount = activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length || 0;
             
             let totalGenCurrentYear = 0;
@@ -999,7 +1003,6 @@
                                                 {yearlyStats.map((stat) => (
                                                     <div key={stat.year} className="flex flex-col items-center group w-full h-full justify-end">
                                                         <div className="relative w-full max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
-                                                            {/* 데이터가 0이어도 최소 1px 보이게 (min-h-[1px]) */}
                                                             <div 
                                                                 className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-transition min-h-[1px]" 
                                                                 style={{ height: `${stat.rate}%` }}
