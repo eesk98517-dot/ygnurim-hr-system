@@ -90,9 +90,10 @@
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
 
+            // 🌟 핵심 변경: 대상 기간을 '해당 연도 입사일 ~ 다음 연도 입사일 전일'로 엄격히 고정
             let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
             let endDate = new Date(targetYear + 1, joinDate.getMonth(), joinDate.getDate());
-            endDate.setDate(endDate.getDate() - 1);
+            endDate.setDate(endDate.getDate() - 1); // 다음 연도 입사일에서 정확히 하루를 뺌 (윤년 등 완벽 대응)
 
             let yearsWorked = targetYear - joinDate.getFullYear();
             let totalLeave = (yearsWorked < 1) ? 11 : (15 + Math.floor((yearsWorked - 1) / 2));
@@ -435,7 +436,6 @@
                 });
 
                 return data.filter(d => {
-                    // 🛠️ 퇴사자 탭 수정: 퇴사자는 재직 여부 무시
                     if (!isResignedTab && d.notJoined) return false;
                     const matchName = d.name && d.name.includes(searchTerm);
                     const matchNegative = showNegativeOnly ? d.remainingHours < 0 : true;
@@ -770,7 +770,6 @@
             const [isPastMode, setIsPastMode] = useState(false);
             const resignedFileInputRef = useRef(null);
             
-            // 🛠️ 퇴사자 필터 조건 강화: status가 'resigned'이거나 resignDate가 있는 경우
             const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned' || (s.resignDate && s.resignDate.trim().length > 0)), [staffList]);
 
             const handleResignedStaffUpload = (e) => {
@@ -821,7 +820,6 @@
                             <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
                         </div>
                     </div>
-                    {/* isResignedTab={true} 전달: 퇴사자는 notJoined 필터 무시 */}
                     <LeaveManagementTab 
                         staffList={resignedList} 
                         onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} 
@@ -848,7 +846,6 @@
                         updates.annualLeaveTotal = leaveInfo.total;
                         updates.annualLeavePeriod = leaveInfo.period;
                     }
-                    // 🛠️ 퇴사일 입력 시 자동으로 status를 resigned로 변경
                     if (formData.resignDate && formData.resignDate.trim() !== "") {
                         updates.status = 'resigned';
                     }
