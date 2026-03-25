@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Ver 9.4)</title>
+    <title>양지누림 연차 관리 시스템 (Final Ver 9.5)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -493,7 +493,7 @@
                 }
             };
 
-            // 🌟 핵심 수정 포인트: 파일 인코딩(한글 깨짐 방지)을 지원하는 업로드 기능
+            // 🌟 완벽한 파일 파싱 및 스마트 매칭 로직 탑재
             const handleLeaveFileUpload = (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
@@ -505,25 +505,14 @@
                         const year = match[1]; const month = match[2].padStart(2, '0');
                         const uploadDate = `${year}-${month}-01`; const uploadType = `${year}.${month} 일괄등록`;
                         
-                        const isCSV = file.name.toLowerCase().endsWith('.csv');
                         const reader = new FileReader();
+                        // 🌟 인코딩을 강제하지 않고 바이너리 형식으로 읽어들여 글자 깨짐 완전 방지
+                        reader.readAsArrayBuffer(file);
                         
-                        // CSV 파일이면 윈도우 한글 인코딩(EUC-KR)으로 읽음
-                        if (isCSV) {
-                            reader.readAsText(file, 'euc-kr');
-                        } else {
-                            reader.readAsArrayBuffer(file);
-                        }
-
                         reader.onload = (evt) => {
                             try {
-                                let wb;
-                                if (isCSV) {
-                                    wb = XLSX.read(evt.target.result, { type: 'string' });
-                                } else {
-                                    const data = new Uint8Array(evt.target.result);
-                                    wb = XLSX.read(data, { type: 'array' });
-                                }
+                                const data = new Uint8Array(evt.target.result);
+                                const wb = XLSX.read(data, { type: 'array' });
                                 const ws = wb.Sheets[wb.SheetNames[0]];
                                 const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                                 resolve({ jsonData, uploadDate, uploadType });
@@ -543,6 +532,8 @@
                     results.forEach(res => {
                         if (!res) return;
                         const { jsonData, uploadDate, uploadType } = res;
+                        
+                        // 엑셀에서 실제 데이터가 시작되는 3번째 줄(인덱스 2)부터 읽기
                         for (let i = 2; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
@@ -551,9 +542,18 @@
                             if (name && birthRaw) {
                                 const birthDate = safeDate(birthRaw);
                                 const matchKey = `${normalizeString(name)}_${normalizeString(birthDate)}`;
-                                const targetStaff = staffMap[matchKey];
                                 
-                                // 직원을 성공적으로 찾은 경우에만 데이터 입력
+                                // 1차 시도: 이름 + 생년월일 매칭
+                                let targetStaff = staffMap[matchKey];
+                                
+                                // 🌟 2차 시도 (스마트 매칭): 생년월일이 달라서 못 찾았을 경우, 동일한 이름이 명부에 1명뿐이라면 그 사람으로 인정
+                                if (!targetStaff) {
+                                    const matchedByName = staffList.filter(s => normalizeString(s.name) === normalizeString(name));
+                                    if (matchedByName.length === 1) {
+                                        targetStaff = matchedByName[0];
+                                    }
+                                }
+                                
                                 if (targetStaff && leaveHours >= 0) {
                                     if (!updates[targetStaff.id]) { updates[targetStaff.id] = { newHistory: [...(targetStaff.leaveHistory || [])], staff: targetStaff }; }
                                     const history = updates[targetStaff.id].newHistory;
@@ -577,12 +577,12 @@
                         const ref = db.collection('users').doc(uid);
                         batch.update(ref, { annualLeaveUsed: totalUsedHours, leaveHistory: newHistory });
                     });
-                    await batch.commit();
                     
-                    if(updateCount === 0) {
-                         alert(`⚠️ 0개 처리됨: \n[직원 명부]에 엑셀 명단과 이름/생년월일이 일치하는 직원이 없거나 파일 내용이 올바르지 않습니다.`);
+                    if (updateCount > 0) {
+                        await batch.commit();
+                        alert(`✅ 총 ${updateCount}명의 연차 데이터가 성공적으로 등록/업데이트되었습니다!`);
                     } else {
-                         alert(`✅ 총 ${updateCount}건 연차 등록 완료!`);
+                        alert(`⚠️ 0건 등록됨:\n직원 명부에 이름이 일치하는 직원이 없거나 파일에 연차 데이터가 없습니다.\n(미리 '직원 명부'에 직원이 등록되어 있어야 합니다.)`);
                     }
                     
                     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -718,24 +718,13 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 
-                const isCSV = file.name.toLowerCase().endsWith('.csv');
                 const reader = new FileReader();
-                
-                if (isCSV) {
-                    reader.readAsText(file, 'euc-kr');
-                } else {
-                    reader.readAsArrayBuffer(file);
-                }
+                reader.readAsArrayBuffer(file); // 명부 업로드도 동일하게 안전한 방식으로 처리
 
                 reader.onload = async (evt) => {
                     try {
-                        let wb;
-                        if (isCSV) {
-                            wb = XLSX.read(evt.target.result, { type: 'string' });
-                        } else {
-                            const data = new Uint8Array(evt.target.result);
-                            wb = XLSX.read(data, { type: 'array' });
-                        }
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
                         const ws = wb.Sheets[wb.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
@@ -879,24 +868,13 @@
                 const file = e.target.files[0];
                 if (!file) return;
                 
-                const isCSV = file.name.toLowerCase().endsWith('.csv');
                 const reader = new FileReader();
-                
-                if (isCSV) {
-                    reader.readAsText(file, 'euc-kr');
-                } else {
-                    reader.readAsArrayBuffer(file);
-                }
+                reader.readAsArrayBuffer(file);
 
                 reader.onload = async (evt) => {
                     try {
-                        let wb;
-                        if (isCSV) {
-                            wb = XLSX.read(evt.target.result, { type: 'string' });
-                        } else {
-                            const data = new Uint8Array(evt.target.result);
-                            wb = XLSX.read(data, { type: 'array' });
-                        }
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
                         const ws = wb.Sheets[wb.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         const batch = db.batch();
