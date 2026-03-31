@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Final Ver 9.0)</title>
+    <title>양지누림 연차 관리 시스템 (Final Ver 9.1)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -62,6 +62,15 @@
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
 
+        // [FIX] 한국 로컬 타임 기준 YYYY-MM-DD 문자열 반환 (ISO String의 하루 밀림 현상 방지)
+        const toLocalYMD = (date) => {
+            if (!date || isNaN(date.getTime())) return '';
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        };
+
         const safeDate = (val) => {
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
@@ -76,7 +85,7 @@
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
                         date.setHours(date.getHours() + 9);
-                        return date.toISOString().split('T')[0];
+                        return toLocalYMD(date);
                     } catch(e) { return str; }
                 }
             }
@@ -86,20 +95,25 @@
 
         const calculateLeaveForYear = (joinDateStr, targetYear) => {
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
-            const joinDate = new Date(joinDateStr);
+            
+            // 입사일을 문자열 형태로 잘라서 확실한 Local Date로 생성
+            const [jYear, jMonth, jDay] = joinDateStr.split('-').map(Number);
+            const joinDate = new Date(jYear, jMonth - 1, jDay);
+            
             if (isNaN(joinDate.getTime())) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
-            if (joinDate.getFullYear() > targetYear) return { total: 0, period: '입사 전', notJoined: true };
+            if (jYear > targetYear) return { total: 0, period: '입사 전', notJoined: true };
 
-            let startDate = new Date(targetYear, joinDate.getMonth(), joinDate.getDate());
-            let endDate = new Date(targetYear + 1, joinDate.getMonth(), joinDate.getDate());
+            // [FIX] 산정기간: 입사일 당일부터 차년도 입사일 전일까지
+            let startDate = new Date(targetYear, jMonth - 1, jDay);
+            let endDate = new Date(targetYear + 1, jMonth - 1, jDay);
             endDate.setDate(endDate.getDate() - 1);
 
-            let yearsWorked = targetYear - joinDate.getFullYear();
+            let yearsWorked = targetYear - jYear;
             let totalLeave = (yearsWorked < 1) ? 11 : (15 + Math.floor((yearsWorked - 1) / 2));
             if (totalLeave > 25) totalLeave = 25;
             
-            const sStr = startDate.toISOString().split('T')[0];
-            const eStr = endDate.toISOString().split('T')[0];
+            const sStr = toLocalYMD(startDate);
+            const eStr = toLocalYMD(endDate);
 
             return { total: totalLeave, period: `${sStr} ~ ${eStr}`, startDate: sStr, endDate: eStr, notJoined: false, yearsWorked };
         };
@@ -108,9 +122,10 @@
             if(!joinDateStr) return { total: 0, period: '-' };
             const today = new Date();
             let baseYear = today.getFullYear();
-            const joinDate = new Date(joinDateStr);
-            if (isNaN(joinDate.getTime())) return { total: 0, period: '-' };
-            const currentAnniversary = new Date(baseYear, joinDate.getMonth(), joinDate.getDate());
+            
+            const [jYear, jMonth, jDay] = joinDateStr.split('-').map(Number);
+            const currentAnniversary = new Date(baseYear, jMonth - 1, jDay);
+            
             if (today < currentAnniversary) baseYear = baseYear - 1;
             return calculateLeaveForYear(joinDateStr, baseYear);
         };
@@ -122,10 +137,13 @@
             const today = new Date();
             const currentMonth = today.getMonth() + 1; 
             const currentYear = today.getFullYear();
-            const endDate = new Date(leaveInfo.endDate);
+            
+            const [eYear, eMonth, eDay] = leaveInfo.endDate.split('-').map(Number);
+            const endDate = new Date(eYear, eMonth - 1, eDay);
             
             if (leaveInfo.yearsWorked < 1) {
-                const joinDate = new Date(staff.joinDate);
+                const [jYear, jMonth, jDay] = staff.joinDate.split('-').map(Number);
+                const joinDate = new Date(jYear, jMonth - 1, jDay);
                 const oneYearDate = new Date(joinDate.getFullYear() + 1, joinDate.getMonth(), joinDate.getDate());
                 const notifyDate = new Date(oneYearDate);
                 notifyDate.setMonth(notifyDate.getMonth() - 3);
@@ -292,7 +310,7 @@
         const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
-            const [leaveDate, setLeaveDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+            const [leaveDate, setLeaveDate] = useState(initialData?.date || toLocalYMD(new Date()));
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
@@ -435,7 +453,6 @@
                 });
 
                 return data.filter(d => {
-                    // 🛠️ 퇴사자 탭 수정: 퇴사자는 재직 여부 무시
                     if (!isResignedTab && d.notJoined) return false;
                     const matchName = d.name && d.name.includes(searchTerm);
                     const matchNegative = showNegativeOnly ? d.remainingHours < 0 : true;
@@ -485,8 +502,6 @@
 
                 Promise.all(files.map(processFile)).then(async (results) => {
                     const batch = db.batch();
-                    const staffMap = {};
-                    staffList.forEach(s => { const key = `${normalizeString(s.name)}_${normalizeString(s.birth)}`; staffMap[key] = s; });
                     const updates = {};
                     let updateCount = 0;
 
@@ -497,10 +512,18 @@
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
                             const name = row[1]; const birthRaw = row[2]; const leaveHours = safeParseFloat(row[5]);
-                            if (name && birthRaw) {
-                                const birthDate = safeDate(birthRaw);
-                                const matchKey = `${normalizeString(name)}_${normalizeString(birthDate)}`;
-                                const targetStaff = staffMap[matchKey];
+                            if (name) {
+                                // [FIX] 유연한 직원 매칭: 이름이 일치하면서 생년월일이 일치하거나 이름이 유일한 경우
+                                const normName = normalizeString(name);
+                                const parsedBirth = birthRaw ? safeDate(birthRaw) : '';
+                                const normBirth = normalizeString(parsedBirth);
+                                
+                                let targetStaff = staffList.find(s => normalizeString(s.name) === normName && normalizeString(s.birth) === normBirth);
+                                if (!targetStaff) {
+                                    const matchingNames = staffList.filter(s => normalizeString(s.name) === normName);
+                                    if (matchingNames.length === 1) targetStaff = matchingNames[0]; // 동명이인 없을 경우 이름만으로 허용
+                                }
+
                                 if (targetStaff && leaveHours >= 0) {
                                     if (!updates[targetStaff.id]) { updates[targetStaff.id] = { newHistory: [...(targetStaff.leaveHistory || [])], staff: targetStaff }; }
                                     const history = updates[targetStaff.id].newHistory;
@@ -770,7 +793,6 @@
             const [isPastMode, setIsPastMode] = useState(false);
             const resignedFileInputRef = useRef(null);
             
-            // 🛠️ 퇴사자 필터 조건 강화: status가 'resigned'이거나 resignDate가 있는 경우
             const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned' || (s.resignDate && s.resignDate.trim().length > 0)), [staffList]);
 
             const handleResignedStaffUpload = (e) => {
@@ -798,7 +820,7 @@
                                 const docRef = db.collection('users').doc(email);
                                 batch.set(docRef, {
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
-                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
+                                    joinDate, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
                                     status: 'resigned', resignDate: resignDate || ''
                                 }, { merge: true });
@@ -821,7 +843,6 @@
                             <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
                         </div>
                     </div>
-                    {/* isResignedTab={true} 전달: 퇴사자는 notJoined 필터 무시 */}
                     <LeaveManagementTab 
                         staffList={resignedList} 
                         onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} 
@@ -848,7 +869,6 @@
                         updates.annualLeaveTotal = leaveInfo.total;
                         updates.annualLeavePeriod = leaveInfo.period;
                     }
-                    // 🛠️ 퇴사일 입력 시 자동으로 status를 resigned로 변경
                     if (formData.resignDate && formData.resignDate.trim() !== "") {
                         updates.status = 'resigned';
                     }
@@ -902,7 +922,7 @@
             if (!user) return <Login onLogin={setUser} />;
 
             const activeStaffList = staffList.filter(s => s.status !== 'resigned');
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = toLocalYMD(new Date());
             const todayLeaveCount = activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length || 0;
             
             let totalGenCurrentYear = 0;
@@ -977,7 +997,7 @@
                             </nav>
                             <div className="p-4 bg-[#0F172A]">
                                 <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver 1.0.0 (Stable)<br/>© 2026 YangjiNurim</p>
+                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver 9.1 (Stable)<br/>© 2026 YangjiNurim</p>
                             </div>
                         </aside>
                         <main className="flex-1 overflow-y-auto p-8">
@@ -1002,7 +1022,6 @@
                                                 {yearlyStats.map((stat) => (
                                                     <div key={stat.year} className="flex flex-col items-center group w-full h-full justify-end">
                                                         <div className="relative w-full max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
-                                                            {/* 데이터가 0이어도 최소 1px 보이게 (min-h-[1px]) */}
                                                             <div 
                                                                 className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-transition min-h-[1px]" 
                                                                 style={{ height: `${stat.rate}%` }}
