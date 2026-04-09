@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v2.0)</title>
+    <title>양지누림 연차 관리 시스템 (Final Ver 9.1)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -26,8 +26,6 @@
         
         /* 그래프 애니메이션 */
         .bar-transition { transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -41,9 +39,6 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
-
-        // --- Configuration ---
-        const SYSTEM_VERSION = "2.0";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -187,26 +182,7 @@
             Megaphone: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 11l8-5v12l-8-5H3v-2z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>,
             FileText: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             Alert: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-            Info: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
         };
-
-        // --- Version Update Modal ---
-        const VersionAlertModal = ({ onClose }) => (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md">
-                <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
-                    <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
-                    <h3 className="text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
-                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 정식 버전 출시</p>
-                    <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ 시스템 버전 정식 2.0 판올림</p>
-                        <p>✅ 기능 수정 감지 알림 기능 추가</p>
-                        <p>✅ 연차 데이터 보안 및 안정성 강화</p>
-                        <p>✅ UI 가독성 및 대시보드 개선</p>
-                    </div>
-                    <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest">확인했습니다</button>
-                </div>
-            </div>
-        );
 
         // --- Error Boundary ---
         class ErrorBoundary extends Component {
@@ -576,21 +552,26 @@
             };
 
             return (
-                <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center gap-4">
-                            <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
-                            {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-sm font-bold text-orange-600 flex items-center gap-1"><Icons.Alert /> 갱신월 중복 확인</span></label>
-                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-sm font-bold text-red-500">초과자만 보기</span></label>
-                            <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-4 pr-4 py-2 border rounded-xl text-sm outline-none w-32" />
-                            <input type="file" ref={fileInputRef} onChange={handleLeaveFileUpload} accept=".xlsx, .xls" multiple className="hidden" />
-                            <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition"><Icons.Upload /> 일괄</button>
-                            <button onClick={() => onOpenModal()} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"><Icons.Plus /> 등록</button>
+                <div className="space-y-6 relative">
+                    {/* 상단 컨트롤 바 고정 (Sticky Top) */}
+                    <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                            <div className="flex items-center gap-4">
+                                <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
+                                {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <label className="flex items-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-sm font-bold text-orange-600 flex items-center gap-1"><Icons.Alert /> 갱신월 중복 확인</span></label>
+                                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-sm font-bold text-red-500">초과자만 보기</span></label>
+                                <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-4 pr-4 py-2 border rounded-xl text-sm outline-none w-32" />
+                                <input type="file" ref={fileInputRef} onChange={handleLeaveFileUpload} accept=".xlsx, .xls" multiple className="hidden" />
+                                <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition"><Icons.Upload /> 일괄</button>
+                                <button onClick={() => onOpenModal()} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"><Icons.Plus /> 등록</button>
+                            </div>
                         </div>
                     </div>
+                    
+                    {/* 테이블 영역 */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -637,6 +618,18 @@
                             </tbody>
                         </table>
                     </div>
+
+                    {/* 플로팅 액션 버튼 (항상 떠있는 연차 등록 버튼) */}
+                    {!isResignedTab && (
+                        <button 
+                            onClick={() => onOpenModal()} 
+                            className="fixed bottom-10 right-10 bg-blue-600 text-white px-6 py-4 rounded-full flex items-center gap-2 shadow-[0_10px_20px_rgba(37,99,235,0.4)] hover:bg-blue-700 hover:-translate-y-1 transition-all z-50 border-4 border-white"
+                            title="연차 등록"
+                        >
+                            <Icons.Plus />
+                            <span className="font-bold text-sm whitespace-nowrap">연차 등록</span>
+                        </button>
+                    )}
                 </div>
             );
         };
@@ -928,16 +921,9 @@
             const [showLeaveModal, setShowLeaveModal] = useState(false);
             const [editingLeaveData, setEditingLeaveData] = useState(null);
             const [viewingStaffDetail, setViewingStaffDetail] = useState(null);
-            const [showUpdateModal, setShowUpdateModal] = useState(false);
             
             useEffect(() => {
                 if (user && user.role === 'admin') {
-                    // 버전 업데이트 체크 로직 추가
-                    const lastVersion = localStorage.getItem('ygnurim_version');
-                    if (lastVersion !== SYSTEM_VERSION) {
-                        setShowUpdateModal(true);
-                    }
-
                     const unsub = db.collection('users').onSnapshot((snapshot) => {
                         const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
                         setStaffList(list);
@@ -945,11 +931,6 @@
                     return () => unsub();
                 }
             }, [user]);
-
-            const handleUpdateConfirm = () => {
-                localStorage.setItem('ygnurim_version', SYSTEM_VERSION);
-                setShowUpdateModal(false);
-            };
 
             const handleLogout = async () => { try { await auth.signOut(); } catch(e) {} setUser(null); };
             const handleEditLeave = (staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); };
@@ -1021,7 +1002,6 @@
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
                     <ErrorBoundary>
-                        {showUpdateModal && <VersionAlertModal onClose={handleUpdateConfirm} />}
                         <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10 shadow-xl">
                             <div className="p-6 border-b border-slate-700/50"><h1 className="text-xl font-black text-white">양지누림</h1><p className="text-xs text-slate-400 mt-1">{user.name}님</p></div>
                             <nav className="flex-1 p-4 flex flex-col gap-2">
@@ -1034,10 +1014,10 @@
                             </nav>
                             <div className="p-4 bg-[#0F172A]">
                                 <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION} 정식 (Stable)<br/>© 2026 YangjiNurim</p>
+                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver 9.1 (Stable)<br/>© 2026 YangjiNurim</p>
                             </div>
                         </aside>
-                        <main className="flex-1 overflow-y-auto p-8">
+                        <main className="flex-1 overflow-y-auto p-8 relative">
                             <header className="flex justify-between items-center mb-8"><h2 className="text-2xl font-bold text-slate-800">관리자 시스템</h2><div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()}</div></header>
                             
                             {/* 대시보드 */}
