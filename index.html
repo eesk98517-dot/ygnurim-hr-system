@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v2.0)</title>
+    <title>양지누림 연차 관리 시스템 (Official v2.101)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -43,7 +43,7 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        const SYSTEM_VERSION = "2.0";
+        const SYSTEM_VERSION = "2.101";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -193,12 +193,12 @@
                 <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
                     <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
                     <h3 className="text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
-                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 정식 버전 출시</p>
+                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 마이너 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ 시스템 버전 정식 2.0 판올림</p>
-                        <p>✅ 기능 수정 감지 자동 알림 팝업 도입</p>
+                        <p>✅ UI/UX 편의성 향상 (v2.101)</p>
                         <p>✅ 연차 관리 스크롤 메뉴 고정 (Sticky)</p>
-                        <p>✅ 연차 등록 플로팅 액션 버튼(FAB) 추가</p>
+                        <p>✅ 연차 등록 퀵 버튼(FAB) 추가</p>
+                        <p>✅ 버전 관리 시스템 적용 완료</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest">확인했습니다</button>
                 </div>
@@ -1048,7 +1048,7 @@
                             </nav>
                             <div className="p-4 bg-[#0F172A]">
                                 <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION} 정식 (Stable)<br/>© 2026 YangjiNurim</p>
+                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION} (Stable)<br/>© 2026 YangjiNurim</p>
                             </div>
                         </aside>
                         <main className="flex-1 overflow-y-auto p-8 relative">
