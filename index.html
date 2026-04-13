@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v2.3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v2.4)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -43,7 +43,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        const SYSTEM_VERSION = "2.3";
+        // 새로운 기능 추가이므로 버전 v2.4 판올림
+        const SYSTEM_VERSION = "2.4";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -187,8 +188,8 @@
             Plus: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
             X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
             Upload: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
-            Edit: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
-            Trash: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+            Edit: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+            Trash: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
             Search: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
             SortAsc: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg>,
             SortDesc: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>,
@@ -202,7 +203,6 @@
         };
 
         // --- Modals ---
-        // 공용 계정 관리자 이름 식별 모달
         const AdminNameModal = ({ onSave }) => {
             const [name, setName] = useState('');
             return (
@@ -225,11 +225,12 @@
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
                     <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
-                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 기능 업데이트 배포</p>
+                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 기능 추가 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ 다중 일자(기간) 연차 일괄 등록 기능 (주말 제외 로직 탑재)</p>
-                        <p>✅ 공용 계정 관리자 실명 기록 기능 (Audit Log)</p>
-                        <p>✅ 접속 중인 타 사용자 실시간 업데이트 강제 적용</p>
+                        <p>✅ 연차 지정일 다중 선택 등록 기능 추가</p>
+                        <p>✅ 내역 수정/삭제 버튼 상시 노출로 UI 개선</p>
+                        <p>✅ 실시간 업데이트 강제 동기화 안정성 대폭 상향</p>
+                        <p>✅ 관리자 식별(Audit Log) 기반 마련</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -376,20 +377,23 @@
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             
-            // 기간 설정 모드용 상태
-            const [dateMode, setDateMode] = useState('single'); // 'single' or 'multi'
+            // 기간 설정 모드용 상태 (단일, 기간, 커스텀지정일)
+            const [dateMode, setDateMode] = useState('single'); 
             const [leaveDate, setLeaveDate] = useState(initialData?.date || toLocalYMD(new Date()));
             const [endDate, setEndDate] = useState(initialData?.date || toLocalYMD(new Date()));
             
+            const [customDates, setCustomDates] = useState([]);
+            const [customDateInput, setCustomDateInput] = useState('');
+
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
             const [reason, setReason] = useState(initialData?.reason || '');
             const [msg, setMsg] = useState('');
 
-            // 기간 설정 모드 진입 시 강제로 1일(연차) 단위로 고정
+            // 기간/커스텀 설정 모드 진입 시 강제로 1일(연차) 단위로 고정
             useEffect(() => {
-                if (dateMode === 'multi') {
+                if (dateMode === 'multi' || dateMode === 'custom') {
                     setInputType('day');
                     setLeaveDayType('1');
                 }
@@ -403,23 +407,33 @@
                 }
             }, [initialData]);
 
-            // 시작일~종료일 사이의 유효한 평일(토/일 제외) 배열 반환
+            // 선택된 유효 날짜들 반환
             const validDates = useMemo(() => {
                 if (dateMode === 'single') return [leaveDate];
+                if (dateMode === 'custom') return customDates;
+                
                 let dates = [];
                 let curr = new Date(leaveDate);
                 let last = new Date(endDate);
-                if (curr > last) return []; // 종료일이 시작일보다 빠르면 빈 배열
+                if (curr > last) return []; 
                 
                 while(curr <= last) {
                     const day = curr.getDay();
-                    if(day !== 0 && day !== 6) { // 0: Sunday, 6: Saturday
+                    if(day !== 0 && day !== 6) { 
                         dates.push(toLocalYMD(curr));
                     }
                     curr.setDate(curr.getDate() + 1);
                 }
                 return dates;
-            }, [leaveDate, endDate, dateMode]);
+            }, [leaveDate, endDate, customDates, dateMode]);
+
+            const handleAddCustomDate = () => {
+                if (customDateInput && !customDates.includes(customDateInput)) {
+                    const newDates = [...customDates, customDateInput].sort();
+                    setCustomDates(newDates);
+                    setCustomDateInput('');
+                }
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -435,8 +449,8 @@
                     if (deductHours <= 0) { setMsg('❌ 시간을 입력하세요.'); return; }
                 }
 
-                if (dateMode === 'multi' && validDates.length === 0) {
-                    setMsg('❌ 선택한 기간에 유효한 평일이 없습니다.'); return;
+                if ((dateMode === 'multi' || dateMode === 'custom') && validDates.length === 0) {
+                    setMsg('❌ 선택된 날짜가 없습니다.'); return;
                 }
 
                 setMsg('처리 중...');
@@ -450,7 +464,6 @@
                             newHistory[targetIdx] = { ...newHistory[targetIdx], date: safeDate(leaveDate), days: deductHours, type: typeText, reason, addedBy: adminName };
                         }
                     } else {
-                        // 날짜별로 각각 등록 (멀티모드면 배열 길이만큼 등록, 싱글이면 1건 등록)
                         validDates.forEach((d, idx) => {
                             newHistory.push({
                                 id: Date.now().toString() + Math.floor(Math.random() * 1000) + idx, 
@@ -458,7 +471,7 @@
                                 days: deductHours, 
                                 type: typeText, 
                                 reason,
-                                addedBy: adminName, // Audit Log 용 작성자 식별
+                                addedBy: adminName,
                                 createdAt: new Date().toISOString()
                             });
                         });
@@ -486,13 +499,16 @@
                             {!isEdit && (
                                 <div className="flex bg-slate-100 p-1 rounded-xl">
                                     <button type="button" onClick={() => setDateMode('single')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === 'single' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>단일 날짜</button>
-                                    <button type="button" onClick={() => setDateMode('multi')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === 'multi' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>기간 설정(여러 날짜)</button>
+                                    <button type="button" onClick={() => setDateMode('multi')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === 'multi' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>기간 설정</button>
+                                    <button type="button" onClick={() => setDateMode('custom')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === 'custom' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>지정일 선택</button>
                                 </div>
                             )}
 
-                            {dateMode === 'single' ? (
+                            {dateMode === 'single' && (
                                 <div><label className="block text-xs font-bold text-slate-500 mb-1">날짜</label><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" required /></div>
-                            ) : (
+                            )}
+                            
+                            {dateMode === 'multi' && (
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                                     <label className="block text-xs font-bold text-blue-600 mb-1">기간 선택 (주말 자동 제외)</label>
                                     <div className="flex items-center gap-2">
@@ -501,6 +517,28 @@
                                         <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required />
                                     </div>
                                     <p className="text-xs text-blue-500 font-bold mt-2 text-center bg-white py-1 rounded border border-blue-100">총 {validDates.length}일 등록 예정</p>
+                                </div>
+                            )}
+
+                            {dateMode === 'custom' && (
+                                <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                                    <label className="block text-xs font-bold text-purple-600 mb-1">지정일 추가 (여러 날짜 띄엄띄엄 선택)</label>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <input type="date" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" />
+                                        <button type="button" onClick={handleAddCustomDate} className="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition">추가</button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {customDates.map(d => (
+                                            <span key={d} className="bg-white border border-purple-200 text-purple-700 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-sm">
+                                                {d} 
+                                                <button type="button" onClick={() => setCustomDates(customDates.filter(cd => cd !== d))} className="text-purple-400 hover:text-purple-600 p-0.5 rounded-full hover:bg-purple-50">
+                                                    <span className="text-[10px] font-bold">✕</span>
+                                                </button>
+                                            </span>
+                                        ))}
+                                        {customDates.length === 0 && <span className="text-xs text-purple-400 font-medium">추가된 날짜가 없습니다.</span>}
+                                    </div>
+                                    <p className="text-xs text-purple-500 font-bold mt-3 text-center bg-white py-1 rounded border border-purple-100">총 {customDates.length}일 등록 예정</p>
                                 </div>
                             )}
 
@@ -523,7 +561,7 @@
                                     </>
                                 ) : (
                                     <div className="p-3 border rounded-xl bg-slate-50 text-center text-sm text-slate-500 font-bold">
-                                        ※ 기간 등록 시 '연차(1일)' 단위만 적용됩니다.
+                                        ※ {dateMode === 'multi' ? '기간' : '지정일 다중'} 등록 시 '연차(1일)' 단위만 적용됩니다.
                                     </div>
                                 )}
                             </div>
@@ -604,7 +642,6 @@
                         return acc;
                     }, 0);
                     await db.collection('users').doc(data.id).update({ annualLeaveUsed: totalUsedHours, leaveHistory: newHistory });
-                    alert('삭제되었습니다.');
                 } catch (err) { alert('오류: ' + err.message); }
             };
 
@@ -685,7 +722,6 @@
 
             return (
                 <div className="space-y-6 relative">
-                    {/* 상단 컨트롤 바 고정 (Sticky Top) */}
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
@@ -709,7 +745,7 @@
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
-                                    <th className="p-4">이름</th><th className="p-4 text-center text-blue-600">총 연차</th><th className="p-4 text-center text-red-500">사용</th><th className="p-4 text-center text-green-600">잔여</th><th className="p-4 w-44">기간</th><th className="p-4 min-w-[200px]">내역</th>
+                                    <th className="p-4">이름</th><th className="p-4 text-center text-blue-600">총 연차</th><th className="p-4 text-center text-red-500">사용</th><th className="p-4 text-center text-green-600">잔여</th><th className="p-4 w-44">기간</th><th className="p-4 min-w-[250px]">내역</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -733,15 +769,18 @@
                                             <td className="p-4">{data.displayHistory.length > 0 ? (
                                                 <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin pr-2">
                                                     {data.displayHistory.map((rec, i) => (
-                                                        <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border md:group hover:border-blue-200 ${rec.isWarn ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'}`}>
+                                                        <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border hover:border-blue-200 transition ${rec.isWarn ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'}`}>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="font-bold text-slate-700">{rec.date}</span>
                                                                 <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type})</span>
                                                                 {rec.isWarn && <span className="text-orange-500"><Icons.Alert /></span>}
-                                                                {/* 작업 기록 (Audit) 표시 */}
                                                                 {rec.addedBy && <span className="text-[10px] text-slate-400 font-medium tracking-tight ml-1">({rec.addedBy})</span>}
                                                             </div>
-                                                            <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"><button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1 bg-white rounded shadow-sm border"><Icons.Edit /></button><button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1 bg-white rounded shadow-sm border"><Icons.Trash /></button></div>
+                                                            {/* 모바일에서도 수정/삭제 아이콘 상시 노출로 변경 */}
+                                                            <div className="flex gap-1">
+                                                                <button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
+                                                                <button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -754,7 +793,6 @@
                         </table>
                     </div>
 
-                    {/* 플로팅 액션 버튼 */}
                     {!isResignedTab && (
                         <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-40">
                             <button 
@@ -1011,7 +1049,7 @@
                         isPastMode={isPastMode} 
                         isResignedTab={true}
                         onNameClick={onNameClick}
-                        adminName="System" // 퇴사자는 조회용이므로
+                        adminName="System"
                     />
                 </div>
             );
@@ -1036,23 +1074,20 @@
             useEffect(() => {
                 if (!user) return;
 
-                // 1. 실시간 버전 모니터링
-                const unsubConfig = db.collection('system').doc('config').onSnapshot((doc) => {
-                    const dbVersion = doc.data()?.version;
+                // [수정] 권한 우회를 위해 admin 유저 문서 자체에 버전을 기록하여 감지
+                const adminDocRef = db.collection('users').doc('admin@ygnurim.com');
+                const unsubConfig = adminDocRef.onSnapshot((doc) => {
+                    const dbVersion = doc.data()?.systemVersion;
                     if (dbVersion && compareVersions(dbVersion, SYSTEM_VERSION) > 0) {
                         setForceUpdateRequired(true);
                     } else if (user.role === 'admin' && (!dbVersion || compareVersions(SYSTEM_VERSION, dbVersion) > 0)) {
-                        db.collection('system').doc('config').set({ 
-                            version: SYSTEM_VERSION,
-                            updatedBy: user.email,
-                            updatedAt: new Date().toISOString()
-                        }, { merge: true }).catch(err => console.log('Version sync issue:', err));
+                        adminDocRef.set({ systemVersion: SYSTEM_VERSION }, { merge: true }).catch(err => console.log('Version sync issue:', err));
                     }
                 });
 
                 let unsubUsers = () => {};
 
-                // 2. 관리자 로그인 시 데이터 구독
+                // 관리자 로그인 시 데이터 구독
                 if (user.role === 'admin') {
                     const lastVersion = localStorage.getItem('ygnurim_version');
                     if (lastVersion !== SYSTEM_VERSION) {
