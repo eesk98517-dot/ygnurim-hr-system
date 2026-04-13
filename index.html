@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v2.2)</title>
+    <title>양지누림 연차 관리 시스템 (Official v2.3)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -43,8 +43,7 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // 새로운 기능 추가이므로 버전 관리 규칙에 따라 v2.2 적용
-        const SYSTEM_VERSION = "2.2";
+        const SYSTEM_VERSION = "2.3";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -68,7 +67,6 @@
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
 
-        // 버전 비교 함수 (v1 > v2 이면 1, 같으면 0, 작으면 -1 반환)
         const compareVersions = (v1, v2) => {
             const p1 = String(v1).split('.').map(Number);
             const p2 = String(v2).split('.').map(Number);
@@ -203,8 +201,25 @@
             Refresh: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         };
 
-        // --- Version Update Modals ---
-        // 로그인 한 본인에게만 뜨는 업데이트 내역 팝업
+        // --- Modals ---
+        // 공용 계정 관리자 이름 식별 모달
+        const AdminNameModal = ({ onSave }) => {
+            const [name, setName] = useState('');
+            return (
+                <div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[300] animate-fade-in backdrop-blur-sm px-4">
+                    <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative text-center border-4 border-blue-500">
+                        <div className="text-blue-500 mb-4 flex justify-center scale-125"><Icons.User /></div>
+                        <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">관리자 식별</h3>
+                        <p className="text-slate-500 font-bold mb-6 text-sm leading-relaxed">공용 관리자 계정을 사용 중입니다.<br/>작업 이력에 남길 성함을 입력해주세요.</p>
+                        <input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-center mb-4 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" placeholder="예: 홍길동 대리" />
+                        <button onClick={() => name.trim() && onSave(name.trim())} className={`w-full py-4 rounded-2xl font-black transition shadow-lg text-sm ${name.trim() ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                            설정 완료
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
         const VersionAlertModal = ({ onClose }) => (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4">
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
@@ -212,17 +227,15 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 기능 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ 접속 중인 타 사용자 실시간 업데이트 강제 적용 기능</p>
-                        <p>📱 스마트폰 모바일 화면 레이아웃 최적화</p>
-                        <p>🍔 모바일 햄버거 메뉴 및 가로 스크롤 적용</p>
-                        <p>📌 연차 관리 스크롤 메뉴 고정 (Sticky)</p>
+                        <p>✅ 다중 일자(기간) 연차 일괄 등록 기능 (주말 제외 로직 탑재)</p>
+                        <p>✅ 공용 계정 관리자 실명 기록 기능 (Audit Log)</p>
+                        <p>✅ 접속 중인 타 사용자 실시간 업데이트 강제 적용</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
             </div>
         );
 
-        // 구 버전 접속자에게 강제로 띄우는 실시간 새로고침 강제 팝업
         const ForceUpdateModal = () => (
             <div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[200] animate-fade-in backdrop-blur-md px-4">
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-orange-500 text-center">
@@ -359,15 +372,28 @@
             );
         };
 
-        const LeaveActionModal = ({ onClose, staffList, initialData = null }) => {
+        const LeaveActionModal = ({ onClose, staffList, adminName, initialData = null }) => {
             const isEdit = !!initialData; 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
+            
+            // 기간 설정 모드용 상태
+            const [dateMode, setDateMode] = useState('single'); // 'single' or 'multi'
             const [leaveDate, setLeaveDate] = useState(initialData?.date || toLocalYMD(new Date()));
+            const [endDate, setEndDate] = useState(initialData?.date || toLocalYMD(new Date()));
+            
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
             const [reason, setReason] = useState(initialData?.reason || '');
             const [msg, setMsg] = useState('');
+
+            // 기간 설정 모드 진입 시 강제로 1일(연차) 단위로 고정
+            useEffect(() => {
+                if (dateMode === 'multi') {
+                    setInputType('day');
+                    setLeaveDayType('1');
+                }
+            }, [dateMode]);
 
             useEffect(() => {
                 if (initialData) {
@@ -376,6 +402,24 @@
                     else { setInputType('hour'); setLeaveHourValue(String(days)); }
                 }
             }, [initialData]);
+
+            // 시작일~종료일 사이의 유효한 평일(토/일 제외) 배열 반환
+            const validDates = useMemo(() => {
+                if (dateMode === 'single') return [leaveDate];
+                let dates = [];
+                let curr = new Date(leaveDate);
+                let last = new Date(endDate);
+                if (curr > last) return []; // 종료일이 시작일보다 빠르면 빈 배열
+                
+                while(curr <= last) {
+                    const day = curr.getDay();
+                    if(day !== 0 && day !== 6) { // 0: Sunday, 6: Saturday
+                        dates.push(toLocalYMD(curr));
+                    }
+                    curr.setDate(curr.getDate() + 1);
+                }
+                return dates;
+            }, [leaveDate, endDate, dateMode]);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -391,6 +435,10 @@
                     if (deductHours <= 0) { setMsg('❌ 시간을 입력하세요.'); return; }
                 }
 
+                if (dateMode === 'multi' && validDates.length === 0) {
+                    setMsg('❌ 선택한 기간에 유효한 평일이 없습니다.'); return;
+                }
+
                 setMsg('처리 중...');
                 try {
                     let newHistory = [...(staff.leaveHistory || [])];
@@ -399,16 +447,20 @@
                     if (isEdit) {
                         const targetIdx = newHistory.findIndex(h => h.id === initialData.id);
                         if (targetIdx !== -1) {
-                            newHistory[targetIdx] = { ...newHistory[targetIdx], date: safeDate(leaveDate), days: deductHours, type: typeText, reason };
+                            newHistory[targetIdx] = { ...newHistory[targetIdx], date: safeDate(leaveDate), days: deductHours, type: typeText, reason, addedBy: adminName };
                         }
                     } else {
-                        newHistory.push({
-                            id: Date.now().toString() + Math.floor(Math.random() * 1000), 
-                            date: safeDate(leaveDate), 
-                            days: deductHours, 
-                            type: typeText, 
-                            reason, 
-                            createdAt: new Date().toISOString()
+                        // 날짜별로 각각 등록 (멀티모드면 배열 길이만큼 등록, 싱글이면 1건 등록)
+                        validDates.forEach((d, idx) => {
+                            newHistory.push({
+                                id: Date.now().toString() + Math.floor(Math.random() * 1000) + idx, 
+                                date: safeDate(d), 
+                                days: deductHours, 
+                                type: typeText, 
+                                reason,
+                                addedBy: adminName, // Audit Log 용 작성자 식별
+                                createdAt: new Date().toISOString()
+                            });
                         });
                     }
 
@@ -424,30 +476,59 @@
             };
 
             return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4 overflow-y-auto pt-20">
+                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative my-auto">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">{isEdit ? '연차 수정' : '연차 등록'}</h3>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">직원</label><select className="w-full border rounded-xl p-3 text-sm bg-white outline-none" value={selectedStaffId} onChange={(e) => setSelectedStaffId(e.target.value)} disabled={isEdit} required><option value="">선택...</option>{staffList.sort((a,b) => a.name.localeCompare(b.name)).map(s => (<option key={s.id} value={s.id}>{s.name} (일 {s.workHours || 8}h)</option>))}</select></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">날짜</label><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">직원</label><select className="w-full border rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-100 transition" value={selectedStaffId} onChange={(e) => setSelectedStaffId(e.target.value)} disabled={isEdit} required><option value="">선택...</option>{staffList.sort((a,b) => a.name.localeCompare(b.name)).map(s => (<option key={s.id} value={s.id}>{s.name} (일 {s.workHours || 8}h)</option>))}</select></div>
+                            
+                            {!isEdit && (
+                                <div className="flex bg-slate-100 p-1 rounded-xl">
+                                    <button type="button" onClick={() => setDateMode('single')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === 'single' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>단일 날짜</button>
+                                    <button type="button" onClick={() => setDateMode('multi')} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === 'multi' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>기간 설정(여러 날짜)</button>
+                                </div>
+                            )}
+
+                            {dateMode === 'single' ? (
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1">날짜</label><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" required /></div>
+                            ) : (
+                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                    <label className="block text-xs font-bold text-blue-600 mb-1">기간 선택 (주말 자동 제외)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required />
+                                        <span className="text-slate-400 font-bold">~</span>
+                                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required />
+                                    </div>
+                                    <p className="text-xs text-blue-500 font-bold mt-2 text-center bg-white py-1 rounded border border-blue-100">총 {validDates.length}일 등록 예정</p>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1">등록 단위</label>
-                                <div className="flex gap-2 mb-2">
-                                    <label className="flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer"><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
-                                    <label className="flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer"><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
-                                </div>
-                                {inputType === 'day' ? (
-                                    <div className="flex gap-2">
-                                        <label className="flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer"><input type="radio" name="dtype" value="1" checked={leaveDayType === '1'} onChange={() => setLeaveDayType('1')} className="hidden"/>연차 (1일)</label>
-                                        <label className="flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer"><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label>
-                                    </div>
+                                {dateMode === 'single' ? (
+                                    <>
+                                        <div className="flex gap-2 mb-2">
+                                            <label className="flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer transition hover:bg-slate-50"><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
+                                            <label className="flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer transition hover:bg-slate-50"><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
+                                        </div>
+                                        {inputType === 'day' ? (
+                                            <div className="flex gap-2">
+                                                <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveDayType === '1' ? 'bg-blue-50 border-blue-200 text-blue-600 font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="dtype" value="1" checked={leaveDayType === '1'} onChange={() => setLeaveDayType('1')} className="hidden"/>연차 (1일)</label>
+                                                <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveDayType === '0.5' ? 'bg-orange-50 border-orange-200 text-orange-600 font-bold' : 'hover:bg-slate-50'}`}><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2"><input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center focus:ring-2 focus:ring-blue-100" placeholder="시간" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div>
+                                        )}
+                                    </>
                                 ) : (
-                                    <div className="flex items-center gap-2"><input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none font-bold text-center" placeholder="시간" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div>
+                                    <div className="p-3 border rounded-xl bg-slate-50 text-center text-sm text-slate-500 font-bold">
+                                        ※ 기간 등록 시 '연차(1일)' 단위만 적용됩니다.
+                                    </div>
                                 )}
                             </div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="사유 입력" /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition">{isEdit ? '수정' : '등록'}</button>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder="사유 입력" /></div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">{isEdit ? '수정 내용 저장' : '연차 등록하기'}</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
                     </div>
@@ -455,7 +536,7 @@
             );
         };
 
-        const LeaveManagementTab = ({ staffList, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick }) => {
+        const LeaveManagementTab = ({ staffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
             const [showNegativeOnly, setShowNegativeOnly] = useState(false); 
@@ -580,7 +661,7 @@
                                     const history = updates[targetStaff.id].newHistory;
                                     const existingIdx = history.findIndex(h => h.date === uploadDate && h.type === uploadType);
                                     if (existingIdx !== -1) { history[existingIdx] = { ...history[existingIdx], days: leaveHours }; } 
-                                    else if (leaveHours > 0) { history.push({ id: Date.now().toString() + Math.random(), date: uploadDate, days: leaveHours, type: uploadType, reason: '엑셀 일괄', createdAt: new Date().toISOString() }); }
+                                    else if (leaveHours > 0) { history.push({ id: Date.now().toString() + Math.random(), date: uploadDate, days: leaveHours, type: uploadType, reason: '엑셀 일괄', addedBy: adminName, createdAt: new Date().toISOString() }); }
                                     updateCount++;
                                 }
                             }
@@ -604,7 +685,7 @@
 
             return (
                 <div className="space-y-6 relative">
-                    {/* 상단 컨트롤 바 고정 (Sticky Top) - 모바일 반응형 배열 적용 */}
+                    {/* 상단 컨트롤 바 고정 (Sticky Top) */}
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
@@ -623,7 +704,7 @@
                         </div>
                     </div>
                     
-                    {/* 테이블 영역 - 모바일 가로스크롤 (overflow-x-auto) 추가 */}
+                    {/* 테이블 영역 */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -654,9 +735,11 @@
                                                     {data.displayHistory.map((rec, i) => (
                                                         <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border md:group hover:border-blue-200 ${rec.isWarn ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'}`}>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="font-bold">{rec.date}</span>
+                                                                <span className="font-bold text-slate-700">{rec.date}</span>
                                                                 <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type})</span>
                                                                 {rec.isWarn && <span className="text-orange-500"><Icons.Alert /></span>}
+                                                                {/* 작업 기록 (Audit) 표시 */}
+                                                                {rec.addedBy && <span className="text-[10px] text-slate-400 font-medium tracking-tight ml-1">({rec.addedBy})</span>}
                                                             </div>
                                                             <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"><button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1 bg-white rounded shadow-sm border"><Icons.Edit /></button><button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1 bg-white rounded shadow-sm border"><Icons.Trash /></button></div>
                                                         </div>
@@ -671,10 +754,9 @@
                         </table>
                     </div>
 
-                    {/* 플로팅 액션 버튼 (모바일 화면에서도 항상 우측 하단에 고정) */}
+                    {/* 플로팅 액션 버튼 */}
                     {!isResignedTab && (
                         <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-40">
-                            {/* 모바일 전용 업로드 버튼 (데스크탑에선 위쪽에 있음) */}
                             <button 
                                 onClick={() => fileInputRef.current.click()} 
                                 className="md:hidden bg-green-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(22,163,74,0.4)] hover:bg-green-700 active:scale-95 transition-all"
@@ -833,7 +915,6 @@
                             <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex justify-center items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
                         </div>
                     </div>
-                    {/* 가로스크롤 (overflow-x-auto) 및 공백줄바꿈 방지 (whitespace-nowrap) 추가 */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -930,49 +1011,8 @@
                         isPastMode={isPastMode} 
                         isResignedTab={true}
                         onNameClick={onNameClick}
+                        adminName="System" // 퇴사자는 조회용이므로
                     />
-                </div>
-            );
-        };
-
-        const EditStaffModal = ({ staff, onClose }) => {
-            const [formData, setFormData] = useState({ ...staff });
-            const [msg, setMsg] = useState('');
-            const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-            const handleSave = async (e) => {
-                e.preventDefault();
-                setMsg('저장 중...');
-                try {
-                    let updates = { ...formData };
-                    if (formData.joinDate !== staff.joinDate) {
-                        const leaveInfo = calculateAnnualLeave(formData.joinDate);
-                        updates.annualLeaveTotal = leaveInfo.total;
-                        updates.annualLeavePeriod = leaveInfo.period;
-                    }
-                    if (formData.resignDate && formData.resignDate.trim() !== "") {
-                        updates.status = 'resigned';
-                    }
-                    
-                    await db.collection('users').doc(staff.id).update(updates);
-                    setMsg('✅ 수정 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 1000);
-                } catch (err) { setMsg('❌ 오류: ' + err.message); }
-            };
-            return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3>
-                        <form onSubmit={handleSave} className="space-y-4">
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={formData.resignDate || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
-                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
-                        </form>
-                    </div>
                 </div>
             );
         };
@@ -986,51 +1026,45 @@
             const [viewingStaffDetail, setViewingStaffDetail] = useState(null);
             const [showUpdateModal, setShowUpdateModal] = useState(false);
             
+            // 관리자 식별(Audit Log)
+            const [adminName, setAdminName] = useState(localStorage.getItem('ygnurim_admin_name') || '');
+            
             // 실시간 강제 업데이트 체크용
             const [forceUpdateRequired, setForceUpdateRequired] = useState(false);
-            
-            // 모바일 사이드바 토글 상태
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             
             useEffect(() => {
                 if (!user) return;
 
-                // 1. 실시간 버전 모니터링 (다른 접속자 강제 새로고침 유도)
+                // 1. 실시간 버전 모니터링
                 const unsubConfig = db.collection('system').doc('config').onSnapshot((doc) => {
                     const dbVersion = doc.data()?.version;
-                    
                     if (dbVersion && compareVersions(dbVersion, SYSTEM_VERSION) > 0) {
-                        // DB에 기록된 버전이 현재 파일의 시스템 버전보다 높으면 업데이트 필수
                         setForceUpdateRequired(true);
                     } else if (user.role === 'admin' && (!dbVersion || compareVersions(SYSTEM_VERSION, dbVersion) > 0)) {
-                        // 관리자가 접속했을 때, 본인의 코드가 더 최신(새 버전 배포 후 최초 접속)이면 DB를 업데이트하여 타인에게 전파
                         db.collection('system').doc('config').set({ 
                             version: SYSTEM_VERSION,
                             updatedBy: user.email,
                             updatedAt: new Date().toISOString()
-                        }, { merge: true }).catch(err => console.log('Version update sync issue:', err));
+                        }, { merge: true }).catch(err => console.log('Version sync issue:', err));
                     }
                 });
 
                 let unsubUsers = () => {};
 
-                // 2. 관리자 로그인 시 본인 로컬 업데이트 내역 확인 및 데이터 구독
+                // 2. 관리자 로그인 시 데이터 구독
                 if (user.role === 'admin') {
                     const lastVersion = localStorage.getItem('ygnurim_version');
                     if (lastVersion !== SYSTEM_VERSION) {
                         setShowUpdateModal(true);
                     }
-
                     unsubUsers = db.collection('users').onSnapshot((snapshot) => {
                         const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
                         setStaffList(list);
                     });
                 }
 
-                return () => {
-                    unsubConfig();
-                    unsubUsers();
-                };
+                return () => { unsubConfig(); unsubUsers(); };
             }, [user]);
 
             const handleUpdateConfirm = () => {
@@ -1038,16 +1072,22 @@
                 setShowUpdateModal(false);
             };
 
-            const handleTabClick = (tab) => {
-                setActiveTab(tab);
-                setIsMobileMenuOpen(false); // 탭 이동 시 모바일 메뉴 자동 닫기
+            const handleAdminNameSave = (name) => {
+                localStorage.setItem('ygnurim_admin_name', name);
+                setAdminName(name);
             };
 
+            const handleTabClick = (tab) => { setActiveTab(tab); setIsMobileMenuOpen(false); };
             const handleLogout = async () => { try { await auth.signOut(); } catch(e) {} setUser(null); };
             const handleEditLeave = (staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); };
             const closeLeaveModal = () => { setShowLeaveModal(false); setEditingLeaveData(null); };
 
             if (!user) return <Login onLogin={setUser} />;
+            
+            // 관리자이지만 이름 설정을 아직 안 한 경우 모달 표시
+            if (user.role === 'admin' && !adminName) {
+                return <AdminNameModal onSave={handleAdminNameSave} />;
+            }
 
             const activeStaffList = staffList.filter(s => s.status !== 'resigned');
             const todayStr = toLocalYMD(new Date());
@@ -1059,48 +1099,32 @@
             activeStaffList.forEach(staff => {
                 const leaveInfo = calculateAnnualLeave(staff.joinDate);
                 if (leaveInfo.notJoined) return;
-
                 const dailyHours = safeParseFloat(staff.workHours) || 8;
                 const totalHours = (leaveInfo.total || 0) * dailyHours;
-                
                 const currentUsed = (staff.leaveHistory || []).reduce((acc, h) => {
-                    if (h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate) {
-                        return acc + (safeParseFloat(h.days) || 0);
-                    }
+                    if (h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate) return acc + (safeParseFloat(h.days) || 0);
                     return acc;
                 }, 0);
-
                 totalGenCurrentYear += totalHours;
                 totalUsedCurrentYear += currentUsed;
             });
 
-            const currentYearRate = totalGenCurrentYear > 0 
-                ? Math.round((totalUsedCurrentYear / totalGenCurrentYear) * 100) 
-                : 0;
-
+            const currentYearRate = totalGenCurrentYear > 0 ? Math.round((totalUsedCurrentYear / totalGenCurrentYear) * 100) : 0;
             const currentYear = new Date().getFullYear();
             const years = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
             
             const yearlyStats = years.map(year => {
-                let yGen = 0;
-                let yUsed = 0;
-                
+                let yGen = 0; let yUsed = 0;
                 staffList.forEach(staff => {
                     const info = calculateLeaveForYear(staff.joinDate, year);
                     if (info.notJoined) return; 
-
                     const daily = safeParseFloat(staff.workHours) || 8;
                     yGen += (info.total * daily);
-
-                    const used = (staff.leaveHistory || []).reduce((acc, h) => {
-                        if (h.date >= info.startDate && h.date <= info.endDate) {
-                            return acc + (safeParseFloat(h.days) || 0);
-                        }
+                    yUsed += (staff.leaveHistory || []).reduce((acc, h) => {
+                        if (h.date >= info.startDate && h.date <= info.endDate) return acc + (safeParseFloat(h.days) || 0);
                         return acc;
                     }, 0);
-                    yUsed += used;
                 });
-
                 return { year, rate: yGen > 0 ? Math.round((yUsed / yGen) * 100) : 0 };
             });
 
@@ -1113,24 +1137,16 @@
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
                     <ErrorBoundary>
-                        {/* 구버전 사용자 강제 업데이트 모달 (최우선순위 렌더링) */}
                         {forceUpdateRequired && <ForceUpdateModal />}
-                        
-                        {/* 내(관리자)가 로그인 시 1회 확인하는 업데이트 내역 모달 */}
                         {!forceUpdateRequired && showUpdateModal && <VersionAlertModal onClose={handleUpdateConfirm} />}
-                        
-                        {/* 모바일 백드롭 (메뉴 열렸을 때 배경 어둡게) */}
-                        {isMobileMenuOpen && (
-                            <div 
-                                className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-                                onClick={() => setIsMobileMenuOpen(false)} 
-                            />
-                        )}
+                        {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
 
-                        {/* 반응형 사이드바 (모바일 햄버거 Drawer / 데스크탑 고정) */}
                         <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#1E293B] text-white flex flex-col z-50 shadow-xl transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                             <div className="p-6 border-b border-slate-700/50 flex justify-between items-center">
-                                <div><h1 className="text-xl font-black text-white">양지누림</h1><p className="text-xs text-slate-400 mt-1">{user.name}님</p></div>
+                                <div>
+                                    <h1 className="text-xl font-black text-white">양지누림</h1>
+                                    <p className="text-xs text-blue-300 mt-1 font-bold flex items-center gap-1"><Icons.User /> {adminName}님 접속 중</p>
+                                </div>
                                 <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white"><Icons.X /></button>
                             </div>
                             <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
@@ -1143,7 +1159,7 @@
                             </nav>
                             <div className="p-4 bg-[#0F172A]">
                                 <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION}<br/>© 2026 YangjiNurim</p>
+                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION} (Stable)<br/>© 2026 YangjiNurim</p>
                             </div>
                         </aside>
 
@@ -1160,7 +1176,6 @@
                                 </div>
                             </header>
                             
-                            {/* 대시보드 */}
                             {activeTab === 'dashboard' && (
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1215,13 +1230,13 @@
                                 </div>
                             )}
 
-                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} />}
-                            {activeTab === 'past_leave' && <LeaveManagementTab staffList={activeStaffList} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} />}
+                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffList} adminName={adminName} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} />}
+                            {activeTab === 'past_leave' && <LeaveManagementTab staffList={activeStaffList} adminName={adminName} onOpenModal={() => setShowLeaveModal(true)} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} />}
                             {activeTab === 'promotion' && <PromotionTab staffList={activeStaffList} />}
                             {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={setShowLeaveModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} />}
                             {activeTab === 'staff' && <StaffTab staffList={staffList} />}
                         </main>
-                        {showLeaveModal && <LeaveActionModal staffList={activeStaffList} onClose={closeLeaveModal} initialData={editingLeaveData} />}
+                        {showLeaveModal && <LeaveActionModal staffList={activeStaffList} adminName={adminName} onClose={closeLeaveModal} initialData={editingLeaveData} />}
                         {viewingStaffDetail && <StaffDetailModal staff={viewingStaffDetail} onClose={() => setViewingStaffDetail(null)} />}
                     </ErrorBoundary>
                 </div>
