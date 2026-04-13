@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v2.5)</title>
+    <title>양지누림 연차 관리 시스템 (Official v2.6)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -27,7 +27,9 @@
         /* 그래프 및 팝업 애니메이션 */
         .bar-transition { transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
         .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .animate-slide-in-right { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 </head>
 <body class="bg-slate-50">
@@ -43,8 +45,7 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // 새로운 로직(URL 기반 버전 체크, 지정일 세부시간 단위) 추가에 따라 v2.5 판올림
-        const SYSTEM_VERSION = "2.5";
+        const SYSTEM_VERSION = "2.6";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -199,7 +200,7 @@
             FileText: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
             Alert: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
             Info: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
-            Refresh: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Refresh: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
         };
 
         // --- Modals ---
@@ -225,11 +226,12 @@
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
                     <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
-                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 배포 안내</p>
+                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 기능 배포 안내</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ 지정일 선택 모드 세부시간/반차 단위 허용</p>
-                        <p>✅ Github 배포 URL 기반 실시간 업데이트 감지 구축</p>
-                        <p>✅ 내역 수정/삭제 버튼 상시 노출로 UI 편의성 개선</p>
+                        <p>✅ 여러 지정 날짜 쉼표(,) 텍스트 입력 다중 등록 기능 추가</p>
+                        <p>✅ 지정일 등록 모드에서도 반차/시간 단위 적용 허용</p>
+                        <p>✅ 다른 관리자 작업 현황 실시간 Toast 알림 팝업 추가</p>
+                        <p>✅ 내역 수정/삭제 아이콘 잘림 방지 및 상시 노출 개선</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -390,8 +392,7 @@
             const [reason, setReason] = useState(initialData?.reason || '');
             const [msg, setMsg] = useState('');
 
-            // 기간(multi) 모드 진입 시에만 강제로 1일(연차) 단위로 고정
-            // custom 지정일 선택 모드는 세부시간/반차 단위 선택 가능하도록 수정
+            // [수정] 기간(multi) 모드일 때만 1일(연차)로 강제 고정. (custom 모드는 세부시간 선택 허용)
             useEffect(() => {
                 if (dateMode === 'multi') {
                     setInputType('day');
@@ -406,6 +407,38 @@
                     else { setInputType('hour'); setLeaveHourValue(String(days)); }
                 }
             }, [initialData]);
+
+            // 텍스트 기반 다중 날짜 파싱 (ex: "4.1, 5.21, 12.31")
+            const handleAddCustomDate = () => {
+                if (!customDateInput.trim()) return;
+                
+                const year = new Date().getFullYear();
+                const parts = customDateInput.split(/[, ]+/);
+                const newParsedDates = [];
+
+                parts.forEach(p => {
+                    const s = p.trim();
+                    if (!s) return;
+                    // 4.1 or 4/1 or 04-01 매칭
+                    const match1 = s.match(/^(\d{1,2})[\.\-\/](\d{1,2})$/);
+                    if (match1) {
+                        const m = match1[1].padStart(2, '0');
+                        const d = match1[2].padStart(2, '0');
+                        newParsedDates.push(`${year}-${m}-${d}`);
+                    } else if (s.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        newParsedDates.push(s); // YYYY-MM-DD 포맷 그대로 통과
+                    }
+                });
+
+                if (newParsedDates.length > 0) {
+                    const mergedSet = new Set([...customDates, ...newParsedDates]);
+                    setCustomDates(Array.from(mergedSet).sort());
+                    setCustomDateInput('');
+                    setMsg('');
+                } else {
+                    setMsg('❌ 날짜 형식을 확인해주세요 (예: 4.1, 5.21)');
+                }
+            };
 
             // 선택된 유효 날짜들 반환
             const validDates = useMemo(() => {
@@ -426,14 +459,6 @@
                 }
                 return dates;
             }, [leaveDate, endDate, customDates, dateMode]);
-
-            const handleAddCustomDate = () => {
-                if (customDateInput && !customDates.includes(customDateInput)) {
-                    const newDates = [...customDates, customDateInput].sort();
-                    setCustomDates(newDates);
-                    setCustomDateInput('');
-                }
-            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -522,9 +547,9 @@
 
                             {dateMode === 'custom' && (
                                 <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                                    <label className="block text-xs font-bold text-purple-600 mb-1">지정일 추가 (여러 날짜 띄엄띄엄 선택)</label>
+                                    <label className="block text-xs font-bold text-purple-600 mb-1">지정일 추가 (예: 4.1, 5.21 쉼표 구분)</label>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <input type="date" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" />
+                                        <input type="text" placeholder="예: 4.1, 5.21, 12.31" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" />
                                         <button type="button" onClick={handleAddCustomDate} className="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition">추가</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
@@ -561,13 +586,13 @@
                                     </>
                                 ) : (
                                     <div className="p-3 border rounded-xl bg-slate-50 text-center text-sm text-slate-500 font-bold">
-                                        ※ 기간 등록 시 '연차(1일)' 단위만 적용됩니다.
+                                        ※ 기간 연달아 등록 시 '연차(1일)' 단위만 적용됩니다.
                                     </div>
                                 )}
                             </div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder="사유 입력" /></div>
                             <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">{isEdit ? '수정 내용 저장' : '연차 등록하기'}</button>
-                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
+                            {msg && <p className="text-xs text-center font-bold text-red-500">{msg}</p>}
                         </form>
                     </div>
                 </div>
@@ -580,6 +605,31 @@
             const [showNegativeOnly, setShowNegativeOnly] = useState(false); 
             const [showCheckOnly, setShowCheckOnly] = useState(false);
             const fileInputRef = useRef(null);
+
+            const handleResetFilters = () => {
+                setSearchTerm('');
+                setShowNegativeOnly(false);
+                setShowCheckOnly(false);
+                if(isPastMode) setSelectedYear(new Date().getFullYear() - 1);
+            };
+
+            const handleResetAllLeaveHistory = async () => {
+                if(window.prompt('모든 직원의 연차 사용 내역을 완전히 초기화합니다.\n정말 진행하시려면 "초기화"를 입력하세요.') === '초기화') {
+                    try {
+                        const batch = db.batch();
+                        staffList.forEach(s => {
+                            batch.update(db.collection('users').doc(s.id), {
+                                leaveHistory: [],
+                                annualLeaveUsed: 0
+                            });
+                        });
+                        await batch.commit();
+                        alert('전체 연차 내역이 초기화되었습니다.');
+                    } catch(e) {
+                        alert('오류: ' + e.message);
+                    }
+                }
+            };
 
             const filteredList = useMemo(() => {
                 let data = staffList.map(staff => {
@@ -731,9 +781,13 @@
                             <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-orange-600 whitespace-nowrap flex items-center gap-1"><Icons.Alert /> 중복 확인</span></label>
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-red-500 whitespace-nowrap">초과자만</span></label>
-                                <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-32 px-4 py-2 border rounded-xl text-sm outline-none mt-2 md:mt-0" />
+                                <div className="flex w-full md:w-auto items-center gap-1">
+                                    <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-32 px-4 py-2 border rounded-xl text-sm outline-none mt-2 md:mt-0" />
+                                    <button onClick={handleResetFilters} className="p-2.5 mt-2 md:mt-0 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="필터/검색 초기화"><Icons.Refresh /></button>
+                                </div>
                                 <input type="file" ref={fileInputRef} onChange={handleLeaveFileUpload} accept=".xlsx, .xls" multiple className="hidden" />
                                 <div className="flex w-full md:w-auto gap-2 mt-2 md:mt-0 hidden md:flex">
+                                    {!isResignedTab && <button onClick={handleResetAllLeaveHistory} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition" title="모든 직원의 연차 내역을 삭제합니다">전체 연차 초기화</button>}
                                     <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition"><Icons.Upload /> 일괄</button>
                                 </div>
                             </div>
@@ -774,13 +828,12 @@
                                                                 <span className="font-bold text-slate-700">{rec.date}</span>
                                                                 <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type})</span>
                                                                 {rec.isWarn && <span className="text-orange-500"><Icons.Alert /></span>}
-                                                                {/* 작업 기록 (Audit) 표시 */}
                                                                 {rec.addedBy && <span className="text-[10px] text-slate-400 font-medium tracking-tight ml-1">({rec.addedBy})</span>}
                                                             </div>
-                                                            {/* 수정/삭제 아이콘 상시 노출 처리 */}
-                                                            <div className="flex gap-1 opacity-100">
-                                                                <button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1 bg-white rounded shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
-                                                                <button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1 bg-white rounded shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
+                                                            {/* [수정] flex-shrink-0 추가로 아이콘이 찌그러지거나 잘리지 않고 항상 고정 크기로 노출되게 함 */}
+                                                            <div className="flex gap-1 opacity-100 flex-shrink-0">
+                                                                <button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
+                                                                <button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -938,6 +991,11 @@
                 } catch (err) { alert('오류: ' + err.message); }
             };
 
+            const handleResetFilters = () => {
+                setSearchTerm('');
+                setSelectedIds(new Set());
+            };
+
             return (
                 <div className="space-y-6">
                     {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} />}
@@ -947,7 +1005,13 @@
                             <div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 (퇴사자 제외)</p></div>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                            <div className="relative group w-full md:w-auto"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" /></div>
+                            <div className="relative flex items-center w-full md:w-auto gap-1">
+                                <div className="relative group flex-1 md:flex-none">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div>
+                                    <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                                </div>
+                                <button onClick={handleResetFilters} className="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="초기화"><Icons.Refresh /></button>
+                            </div>
                             {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex justify-center items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
                             {uploadMsg && <span className="w-full md:w-auto text-sm font-bold text-blue-600 animate-pulse text-center">{uploadMsg}</span>}
                             <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, false)} accept=".xlsx, .xls, .csv" className="hidden" />
@@ -1068,59 +1132,85 @@
             // 관리자 식별(Audit Log)
             const [adminName, setAdminName] = useState(localStorage.getItem('ygnurim_admin_name') || '');
             
-            // 실시간 강제 업데이트 체크용
+            // 실시간 상태 관리
             const [forceUpdateRequired, setForceUpdateRequired] = useState(false);
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-            
+            const [toasts, setToasts] = useState([]); // 실시간 알림 토스트
+
+            // 토스트 알림 추가 함수
+            const addToast = (msg, type = 'info') => {
+                const id = Date.now() + Math.random();
+                setToasts(prev => [...prev, { id, msg, type }]);
+                setTimeout(() => {
+                    setToasts(prev => prev.filter(t => t.id !== id));
+                }, 5000);
+            };
+
+            const isInitialLoad = useRef(true);
+            const prevStaffList = useRef([]);
+
             useEffect(() => {
                 if (!user) return;
 
-                // --- GitHub Pages 기반 실시간 버전 확인 로직 (안정성 강화) ---
+                // --- 1. GitHub Pages URL 기반 실시간 버전 확인 (캐시 무시) ---
                 const checkVersionFromUrl = async () => {
                     try {
-                        // 캐시 방지를 위해 타임스탬프 쿼리를 붙여 최신 HTML을 가져옵니다
-                        const response = await fetch(`https://eesk98517-dot.github.io/ygnurim-hr-system/?t=${new Date().getTime()}`, { cache: 'no-store' });
+                        const response = await fetch(`https://eesk98517-dot.github.io/ygnurim-hr-system/?t=${new Date().getTime()}`, { 
+                            cache: 'no-store',
+                            headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+                        });
                         const text = await response.text();
-                        
-                        // HTML 코드 내부의 SYSTEM_VERSION = "숫자" 부분을 추출
                         const match = text.match(/SYSTEM_VERSION\s*=\s*["']([\d.]+)["']/);
                         if (match && match[1]) {
-                            const fetchedVersion = match[1];
-                            
-                            // 가져온 버전이 현재 실행 중인 버전보다 높으면 강제 업데이트 상태로 전환
-                            if (compareVersions(fetchedVersion, SYSTEM_VERSION) > 0) {
+                            if (compareVersions(match[1], SYSTEM_VERSION) > 0) {
                                 setForceUpdateRequired(true);
                             }
                         }
-                    } catch (err) {
-                        console.log('Version sync check failed:', err);
-                    }
+                    } catch (err) { console.log('URL Version sync check failed:', err); }
                 };
 
-                // 최초 1회 즉시 실행
                 checkVersionFromUrl();
-                // 이후 1분(60000ms)마다 주기적으로 버전 체크
-                const versionInterval = setInterval(checkVersionFromUrl, 60000);
+                const versionInterval = setInterval(checkVersionFromUrl, 30000);
 
                 let unsubUsers = () => {};
 
-                // 관리자 로그인 시 데이터 구독
                 if (user.role === 'admin') {
+                    // --- 2. 관리자 본인의 로컬 버전 체크 ---
                     const lastVersion = localStorage.getItem('ygnurim_version');
                     if (lastVersion !== SYSTEM_VERSION) {
                         setShowUpdateModal(true);
                     }
+
+                    // --- 3. 데이터 실시간 감지 및 타 사용자 작업(Toast) 팝업 ---
                     unsubUsers = db.collection('users').onSnapshot((snapshot) => {
                         const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
+                        
+                        if (!isInitialLoad.current && adminName) {
+                            list.forEach(newStaff => {
+                                const oldStaff = prevStaffList.current.find(s => s.id === newStaff.id);
+                                if (oldStaff) {
+                                    const newLeaves = (newStaff.leaveHistory || []).filter(nh => !(oldStaff.leaveHistory || []).some(oh => oh.id === nh.id));
+                                    newLeaves.forEach(leave => {
+                                        // 내가 추가한게 아닐 때만 팝업 알림
+                                        if (leave.addedBy && leave.addedBy !== adminName) {
+                                            addToast(`[실시간] ${leave.addedBy}님이 ${newStaff.name} 직원의 연차를 등록/수정했습니다.`, 'success');
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                        
+                        prevStaffList.current = list;
+                        isInitialLoad.current = false;
                         setStaffList(list);
                     });
                 }
 
                 return () => { 
-                    clearInterval(versionInterval); // 컴포넌트 언마운트 시 인터벌 해제
+                    clearInterval(versionInterval); 
                     unsubUsers(); 
                 };
-            }, [user]);
+            }, [user, adminName]);
 
             const handleUpdateConfirm = () => {
                 localStorage.setItem('ygnurim_version', SYSTEM_VERSION);
@@ -1139,7 +1229,6 @@
 
             if (!user) return <Login onLogin={setUser} />;
             
-            // 관리자이지만 이름 설정을 아직 안 한 경우 모달 표시
             if (user.role === 'admin' && !adminName) {
                 return <AdminNameModal onSave={handleAdminNameSave} />;
             }
@@ -1192,6 +1281,16 @@
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
                     <ErrorBoundary>
+                        {/* 실시간 알림 토스트 UI */}
+                        <div className="fixed top-6 right-6 z-[400] flex flex-col gap-3">
+                            {toasts.map(t => (
+                                <div key={t.id} className="bg-slate-800 text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 animate-slide-in-right border border-slate-700">
+                                    <div className="text-green-400"><Icons.CheckCircle /></div>
+                                    <span className="font-bold text-sm">{t.msg}</span>
+                                </div>
+                            ))}
+                        </div>
+
                         {forceUpdateRequired && <ForceUpdateModal />}
                         {!forceUpdateRequired && showUpdateModal && <VersionAlertModal onClose={handleUpdateConfirm} />}
                         {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
