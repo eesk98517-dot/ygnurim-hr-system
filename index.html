@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v2.101)</title>
+    <title>양지누림 연차 관리 시스템 (Official v2.102)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -43,7 +43,7 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        const SYSTEM_VERSION = "2.101";
+        const SYSTEM_VERSION = "2.102";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -163,6 +163,7 @@
 
         // --- Icons ---
         const Icons = {
+            Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
             Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
             Users: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
             Calendar: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
@@ -189,18 +190,18 @@
 
         // --- Version Update Modal ---
         const VersionAlertModal = ({ onClose }) => (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md">
-                <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4">
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
                     <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
-                    <h3 className="text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
-                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 마이너 업데이트 배포</p>
-                    <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ UI/UX 편의성 향상 (v2.101)</p>
-                        <p>✅ 연차 관리 스크롤 메뉴 고정 (Sticky)</p>
-                        <p>✅ 연차 등록 퀵 버튼(FAB) 추가</p>
-                        <p>✅ 버전 관리 시스템 적용 완료</p>
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
+                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 마이너 배포</p>
+                    <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
+                        <p>📱 스마트폰 모바일 화면 레이아웃 최적화</p>
+                        <p>🍔 햄버거 메뉴 적용 (모바일 사이드바 숨김)</p>
+                        <p>↔️ 가로 스크롤 적용 (표 데이터 잘림 방지)</p>
+                        <p>📌 연차 관리 스크롤 메뉴 고정 (Sticky)</p>
                     </div>
-                    <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest">확인했습니다</button>
+                    <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
             </div>
         );
@@ -237,7 +238,7 @@
                 } catch (err) { setError('로그인 실패: 정보를 확인해주세요.'); } finally { setLoading(false); }
             };
             return (
-                <div className="flex h-screen items-center justify-center bg-slate-100">
+                <div className="flex h-screen items-center justify-center bg-slate-100 p-4">
                     <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
                         <div className="text-center mb-8"><h1 className="text-3xl font-black text-blue-600 mb-2">양지누림</h1><p className="text-slate-500 font-bold mb-1">연차 관리 시스템</p><span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-1 rounded font-bold uppercase">Official v{SYSTEM_VERSION}</span></div>
                         <form onSubmit={handleLogin} className="space-y-6">
@@ -254,8 +255,8 @@
         const StaffDetailModal = ({ staff, onClose }) => {
             if (!staff) return null;
             return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm relative">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
+                    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
                         <div className="text-center mb-6">
                             <div className="w-20 h-20 bg-blue-50 rounded-full mx-auto flex items-center justify-center mb-3"><span className="text-3xl font-black text-blue-600">{(staff.name || '?')[0]}</span></div>
@@ -317,11 +318,11 @@
 
             return (
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-                        <div><h3 className="font-bold text-lg text-slate-800 mb-2 flex items-center gap-2"><Icons.Megaphone /> 이번 달 연차 촉진 대상자</h3><p className="text-sm text-slate-500">근로기준법 기준 (1년 미만: 3개월 전 / 1년 이상: 6개월 전)</p></div>
-                        <button onClick={handleDownloadSignOK} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition"><Icons.FileText /> 싸인오케이 양식 다운로드 (1차)</button>
+                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div><h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 이번 달 연차 촉진 대상자</h3><p className="text-xs md:text-sm text-slate-500">근로기준법 기준 (1년 미만: 3개월 전 / 1년 이상: 6개월 전)</p></div>
+                        <button onClick={handleDownloadSignOK} className="w-full md:w-auto bg-green-600 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition"><Icons.FileText /> 싸인오케이 양식 다운로드 (1차)</button>
                     </div>
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap">
                         <table className="w-full text-sm text-left"><thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100"><tr><th className="p-4">이름</th><th className="p-4">입사일</th><th className="p-4">연차 산정 기간</th><th className="p-4 text-center">촉진 단계</th><th className="p-4">조치 사항</th></tr></thead><tbody className="divide-y divide-slate-100">{promotionList.map((staff) => (<tr key={staff.id} className="hover:bg-slate-50"><td className="p-4 font-bold text-slate-800">{staff.name}</td><td className="p-4 text-slate-500">{staff.joinDate}</td><td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td><td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.promoStatus.color}`}>{staff.promoStatus.type}</span></td><td className="p-4 font-bold text-slate-600">{staff.promoStatus.msg}</td></tr>))}{promotionList.length === 0 && <tr><td colSpan="5" className="p-12 text-center text-slate-400">대상자 없음</td></tr>}</tbody></table>
                     </div>
                 </div>
@@ -393,7 +394,7 @@
             };
 
             return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">{isEdit ? '연차 수정' : '연차 등록'}</h3>
@@ -534,7 +535,6 @@
                             if (!row || row.length === 0) continue;
                             const name = row[1]; const birthRaw = row[2]; const leaveHours = safeParseFloat(row[5]);
                             if (name) {
-                                // [FIX] 유연한 직원 매칭: 이름이 일치하면서 생년월일이 일치하거나 이름이 유일한 경우
                                 const normName = normalizeString(name);
                                 const parsedBirth = birthRaw ? safeDate(birthRaw) : '';
                                 const normBirth = normalizeString(parsedBirth);
@@ -542,7 +542,7 @@
                                 let targetStaff = staffList.find(s => normalizeString(s.name) === normName && normalizeString(s.birth) === normBirth);
                                 if (!targetStaff) {
                                     const matchingNames = staffList.filter(s => normalizeString(s.name) === normName);
-                                    if (matchingNames.length === 1) targetStaff = matchingNames[0]; // 동명이인 없을 경우 이름만으로 허용
+                                    if (matchingNames.length === 1) targetStaff = matchingNames[0]; 
                                 }
 
                                 if (targetStaff && leaveHours >= 0) {
@@ -574,30 +574,31 @@
 
             return (
                 <div className="space-y-6 relative">
-                    {/* 상단 컨트롤 바 고정 (Sticky Top) */}
+                    {/* 상단 컨트롤 바 고정 (Sticky Top) - 모바일 반응형 배열 적용 */}
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
-                            <div className="flex items-center gap-4">
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
                                 <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500">시간 단위(Hour) 관리</p></div>
                                 {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
                             </div>
-                            <div className="flex items-center gap-3">
-                                <label className="flex items-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-sm font-bold text-orange-600 flex items-center gap-1"><Icons.Alert /> 갱신월 중복 확인</span></label>
-                                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-sm font-bold text-red-500">초과자만 보기</span></label>
-                                <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-4 pr-4 py-2 border rounded-xl text-sm outline-none w-32" />
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                                <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-orange-600 whitespace-nowrap flex items-center gap-1"><Icons.Alert /> 중복 확인</span></label>
+                                <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-red-500 whitespace-nowrap">초과자만</span></label>
+                                <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-32 px-4 py-2 border rounded-xl text-sm outline-none mt-2 md:mt-0" />
                                 <input type="file" ref={fileInputRef} onChange={handleLeaveFileUpload} accept=".xlsx, .xls" multiple className="hidden" />
-                                <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-green-700 transition"><Icons.Upload /> 일괄</button>
-                                <button onClick={() => onOpenModal()} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition"><Icons.Plus /> 등록</button>
+                                <div className="flex w-full md:w-auto gap-2 mt-2 md:mt-0 hidden md:flex">
+                                    <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition"><Icons.Upload /> 일괄</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
-                    {/* 테이블 영역 */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    {/* 테이블 영역 - 모바일 가로스크롤 (overflow-x-auto) 추가 */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
-                                    <th className="p-4">이름</th><th className="p-4 text-center text-blue-600">총 연차</th><th className="p-4 text-center text-red-500">사용</th><th className="p-4 text-center text-green-600">잔여</th><th className="p-4 w-44">기간</th><th className="p-4">내역</th>
+                                    <th className="p-4">이름</th><th className="p-4 text-center text-blue-600">총 연차</th><th className="p-4 text-center text-red-500">사용</th><th className="p-4 text-center text-green-600">잔여</th><th className="p-4 w-44">기간</th><th className="p-4 min-w-[200px]">내역</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -619,15 +620,15 @@
                                             <td className={`p-4 text-center font-black text-lg ${data.remainingHours < 0 ? 'text-red-600 animate-pulse' : 'text-green-600'}`}>{fmt(data.remainingHours)}h <span className="text-xs font-normal text-slate-400">({data.remainingDays}일)</span></td>
                                             <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}</td>
                                             <td className="p-4">{data.displayHistory.length > 0 ? (
-                                                <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin">
+                                                <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin pr-2">
                                                     {data.displayHistory.map((rec, i) => (
-                                                        <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border group hover:border-blue-200 ${rec.isWarn ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'}`}>
+                                                        <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border md:group hover:border-blue-200 ${rec.isWarn ? 'bg-orange-50 border-orange-200' : 'bg-slate-50'}`}>
                                                             <div className="flex items-center gap-2">
                                                                 <span className="font-bold">{rec.date}</span>
                                                                 <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type})</span>
                                                                 {rec.isWarn && <span className="text-orange-500"><Icons.Alert /></span>}
                                                             </div>
-                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100"><button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500"><Icons.Edit /></button><button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500"><Icons.Trash /></button></div>
+                                                            <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"><button onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1 bg-white rounded shadow-sm border"><Icons.Edit /></button><button onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1 bg-white rounded shadow-sm border"><Icons.Trash /></button></div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -640,16 +641,26 @@
                         </table>
                     </div>
 
-                    {/* 플로팅 액션 버튼 (항상 떠있는 연차 등록 버튼) */}
+                    {/* 플로팅 액션 버튼 (모바일 화면에서도 항상 우측 하단에 고정) */}
                     {!isResignedTab && (
-                        <button 
-                            onClick={() => onOpenModal()} 
-                            className="fixed bottom-10 right-10 bg-blue-600 text-white px-6 py-4 rounded-full flex items-center gap-2 shadow-[0_10px_20px_rgba(37,99,235,0.4)] hover:bg-blue-700 hover:-translate-y-1 transition-all z-50 border-4 border-white"
-                            title="연차 등록"
-                        >
-                            <Icons.Plus />
-                            <span className="font-bold text-sm whitespace-nowrap">연차 등록</span>
-                        </button>
+                        <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-40">
+                            {/* 모바일 전용 업로드 버튼 (데스크탑에선 위쪽에 있음) */}
+                            <button 
+                                onClick={() => fileInputRef.current.click()} 
+                                className="md:hidden bg-green-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(22,163,74,0.4)] hover:bg-green-700 active:scale-95 transition-all"
+                                title="일괄 업로드"
+                            >
+                                <Icons.Upload />
+                            </button>
+                            <button 
+                                onClick={() => onOpenModal()} 
+                                className="bg-blue-600 text-white w-14 h-14 md:w-auto md:px-6 md:py-4 md:h-auto rounded-full flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(37,99,235,0.4)] hover:bg-blue-700 active:scale-95 md:hover:-translate-y-1 transition-all"
+                                title="연차 등록"
+                            >
+                                <Icons.Plus />
+                                <span className="font-bold text-sm whitespace-nowrap hidden md:inline">연차 등록</span>
+                            </button>
+                        </div>
                     )}
                 </div>
             );
@@ -780,19 +791,20 @@
                 <div className="space-y-6">
                     {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} />}
                     {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center gap-4 flex-1">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex items-center gap-4 w-full md:w-auto justify-between">
                             <div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 (퇴사자 제외)</p></div>
-                            <div className="relative group"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64 transition" /></div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
-                            {uploadMsg && <span className="text-sm font-bold text-blue-600 animate-pulse">{uploadMsg}</span>}
+                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <div className="relative group w-full md:w-auto"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" /></div>
+                            {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex justify-center items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
+                            {uploadMsg && <span className="w-full md:w-auto text-sm font-bold text-blue-600 animate-pulse text-center">{uploadMsg}</span>}
                             <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, false)} accept=".xlsx, .xls, .csv" className="hidden" />
-                            <button onClick={() => fileInputRef.current.click()} className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
+                            <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex justify-center items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
                         </div>
                     </div>
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    {/* 가로스크롤 (overflow-x-auto) 및 공백줄바꿈 방지 (whitespace-nowrap) 추가 */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                                 <tr>
@@ -815,7 +827,7 @@
                                             <td className="p-4 text-center font-bold text-blue-600">{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></td>
                                             <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
-                                            <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-1.5 text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
+                                            <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
                                         </tr>
                                     );
                                 })}
@@ -873,12 +885,12 @@
 
             return (
                 <div className="space-y-6">
-                    <div className="flex justify-between items-center bg-orange-50 p-4 rounded-xl border border-orange-100">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-orange-50 p-4 rounded-xl border border-orange-100 gap-4">
                         <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
-                        <div className="flex items-center gap-3">
-                            <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
+                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
+                            <label className="flex items-center justify-center gap-2 cursor-pointer bg-white px-3 py-3 md:py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
                             <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
-                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
+                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
                         </div>
                     </div>
                     <LeaveManagementTab 
@@ -916,7 +928,7 @@
                 } catch (err) { setMsg('❌ 오류: ' + err.message); }
             };
             return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-sm relative">
                         <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3>
@@ -944,9 +956,12 @@
             const [viewingStaffDetail, setViewingStaffDetail] = useState(null);
             const [showUpdateModal, setShowUpdateModal] = useState(false);
             
+            // 모바일 사이드바 토글 상태
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+            
             useEffect(() => {
                 if (user && user.role === 'admin') {
-                    // 버전 업데이트 체크 로직
+                    // 버전 업데이트 체크
                     const lastVersion = localStorage.getItem('ygnurim_version');
                     if (lastVersion !== SYSTEM_VERSION) {
                         setShowUpdateModal(true);
@@ -963,6 +978,11 @@
             const handleUpdateConfirm = () => {
                 localStorage.setItem('ygnurim_version', SYSTEM_VERSION);
                 setShowUpdateModal(false);
+            };
+
+            const handleTabClick = (tab) => {
+                setActiveTab(tab);
+                setIsMobileMenuOpen(false); // 탭 이동 시 모바일 메뉴 자동 닫기
             };
 
             const handleLogout = async () => { try { await auth.signOut(); } catch(e) {} setUser(null); };
@@ -1036,23 +1056,47 @@
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
                     <ErrorBoundary>
                         {showUpdateModal && <VersionAlertModal onClose={handleUpdateConfirm} />}
-                        <aside className="w-64 bg-[#1E293B] text-white flex flex-col z-10 shadow-xl">
-                            <div className="p-6 border-b border-slate-700/50"><h1 className="text-xl font-black text-white">양지누림</h1><p className="text-xs text-slate-400 mt-1">{user.name}님</p></div>
-                            <nav className="flex-1 p-4 flex flex-col gap-2">
-                                <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
-                                <button onClick={() => setActiveTab('leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 연차 관리</button>
-                                <button onClick={() => setActiveTab('past_leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'past_leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.History /> 과년도 연차관리</button>
-                                <button onClick={() => setActiveTab('promotion')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'promotion' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Megaphone /> 미사용 연차 촉진</button>
-                                <button onClick={() => setActiveTab('resigned')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'resigned' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.UserMinus /> 퇴사자 관리</button>
-                                <button onClick={() => setActiveTab('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
+                        
+                        {/* 모바일 백드롭 (메뉴 열렸을 때 배경 어둡게) */}
+                        {isMobileMenuOpen && (
+                            <div 
+                                className="fixed inset-0 bg-black/50 z-40 md:hidden" 
+                                onClick={() => setIsMobileMenuOpen(false)} 
+                            />
+                        )}
+
+                        {/* 반응형 사이드바 (모바일 햄버거 Drawer / 데스크탑 고정) */}
+                        <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#1E293B] text-white flex flex-col z-50 shadow-xl transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+                            <div className="p-6 border-b border-slate-700/50 flex justify-between items-center">
+                                <div><h1 className="text-xl font-black text-white">양지누림</h1><p className="text-xs text-slate-400 mt-1">{user.name}님</p></div>
+                                <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white"><Icons.X /></button>
+                            </div>
+                            <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
+                                <button onClick={() => handleTabClick('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
+                                <button onClick={() => handleTabClick('leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 연차 관리</button>
+                                <button onClick={() => handleTabClick('past_leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'past_leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.History /> 과년도 연차관리</button>
+                                <button onClick={() => handleTabClick('promotion')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'promotion' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Megaphone /> 미사용 연차 촉진</button>
+                                <button onClick={() => handleTabClick('resigned')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'resigned' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.UserMinus /> 퇴사자 관리</button>
+                                <button onClick={() => handleTabClick('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
                             </nav>
                             <div className="p-4 bg-[#0F172A]">
                                 <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION} (Stable)<br/>© 2026 YangjiNurim</p>
+                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION}<br/>© 2026 YangjiNurim</p>
                             </div>
                         </aside>
-                        <main className="flex-1 overflow-y-auto p-8 relative">
-                            <header className="flex justify-between items-center mb-8"><h2 className="text-2xl font-bold text-slate-800">관리자 시스템</h2><div className="text-sm font-bold text-slate-500">{new Date().toLocaleDateString()}</div></header>
+
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative w-full overflow-x-hidden">
+                            <header className="flex justify-between items-center mb-6 md:mb-8">
+                                <div className="flex items-center gap-3">
+                                    <button className="md:hidden p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-600" onClick={() => setIsMobileMenuOpen(true)}>
+                                        <Icons.Menu />
+                                    </button>
+                                    <h2 className="text-xl md:text-2xl font-bold text-slate-800">관리자 시스템</h2>
+                                </div>
+                                <div className="text-xs md:text-sm font-bold text-slate-500 bg-white px-3 py-1.5 md:bg-transparent md:p-0 rounded-lg shadow-sm md:shadow-none border md:border-none border-slate-100">
+                                    {new Date().toLocaleDateString()}
+                                </div>
+                            </header>
                             
                             {/* 대시보드 */}
                             {activeTab === 'dashboard' && (
@@ -1067,39 +1111,39 @@
                                     </div>
 
                                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col">
-                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6"><Icons.Grid /> 연도별 연차 소진율 추이</h3>
-                                            <div className="flex-1 flex items-end justify-around gap-4 h-64 pb-2 border-b border-slate-100">
+                                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 flex flex-col">
+                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 text-sm md:text-base"><Icons.Grid /> 연도별 연차 소진율 추이</h3>
+                                            <div className="flex-1 flex items-end justify-around gap-2 md:gap-4 h-64 pb-2 border-b border-slate-100">
                                                 {yearlyStats.map((stat) => (
                                                     <div key={stat.year} className="flex flex-col items-center group w-full h-full justify-end">
-                                                        <div className="relative w-full max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
+                                                        <div className="relative w-full max-w-[40px] md:max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
                                                             <div 
                                                                 className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-transition min-h-[1px]" 
                                                                 style={{ height: `${stat.rate}%` }}
                                                             >
-                                                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition shadow-lg font-bold z-10">{stat.rate}%</span>
+                                                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] md:text-xs py-1 px-1.5 md:px-2 rounded opacity-0 group-hover:opacity-100 transition shadow-lg font-bold z-10">{stat.rate}%</span>
                                                             </div>
                                                         </div>
-                                                        <span className="mt-3 text-sm font-bold text-slate-500">{stat.year}</span>
+                                                        <span className="mt-3 text-[10px] md:text-sm font-bold text-slate-500">{stat.year}</span>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
 
                                         <div className="space-y-6">
-                                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                                                <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4"><span className="w-2 h-6 bg-orange-400 rounded-sm"></span> 금일 부재 현황</h3>
+                                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+                                                <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4 text-sm md:text-base"><span className="w-2 h-6 bg-orange-400 rounded-sm"></span> 금일 부재 현황</h3>
                                                 <div className="space-y-3 max-h-48 overflow-y-auto no-scrollbar">
                                                     {activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length > 0 ? (
                                                         activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).map(s => (
                                                             <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                                <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-white border flex items-center justify-center text-sm font-bold text-slate-600 shadow-sm">{s.name[0]}</div><div><p className="text-sm font-bold text-slate-800">{s.name}</p><p className="text-xs text-slate-500 font-medium mt-0.5">휴가 중</p></div></div><span className="px-3 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700">휴가</span>
+                                                                <div className="flex items-center gap-3"><div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border flex items-center justify-center text-xs md:text-sm font-bold text-slate-600 shadow-sm">{s.name[0]}</div><div><p className="text-xs md:text-sm font-bold text-slate-800">{s.name}</p><p className="text-[10px] md:text-xs text-slate-500 font-medium mt-0.5">휴가 중</p></div></div><span className="px-2 py-1 md:px-3 md:py-1 rounded-lg text-[10px] md:text-xs font-bold bg-orange-100 text-orange-700">휴가</span>
                                                             </div>
                                                         ))
-                                                    ) : (<p className="text-slate-400 text-sm text-center py-8">금일 휴가자가 없습니다.</p>)}
+                                                    ) : (<p className="text-slate-400 text-xs md:text-sm text-center py-8">금일 휴가자가 없습니다.</p>)}
                                                 </div>
                                             </div>
-                                            <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200">
+                                            <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200 hidden md:block">
                                                 <h3 className="font-bold text-lg mb-1">빠른 연차 등록</h3>
                                                 <p className="text-blue-100 text-sm mb-4">관리자가 직원의 연차를 대리 등록합니다.</p>
                                                 <button onClick={() => setShowLeaveModal(true)} className="w-full bg-white text-blue-700 py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition">+ 연차 등록하기</button>
