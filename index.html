@@ -45,8 +45,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // 연차 등록 시 직원 검색 기능 추가에 따른 v2.8 판올림
-        const SYSTEM_VERSION = "2.8";
+        // 직원 정보 수정(EditStaffModal) 누락 버그 패치 v2.81
+        const SYSTEM_VERSION = "2.81";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -1213,6 +1213,48 @@
                         onNameClick={onNameClick}
                         adminName="System"
                     />
+                </div>
+            );
+        };
+
+        const EditStaffModal = ({ staff, onClose }) => {
+            const [formData, setFormData] = useState({ ...staff });
+            const [msg, setMsg] = useState('');
+            const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+            const handleSave = async (e) => {
+                e.preventDefault();
+                setMsg('저장 중...');
+                try {
+                    let updates = { ...formData };
+                    if (formData.joinDate !== staff.joinDate) {
+                        const leaveInfo = calculateAnnualLeave(formData.joinDate);
+                        updates.annualLeaveTotal = leaveInfo.total;
+                        updates.annualLeavePeriod = leaveInfo.period;
+                    }
+                    if (formData.resignDate && formData.resignDate.trim() !== "") {
+                        updates.status = 'resigned';
+                    }
+                    
+                    await db.collection('users').doc(staff.id).update(updates);
+                    setMsg('✅ 수정 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 1000);
+                } catch (err) { setMsg('❌ 오류: ' + err.message); }
+            };
+            return (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
+                    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3>
+                        <form onSubmit={handleSave} className="space-y-4">
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={formData.resignDate || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
+                            {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
+                        </form>
+                    </div>
                 </div>
             );
         };
