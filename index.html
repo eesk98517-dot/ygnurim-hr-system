@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>양지누림 연차 관리 시스템 (Official v4.2)</title>
-    
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
@@ -265,7 +265,15 @@
             return this.props.children;
         }
     }
- // 연차 등록 폼 상태
+
+// ============================================================================
+// [NEW] 임직원 전용 포털 컴포넌트 (v4.0 신규 추가)
+// ============================================================================
+const StaffPortal = ({ user, onLogout }) => {
+const [userData, setUserData] = useState(null);
+const [loading, setLoading] = useState(true);
+
+        // 연차 등록 폼 상태
         const [dateMode, setDateMode] = useState('single'); 
         const [leaveDate, setLeaveDate] = useState(toLocalYMD(new Date()));
         const [endDate, setEndDate] = useState(toLocalYMD(new Date()));
@@ -1043,7 +1051,16 @@
                         )}
 
                         <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder="사유 입력" /></div>
-  const LeaveManagementTab = ({ staffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick }) => {
+
+{isEdit ? '수정 내용 저장' : '연차 등록하기'}
+{msg && {msg}}
+
+
+
+);
+};
+
+    const LeaveManagementTab = ({ staffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick }) => {
         const [searchTerm, setSearchTerm] = useState('');
         const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
         const [showNegativeOnly, setShowNegativeOnly] = useState(false); 
