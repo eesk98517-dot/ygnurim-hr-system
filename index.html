@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v4.3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v4.3.1)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -51,8 +51,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // 연차관리 탭 정렬/인원표시 기능 탑재 v4.3 판올림
-        const SYSTEM_VERSION = "4.3";
+        // 연차관리 탭 정렬/인원표시 기능 탑재 및 지정일 파싱 버그 픽스 v4.3.1 판올림
+        const SYSTEM_VERSION = "4.3.1";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -237,10 +237,10 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 대규모 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ <b>관리자 연차관리 탭 정렬/인원표시 추가</b></p>
+                        <p>✅ <b>지정일 수동 등록 시, 연도 파싱 버그 수정</b></p>
+                        <p>✅ 관리자 연차관리 탭 정렬/인원표시 추가</p>
                         <p>✅ 임직원 포털 내 생성연차 DB 동기화 강화</p>
                         <p>✅ 임직원 일괄 계정 자동 발급 기능 유지</p>
-                        <p>✅ 기존 관리자 전용 기능 및 캘린더 완벽 보존</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -442,7 +442,6 @@
                 const map = {};
                 staffList.forEach(staff => {
                     (staff.leaveHistory || []).forEach(leave => {
-                        // date 포맷이 YYYY-MM-DD 인지 확인
                         if (leave.date && leave.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
                             if (!map[leave.date]) map[leave.date] = [];
                             map[leave.date].push({ name: staff.name, type: leave.type });
@@ -523,6 +522,8 @@
             
             const [customDates, setCustomDates] = useState([]); 
             const [customDateInput, setCustomDateInput] = useState('');
+            // [Fix] 연도 선택 박스용 state 추가
+            const [customYear, setCustomYear] = useState(new Date().getFullYear());
 
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
@@ -568,6 +569,7 @@
                     .filter(s => s.name.toLowerCase().includes(staffSearch.toLowerCase()));
             }, [staffList, staffSearch]);
 
+            // [Fix] 날짜 수동 입력 시 정규식 파싱 로직 강화 및 연도 선택 반영
             const handleAddCustomDate = () => {
                 if (!customDateInput.trim()) return;
                 if (!selectedStaffId) { setMsg('❌ 먼저 상단에서 직원을 선택해주세요.'); return; }
@@ -584,7 +586,6 @@
                 }
                 const typeText = inputType === 'day' ? (leaveDayType === '1' ? '연차' : '반차') : `${deductHours}시간`;
                 
-                const year = new Date().getFullYear();
                 const parts = customDateInput.split(/[, ]+/);
                 const newParsedDates = [];
 
@@ -592,11 +593,16 @@
                     const s = p.trim();
                     if (!s) return;
                     let parsedDate = '';
-                    const match1 = s.match(/^(\d{1,2})[\.\-\/](\d{1,2})$/);
-                    if (match1) {
-                        const m = match1[1].padStart(2, '0');
-                        const d = match1[2].padStart(2, '0');
-                        parsedDate = `${year}-${m}-${d}`;
+                    
+                    // 정규식 개선 (YYYY.MM.DD 전체 입력 또는 MM.DD 입력 지원)
+                    const matchFull = s.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
+                    const matchMonthDay = s.match(/^(\d{1,2})[\.\-\/](\d{1,2})$/);
+                    
+                    if (matchFull) {
+                        parsedDate = `${matchFull[1]}-${matchFull[2].padStart(2, '0')}-${matchFull[3].padStart(2, '0')}`;
+                    } else if (matchMonthDay) {
+                        // [Fix] 선택된 customYear를 사용하여 과거 연도 완벽 처리
+                        parsedDate = `${customYear}-${matchMonthDay[1].padStart(2, '0')}-${matchMonthDay[2].padStart(2, '0')}`;
                     } else if (s.match(/^\d{4}-\d{2}-\d{2}$/)) {
                         parsedDate = s; 
                     }
@@ -614,7 +620,7 @@
                     setCustomDateInput('');
                     setMsg('');
                 } else {
-                    setMsg('❌ 날짜 형식을 확인해주세요 (예: 4.1, 5.21)');
+                    setMsg('❌ 날짜 형식을 확인해주세요 (예: 4.1, 2026.5.21)');
                 }
             };
 
@@ -711,6 +717,9 @@
                 } catch (err) { setMsg('❌ 오류: ' + err.message); }
             };
 
+            const currentYearNum = new Date().getFullYear();
+            const yearOptions = [currentYearNum + 1, currentYearNum, currentYearNum - 1, currentYearNum - 2, currentYearNum - 3, currentYearNum - 4];
+
             return (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4 overflow-y-auto pt-20">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative my-auto">
@@ -803,7 +812,11 @@
                                 <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
                                     <label className="block text-xs font-bold text-purple-600 mb-1">지정일 추가 (위에서 선택한 단위로 개별 저장됩니다)</label>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <input type="text" placeholder="예: 4.1, 5.21, 12.31" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" />
+                                        {/* [Fix] 연도 선택 UI 추가 */}
+                                        <select value={customYear} onChange={e => setCustomYear(parseInt(e.target.value))} className="border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200 bg-white font-bold text-purple-700">
+                                            {yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}
+                                        </select>
+                                        <input type="text" placeholder="예: 4.1, 5.21" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" />
                                         <button type="button" onClick={handleAddCustomDate} className="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition">추가</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
@@ -1046,7 +1059,6 @@
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
-                                {/* [NEW] 총 인원 표시 */}
                                 <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명</p></div>
                                 {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
                             </div>
@@ -1066,7 +1078,6 @@
                         </div>
                     </div>
                     
-                    {/* 테이블 영역 - 모바일 가로스크롤 (overflow-x-auto) 및 정렬 기능 적용 */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -1129,10 +1140,8 @@
                         </table>
                     </div>
 
-                    {/* 플로팅 액션 버튼 (모바일 화면에서도 항상 우측 하단에 고정) */}
                     {!isResignedTab && (
                         <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-40">
-                            {/* 모바일 전용 업로드 버튼 (데스크탑에선 위쪽에 있음) */}
                             <button 
                                 onClick={() => fileInputRef.current.click()} 
                                 className="md:hidden bg-green-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(22,163,74,0.4)] hover:bg-green-700 active:scale-95 transition-all"
@@ -1231,7 +1240,6 @@
                                 const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 
-                                // [업데이트] 신규 엑셀 업로드 시 임직원 로그인 지원을 위해 yg + 4자리 ID 생성 적용
                                 const phoneStr = String(phoneRaw || '').replace(/[^0-9]/g, '').trim();
                                 const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
                                 const uniqueKey = `yg${last4}`;
@@ -1284,14 +1292,12 @@
                 setSelectedIds(new Set());
             };
 
-            // [NEW] 보조 Firebase 앱을 사용하여 관리자 세션 유지하며 직원 Firebase Auth 계정 일괄 발급
             const handleBatchCreateAuth = async () => {
                 if (!window.confirm("현재 등록된 모든 직원의 계정을 'yg+휴대폰뒤4자리' (비밀번호: 123455) 형식으로 일괄 생성하시겠습니까?\n\n※ 이미 생성된 계정은 비밀번호만 초기화되며 기존 내역은 안전하게 유지됩니다.")) return;
                 
                 setUploadMsg('계정 생성 중입니다. 잠시만 기다려주세요...');
                 
                 try {
-                    // 관리자 세션 유지를 위한 보조 앱 생성
                     let secondaryApp;
                     if (!firebase.apps.find(app => app.name === 'Secondary')) {
                         secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
@@ -1304,35 +1310,30 @@
 
                     for (const staff of activeStaffList) {
                         const phoneStr = String(staff.phone || '').replace(/[^0-9]/g, '');
-                        if (phoneStr.length < 4) continue; // 휴대폰 번호가 없거나 짧으면 패스
+                        if (phoneStr.length < 4) continue;
                         
                         const last4 = phoneStr.slice(-4);
                         const loginId = `yg${last4}`;
                         const email = `${loginId}@ygnurim.com`;
                         const tempPw = '123455';
 
-                        // 1. Firebase Auth 계정 생성 (이미 있으면 무시)
                         try {
                             await secondaryApp.auth().createUserWithEmailAndPassword(email, tempPw);
                         } catch (authErr) {
-                            // 계정이 이미 존재하면 무시하고 진행
                             if (authErr.code !== 'auth/email-already-in-use') {
                                 console.error('Auth Error:', authErr);
                             }
                         }
 
-                        // 2. Firestore 문서 ID 마이그레이션 (기존 ID가 이메일 형태가 아닐 경우)
                         if (staff.id !== email) {
                             const newRef = db.collection('users').doc(email);
                             const oldRef = db.collection('users').doc(staff.id);
                             
-                            // 기존 데이터를 새 문서에 복사
                             const newData = { ...staff, employeeId: loginId, email: email, tempPw: tempPw };
-                            delete newData.id; // 기존 id 필드는 제외
+                            delete newData.id; 
                             batch.set(newRef, newData);
-                            batch.delete(oldRef); // 기존 문서 삭제
+                            batch.delete(oldRef); 
                         } else {
-                            // ID가 이미 같다면 임시비밀번호만 업데이트
                             const ref = db.collection('users').doc(staff.id);
                             batch.update(ref, { tempPw: tempPw, employeeId: loginId });
                         }
@@ -1340,7 +1341,7 @@
                     }
 
                     await batch.commit();
-                    await secondaryApp.auth().signOut(); // 보조 앱 로그아웃 (보안)
+                    await secondaryApp.auth().signOut(); 
                     
                     setUploadMsg(`✅ ${count}명 계정 발급 및 연동 완료!`);
                     setTimeout(() => setUploadMsg(''), 4000);
@@ -1368,7 +1369,6 @@
                             {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex justify-center items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
                             {uploadMsg && <span className="w-full md:w-auto text-sm font-bold text-blue-600 animate-pulse text-center">{uploadMsg}</span>}
                             
-                            {/* [추가] 임직원 포털 계정 일괄 발급 버튼 */}
                             <button onClick={handleBatchCreateAuth} className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2" title="선택된 항목과 무관하게 모든 직원에게 계정을 발급합니다">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> 
                                 일괄 계정 발급
@@ -1484,19 +1484,19 @@
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
 
-            // 연차 등록 폼 상태
             const [dateMode, setDateMode] = useState('single'); 
             const [leaveDate, setLeaveDate] = useState(toLocalYMD(new Date()));
             const [endDate, setEndDate] = useState(toLocalYMD(new Date()));
             const [customDates, setCustomDates] = useState([]);
             const [customDateInput, setCustomDateInput] = useState('');
+            // [Fix] 연도 선택 박스용 state 추가
+            const [customYear, setCustomYear] = useState(new Date().getFullYear());
             const [inputType, setInputType] = useState('day');
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
             const [reason, setReason] = useState('');
             const [msg, setMsg] = useState('');
 
-            // 본인 데이터 실시간 구독
             useEffect(() => {
                 const unsub = db.collection('users').doc(user.email).onSnapshot(doc => {
                     if (doc.exists) {
@@ -1507,7 +1507,6 @@
                 return () => unsub();
             }, [user.email]);
 
-            // 연차 데이터 계산
             const leaveStats = useMemo(() => {
                 if (!userData || !userData.joinDate) return null;
                 const leaveInfo = calculateAnnualLeave(userData.joinDate);
@@ -1528,7 +1527,6 @@
                 };
             }, [userData]);
 
-            // 폼 입력 로직
             useEffect(() => {
                 if (dateMode === 'multi') { setInputType('day'); setLeaveDayType('1'); }
             }, [dateMode]);
@@ -1547,24 +1545,31 @@
                 return dates;
             }, [leaveDate, endDate, customDates, dateMode]);
 
+            // [Fix] 날짜 수동 입력 시 정규식 파싱 로직 강화 및 연도 선택 반영 (직원 포털)
             const handleAddCustomDate = () => {
                 if (!customDateInput.trim()) return;
-                const dailyHours = safeParseFloat(userData?.workHours) || 8; 
+                const dailyHours = safeParseFloat(userData?.workHours) || 8;
                 let deductHours = inputType === 'day' ? (leaveDayType === '1' ? dailyHours : dailyHours / 2) : safeParseFloat(leaveHourValue);
                 if (deductHours <= 0) { setMsg('❌ 시간을 확인하세요.'); return; }
                 const typeText = inputType === 'day' ? (leaveDayType === '1' ? '연차' : '반차') : `${deductHours}시간`;
-                
-                const year = new Date().getFullYear();
+
                 const parts = customDateInput.split(/[, ]+/);
                 const newParsedDates = [];
 
                 parts.forEach(p => {
                     const s = p.trim(); if (!s) return;
                     let parsedDate = '';
-                    const match1 = s.match(/^(\d{1,2})[\.\-\/](\d{1,2})$/);
-                    if (match1) parsedDate = `${year}-${match1[1].padStart(2, '0')}-${match1[2].padStart(2, '0')}`;
-                    else if (s.match(/^\d{4}-\d{2}-\d{2}$/)) parsedDate = s; 
-                    
+                    const matchFull = s.match(/^(\d{4})[\.\-\/](\d{1,2})[\.\-\/](\d{1,2})$/);
+                    const matchMonthDay = s.match(/^(\d{1,2})[\.\-\/](\d{1,2})$/);
+
+                    if (matchFull) {
+                        parsedDate = `${matchFull[1]}-${matchFull[2].padStart(2, '0')}-${matchFull[3].padStart(2, '0')}`;
+                    } else if (matchMonthDay) {
+                        parsedDate = `${customYear}-${matchMonthDay[1].padStart(2, '0')}-${matchMonthDay[2].padStart(2, '0')}`;
+                    } else if (s.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        parsedDate = s;
+                    }
+
                     if (parsedDate && !customDates.some(cd => cd.date === parsedDate)) {
                         newParsedDates.push({ date: parsedDate, type: typeText, deductHours });
                     }
@@ -1573,7 +1578,7 @@
                 if (newParsedDates.length > 0) {
                     setCustomDates([...customDates, ...newParsedDates].sort((a,b) => a.date.localeCompare(b.date)));
                     setCustomDateInput(''); setMsg('');
-                } else setMsg('❌ 올바른 날짜 형식을 입력하세요 (예: 4.1, 5.21)');
+                } else setMsg('❌ 올바른 날짜 형식을 입력하세요 (예: 4.1, 2026.5.21)');
             };
 
             const handleSubmit = async (e) => {
@@ -1629,6 +1634,9 @@
                 } catch (err) { alert('오류: ' + err.message); }
             };
 
+            const currentYearNum = new Date().getFullYear();
+            const yearOptions = [currentYearNum + 1, currentYearNum, currentYearNum - 1, currentYearNum - 2, currentYearNum - 3, currentYearNum - 4];
+
             if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
             if (!userData || !userData.joinDate) return (
                 <div className="flex h-screen items-center justify-center bg-slate-50 flex-col gap-4">
@@ -1639,7 +1647,6 @@
 
             return (
                 <div className="min-h-screen bg-[#F1F5F9] font-sans">
-                    {/* 상단 네비게이션 바 */}
                     <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-black text-blue-600 tracking-tighter">양지누림</h1>
@@ -1652,7 +1659,6 @@
                     </nav>
 
                     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 animate-fade-in">
-                        {/* 1. 요약 카드 */}
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-normal text-slate-400">({leaveStats.period})</span></h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500">
@@ -1667,7 +1673,6 @@
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* 2. 연차 등록 폼 */}
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Plus /> 휴가 신청하기</h3>
                                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -1712,6 +1717,10 @@
                                     {dateMode === 'custom' && (
                                         <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
                                             <div className="flex items-center gap-2 mb-3">
+                                                {/* [Fix] 연도 선택 UI 추가 */}
+                                                <select value={customYear} onChange={e => setCustomYear(parseInt(e.target.value))} className="border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200 bg-white font-bold text-purple-700">
+                                                    {yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}
+                                                </select>
                                                 <input type="text" placeholder="예: 4.1, 5.21" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" />
                                                 <button type="button" onClick={handleAddCustomDate} className="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition">추가</button>
                                             </div>
@@ -1729,7 +1738,6 @@
                                 </form>
                             </div>
 
-                            {/* 3. 최근 사용 내역 */}
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.History /> 나의 휴가 내역</h3>
                                 <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar pr-2 space-y-2">
@@ -1766,15 +1774,12 @@
             const [viewingStaffDetail, setViewingStaffDetail] = useState(null);
             const [showUpdateModal, setShowUpdateModal] = useState(false);
             
-            // 관리자 식별(Audit Log)
             const [adminName, setAdminName] = useState(localStorage.getItem('ygnurim_admin_name') || '');
             
-            // 실시간 상태 관리
             const [forceUpdateRequired, setForceUpdateRequired] = useState(false);
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             const [toasts, setToasts] = useState([]); 
 
-            // 토스트 알림 추가 함수
             const addToast = (msg, type = 'info') => {
                 const id = Date.now() + Math.random();
                 setToasts(prev => [...prev, { id, msg, type }]);
@@ -1789,7 +1794,6 @@
             useEffect(() => {
                 if (!user) return;
 
-                // --- 1. GitHub Pages URL 기반 실시간 버전 확인 (15초마다 최신 감지) ---
                 const checkVersionFromUrl = async () => {
                     try {
                         const response = await fetch(`https://eesk98517-dot.github.io/ygnurim-hr-system/?t=${new Date().getTime()}`, { 
@@ -1812,13 +1816,11 @@
                 let unsubUsers = () => {};
 
                 if (user.role === 'admin') {
-                    // --- 2. 관리자 본인의 로컬 버전 체크 ---
                     const lastVersion = localStorage.getItem('ygnurim_version');
                     if (lastVersion !== SYSTEM_VERSION) {
                         setShowUpdateModal(true);
                     }
 
-                    // --- 3. 데이터 실시간 감지 및 타 사용자 작업(Toast) 팝업 ---
                     unsubUsers = db.collection('users').onSnapshot((snapshot) => {
                         const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
                         
@@ -1865,16 +1867,10 @@
 
             if (!user) return <Login onLogin={setUser} />;
             
-            // ============================================================================
-            // [BRANCH] 임직원 전용 포털 렌더링
-            // ============================================================================
             if (user.role === 'staff') {
                 return <StaffPortal user={user} onLogout={handleLogout} />;
             }
 
-            // ============================================================================
-            // [MAIN] 관리자 전용 대시보드 렌더링 (기존 로직)
-            // ============================================================================
             if (user.role === 'admin' && !adminName) {
                 return <AdminNameModal onSave={handleAdminNameSave} />;
             }
@@ -1927,7 +1923,6 @@
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
                     <ErrorBoundary>
-                        {/* 실시간 알림 토스트 UI */}
                         <div className="fixed top-6 right-6 z-[400] flex flex-col gap-3">
                             {toasts.map(t => (
                                 <div key={t.id} className="bg-slate-800 text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 animate-slide-in-right border border-slate-700">
@@ -1976,7 +1971,6 @@
                                 </div>
                             </header>
                             
-                            {/* 대시보드 */}
                             {activeTab === 'dashboard' && (
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -2029,7 +2023,6 @@
                                         </div>
                                     </div>
 
-                                    {/* 전사 캘린더 컴포넌트 마운트 */}
                                     <CalendarView staffList={activeStaffList} />
                                     
                                 </div>
