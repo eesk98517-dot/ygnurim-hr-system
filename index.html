@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v4.3.3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v4.3.4)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -51,8 +51,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // 직원 일괄 계정 생성 시 비밀번호 123456으로 변경 v4.3.3 판올림
-        const SYSTEM_VERSION = "4.3.3";
+        // 기존 직원(123455) 일괄 계정 갱신 로직 추가 v4.3.4 판올림
+        const SYSTEM_VERSION = "4.3.4";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -237,7 +237,7 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ <b>직원 일괄 계정 생성 시 비밀번호 123456으로 변경</b></p>
+                        <p>✅ <b>직원 일괄 계정 자동 마이그레이션(123456) 지원</b></p>
                         <p>✅ 임직원 포털 내 '총 발생 연차' 미노출 버그 수정</p>
                         <p>✅ 지정일 수동 등록 시, 연도 파싱 버그 수정</p>
                         <p>✅ 관리자 연차관리 탭 정렬/인원표시 추가</p>
@@ -1320,7 +1320,15 @@
                         try {
                             await secondaryApp.auth().createUserWithEmailAndPassword(email, tempPw);
                         } catch (authErr) {
-                            if (authErr.code !== 'auth/email-already-in-use') {
+                            if (authErr.code === 'auth/email-already-in-use') {
+                                // [수정됨] 이미 계정이 있다면, 예전 비밀번호(123455)로 로그인 후 새 비밀번호(123456)로 변경 시도
+                                try {
+                                    await secondaryApp.auth().signInWithEmailAndPassword(email, '123455');
+                                    await secondaryApp.auth().currentUser.updatePassword(tempPw);
+                                } catch (updateErr) {
+                                    console.log('Password update skipped (maybe already changed?):', email);
+                                }
+                            } else {
                                 console.error('Auth Error:', authErr);
                             }
                         }
@@ -1343,7 +1351,7 @@
                     await batch.commit();
                     await secondaryApp.auth().signOut(); 
                     
-                    setUploadMsg(`✅ ${count}명 계정 발급 및 연동 완료!`);
+                    setUploadMsg(`✅ ${count}명 계정 발급 및 비밀번호 자동 갱신 완료!`);
                     setTimeout(() => setUploadMsg(''), 4000);
                 } catch (err) {
                     setUploadMsg(`❌ 오류: ${err.message}`);
