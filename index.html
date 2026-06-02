@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v4.3.2)</title>
+    <title>양지누림 연차 관리 시스템 (Official v4.3.3)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -51,8 +51,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // 직원 포털 '총 발생 연차' 표시 누락 버그 픽스 v4.3.2 판올림
-        const SYSTEM_VERSION = "4.3.2";
+        // 직원 일괄 계정 생성 시 비밀번호 123456으로 변경 v4.3.3 판올림
+        const SYSTEM_VERSION = "4.3.3";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -237,10 +237,10 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ <b>임직원 포털 내 '총 발생 연차' 미노출 버그 수정</b></p>
+                        <p>✅ <b>직원 일괄 계정 생성 시 비밀번호 123456으로 변경</b></p>
+                        <p>✅ 임직원 포털 내 '총 발생 연차' 미노출 버그 수정</p>
                         <p>✅ 지정일 수동 등록 시, 연도 파싱 버그 수정</p>
                         <p>✅ 관리자 연차관리 탭 정렬/인원표시 추가</p>
-                        <p>✅ 임직원 포털 내 생성연차 DB 동기화 강화</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
