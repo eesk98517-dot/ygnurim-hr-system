@@ -51,8 +51,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // [v4.3.7] 아이디 유지(yg)를 위한 원복 및 계정 일괄 생성 로직 최적화
-        const SYSTEM_VERSION = "4.3.7";
+        // [v4.4] 미사용 연차 촉진 기간 다중 조회(과거 월 포함) 기능 대규모 개편
+        const SYSTEM_VERSION = "4.4";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -153,35 +153,6 @@
             return calculateLeaveForYear(joinDateStr, baseYear);
         };
 
-        const getPromotionStatus = (staff) => {
-            if (!staff.joinDate) return null;
-            const leaveInfo = calculateAnnualLeave(staff.joinDate);
-            if (leaveInfo.notJoined) return null;
-            const today = new Date();
-            const currentMonth = today.getMonth() + 1; 
-            const currentYear = today.getFullYear();
-            
-            const [eYear, eMonth, eDay] = leaveInfo.endDate.split('-').map(Number);
-            const endDate = new Date(eYear, eMonth - 1, eDay);
-            
-            if (leaveInfo.yearsWorked < 1) {
-                const [jYear, jMonth, jDay] = staff.joinDate.split('-').map(Number);
-                const joinDate = new Date(jYear, jMonth - 1, jDay);
-                const oneYearDate = new Date(joinDate.getFullYear() + 1, joinDate.getMonth(), joinDate.getDate());
-                const notifyDate = new Date(oneYearDate);
-                notifyDate.setMonth(notifyDate.getMonth() - 3);
-                if (currentYear === notifyDate.getFullYear() && currentMonth === (notifyDate.getMonth() + 1)) {
-                    return { type: '1년미만 1차', msg: '1년 도래 3개월 전 (촉진 필요)', color: 'bg-purple-100 text-purple-700' };
-                }
-            } else {
-                const notify1Date = new Date(endDate); notify1Date.setMonth(notify1Date.getMonth() - 6);
-                const notify2Date = new Date(endDate); notify2Date.setMonth(notify2Date.getMonth() - 2);
-                if (currentYear === notify1Date.getFullYear() && currentMonth === (notify1Date.getMonth() + 1)) return { type: '1차 촉진', msg: '만료 6개월 전', color: 'bg-blue-100 text-blue-700' };
-                if (currentYear === notify2Date.getFullYear() && currentMonth === (notify2Date.getMonth() + 1)) return { type: '2차 촉진', msg: '만료 2개월 전', color: 'bg-red-100 text-red-700' };
-            }
-            return null;
-        };
-
         // --- Icons ---
         const Icons = {
             Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
@@ -237,9 +208,10 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ <b>직원 기존 계정(yg) 유지 및 비밀번호 123456 일괄 적용</b></p>
-                        <p>✅ 임직원 포털 내 '총 발생 연차' 미노출 완벽 수정</p>
-                        <p>✅ 관리자 연차관리 탭 정렬/인원표시 추가</p>
+                        <p>✅ <b>미사용 연차 촉진 기간 다중 조회 기능 추가</b> (1월~5월 등 기간 설정 가능)</p>
+                        <p>✅ 미사용 연차 촉진 대상자 평가 로직 엔진 최적화</p>
+                        <p>✅ 싸인오케이 연동 엑셀 양식 동적 월(Month) 대응 추가</p>
+                        <p>✅ 직원 기존 계정(yg) 유지 및 비밀번호 123456 일괄 적용 완료</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -362,67 +334,161 @@
                             <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={formData.resignDate || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
                             <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
-                        </form>
-                    </div>
+                    </form>
                 </div>
-            );
-        };
+            </div>
+        );
+    };
 
-        const PromotionTab = ({ staffList }) => {
-            const promotionList = useMemo(() => {
-                const list = [];
-                staffList.forEach(staff => {
-                    const status = getPromotionStatus(staff);
-                    if (status) {
-                        const leaveInfo = calculateAnnualLeave(staff.joinDate);
+    const PromotionTab = ({ staffList }) => {
+        const today = new Date();
+        const [promoYear, setPromoYear] = useState(today.getFullYear());
+        const [startMonth, setStartMonth] = useState(1);
+        const [endMonth, setEndMonth] = useState(today.getMonth() + 1);
+
+        const promotionList = useMemo(() => {
+            const list = [];
+            staffList.forEach(staff => {
+                if (!staff.joinDate || staff.joinDate.length < 10) return;
+                const [jYear, jMonth, jDay] = staff.joinDate.split('-').map(Number);
+                const joinDateObj = new Date(jYear, jMonth - 1, jDay);
+                if (isNaN(joinDateObj.getTime())) return;
+
+                const checkAndPush = (nYear, nMonth, type, msg, color, lInfo) => {
+                    if (nYear === promoYear && nMonth >= startMonth && nMonth <= endMonth) {
                         const dailyHours = safeParseFloat(staff.workHours) || 8;
-                        const totalDays = leaveInfo.total || 0;
+                        const totalDays = lInfo.total || 0;
                         const totalHours = totalDays * dailyHours;
-                        const usedHours = staff.annualLeaveUsed || 0;
+                        const usedHours = (staff.leaveHistory || []).reduce((acc, h) => {
+                            if (h.date >= lInfo.startDate && h.date <= lInfo.endDate) return acc + (safeParseFloat(h.days) || 0);
+                            return acc;
+                        }, 0);
                         const remainingHours = totalHours - usedHours;
                         const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
                         const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
-                        list.push({ ...staff, promoStatus: status, leaveInfo, totalDays, usedDays, remainingDays });
-                    }
-                });
-                return list;
-            }, [staffList]);
 
-            const handleDownloadSignOK = () => {
-                const targets = promotionList.filter(p => p.promoStatus.type.includes('1차'));
-                if (targets.length === 0) { alert("이번 달 1차 촉진 대상자가 없습니다."); return; }
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = today.getMonth() + 1;
-                const day = today.getDate();
-                const excelData = targets.map(p => ({
+                        list.push({
+                            ...staff,
+                            promoStatus: { type, msg, color, noticeYear: nYear, noticeMonth: nMonth },
+                            leaveInfo: lInfo,
+                            totalDays, usedDays, remainingDays
+                        });
+                    }
+                };
+
+                const oneYearAnniv = new Date(jYear + 1, jMonth - 1, jDay);
+                const under1YrDate = new Date(oneYearAnniv);
+                under1YrDate.setMonth(under1YrDate.getMonth() - 3);
+                
+                const lInfo1stYear = calculateLeaveForYear(staff.joinDate, jYear);
+                checkAndPush(under1YrDate.getFullYear(), under1YrDate.getMonth() + 1, '1년미만 1차', '1년 도래 3개월 전', 'bg-purple-100 text-purple-700', lInfo1stYear);
+
+                for (let y = jYear; y <= promoYear; y++) {
+                    const lInfo = calculateLeaveForYear(staff.joinDate, y);
+                    if (lInfo.notJoined || lInfo.yearsWorked < 1) continue;
+
+                    const [eYear, eMonth, eDay] = lInfo.endDate.split('-').map(Number);
+                    const endDate = new Date(eYear, eMonth - 1, eDay);
+
+                    const n1 = new Date(endDate); n1.setMonth(n1.getMonth() - 6);
+                    checkAndPush(n1.getFullYear(), n1.getMonth() + 1, '1차 촉진', '만료 6개월 전', 'bg-blue-100 text-blue-700', lInfo);
+
+                    const n2 = new Date(endDate); n2.setMonth(n2.getMonth() - 2);
+                    checkAndPush(n2.getFullYear(), n2.getMonth() + 1, '2차 촉진', '만료 2개월 전', 'bg-red-100 text-red-700', lInfo);
+                }
+            });
+
+            return list.sort((a, b) => {
+                if (a.promoStatus.noticeMonth !== b.promoStatus.noticeMonth) return a.promoStatus.noticeMonth - b.promoStatus.noticeMonth;
+                return a.name.localeCompare(b.name);
+            });
+        }, [staffList, promoYear, startMonth, endMonth]);
+
+        const handleDownloadSignOK = () => {
+            const targets = promotionList.filter(p => p.promoStatus.type.includes('1차'));
+            if (targets.length === 0) { alert("선택된 기간 내 1차 촉진 대상자가 없습니다."); return; }
+            
+            const today = new Date();
+            const excelData = targets.map(p => {
+                const noticeYear = p.promoStatus.noticeYear;
+                const noticeMonth = p.promoStatus.noticeMonth;
+                return {
                     "이메일 또는 휴대폰번호(필수)": p.phone || "", "이름(필수)": p.name || "", "남길말(선택)": "",
                     "연차 사용대상기간(양지누림)": p.leaveInfo.period || "", "발생연차(양지누림)": p.totalDays || 0,
                     "사용연차(양지누림)": p.usedDays, "미사용(양지누림)": p.remainingDays,
                     "연차유급휴가 발생일(양지누림)": p.leaveInfo.startDate, "성명(양지누림)": p.name || "",
                     "소속(양지누림)": "", "직위(양지누림)": "",
-                    "연도(양지누림)-1": year, "월(양지누림)-1": month, "일(양지누림)-1": day,
-                    "연도(양지누림)": year, "월(양지누림)": month, "일(양지누림)": 20
-                }));
-                const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "싸인오케이_대량발송");
-                XLSX.writeFile(wb, `1차촉진_통보대상_${year}_${month}.xlsx`);
-            };
-
-            return (
-                <div className="space-y-6">
-                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div><h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 이번 달 연차 촉진 대상자</h3><p className="text-xs md:text-sm text-slate-500">근로기준법 기준 (1년 미만: 3개월 전 / 1년 이상: 6개월 전)</p></div>
-                        <button type="button" onClick={handleDownloadSignOK} className="w-full md:w-auto bg-green-600 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition"><Icons.FileText /> 싸인오케이 양식 다운로드 (1차)</button>
-                    </div>
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap">
-                        <table className="w-full text-sm text-left"><thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100"><tr><th className="p-4">이름</th><th className="p-4">입사일</th><th className="p-4">연차 산정 기간</th><th className="p-4 text-center">촉진 단계</th><th className="p-4">조치 사항</th></tr></thead><tbody className="divide-y divide-slate-100">{promotionList.map((staff) => (<tr key={staff.id} className="hover:bg-slate-50"><td className="p-4 font-bold text-slate-800">{staff.name}</td><td className="p-4 text-slate-500">{staff.joinDate}</td><td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td><td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.promoStatus.color}`}>{staff.promoStatus.type}</span></td><td className="p-4 font-bold text-slate-600">{staff.promoStatus.msg}</td></tr>))}{promotionList.length === 0 && <tr><td colSpan="5" className="p-12 text-center text-slate-400">대상자 없음</td></tr>}</tbody></table>
-                    </div>
-                </div>
-            );
+                    "연도(양지누림)-1": noticeYear, "월(양지누림)-1": noticeMonth, "일(양지누림)-1": today.getDate(),
+                    "연도(양지누림)": noticeYear, "월(양지누림)": noticeMonth, "일(양지누림)": 20
+                };
+            });
+            const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "싸인오케이_대량발송");
+            XLSX.writeFile(wb, `1차촉진_통보대상_${promoYear}년_${startMonth}월-${endMonth}월.xlsx`);
         };
 
-        const CalendarView = ({ staffList }) => {
+        return (
+            <div className="space-y-6">
+                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 관리</h3>
+                            <p className="text-xs md:text-sm text-slate-500">지정된 기간 내 촉진 대상자 (1년 미만: 3개월 전 / 1년 이상: 만료 6, 2개월 전)</p>
+                        </div>
+                        <button type="button" onClick={handleDownloadSignOK} className="w-full md:w-auto bg-green-600 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition"><Icons.FileText /> 싸인오케이 양식 (1차 촉진)</button>
+                    </div>
+                    
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col md:flex-row items-center gap-4">
+                        <span className="font-bold text-slate-700 text-sm">조회 기간 설정</span>
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <select value={promoYear} onChange={e => setPromoYear(Number(e.target.value))} className="border rounded-lg px-3 py-2 text-sm outline-none bg-white font-bold text-blue-600 border-blue-200">
+                                {[...Array(5)].map((_, i) => { const y = today.getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}
+                            </select>
+                            <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg p-1">
+                                <select value={startMonth} onChange={e => { const val = Number(e.target.value); setStartMonth(val); if(val > endMonth) setEndMonth(val); }} className="px-2 py-1 text-sm outline-none bg-transparent font-bold text-slate-700">
+                                    {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}월</option>)}
+                                </select>
+                                <span className="text-slate-400">~</span>
+                                <select value={endMonth} onChange={e => { const val = Number(e.target.value); setEndMonth(val); if(val < startMonth) setStartMonth(val); }} className="px-2 py-1 text-sm outline-none bg-transparent font-bold text-slate-700">
+                                    {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}월</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                            <tr>
+                                <th className="p-4">대상 월</th>
+                                <th className="p-4">이름</th>
+                                <th className="p-4">입사일</th>
+                                <th className="p-4">연차 산정 기간</th>
+                                <th className="p-4 text-center">촉진 단계</th>
+                                <th className="p-4">조치 사항</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {promotionList.map((staff, idx) => (
+                                <tr key={`${staff.id}-${idx}`} className="hover:bg-slate-50">
+                                    <td className="p-4 font-black text-blue-500">{staff.promoStatus.noticeMonth}월</td>
+                                    <td className="p-4 font-bold text-slate-800">{staff.name}</td>
+                                    <td className="p-4 text-slate-500">{staff.joinDate}</td>
+                                    <td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td>
+                                    <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.promoStatus.color}`}>{staff.promoStatus.type}</span></td>
+                                    <td className="p-4 font-bold text-slate-600">{staff.promoStatus.msg}</td>
+                                </tr>
+                            ))}
+                            {promotionList.length === 0 && <tr><td colSpan="6" className="p-12 text-center text-slate-400 font-bold">선택한 기간({promoYear}년 {startMonth}월 ~ {endMonth}월) 내 촉진 대상자가 없습니다.</td></tr>}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    const CalendarView = ({ staffList }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
 
             const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
