@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v4.4.2)</title>
+    <title>양지누림 연차 관리 시스템 (Official v4.4.3)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -51,8 +51,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // [v4.4.2] 개인 캘린더 모달 내 연차 바로 등록 기능 추가 (UX 개선)
-        const SYSTEM_VERSION = "4.4.2";
+        // [v4.4.3] 캘린더 내 연차 바로 등록 시 지정일/기간 설정 폼 활성화 픽스
+        const SYSTEM_VERSION = "4.4.3";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -670,7 +670,8 @@
         };
 
         const LeaveActionModal = ({ onClose, staffList, adminName, initialData = null }) => {
-            const isEdit = !!initialData; 
+            // [Fix] initialData에 id가 있을 때만 수정 모드로 인식 (캘린더 연차 등록 시에는 신규 모드 유지)
+            const isEdit = !!(initialData && initialData.id); 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             
             const [staffSearch, setStaffSearch] = useState('');
@@ -716,12 +717,12 @@
             }, [dateMode]);
 
             useEffect(() => {
-                if (initialData) {
+                if (initialData && isEdit) {
                     const days = safeParseFloat(initialData.days);
                     if (days === 1 || days === 0.5) { setInputType('day'); setLeaveDayType(String(days)); }
                     else { setInputType('hour'); setLeaveHourValue(String(days)); }
                 }
-            }, [initialData]);
+            }, [initialData, isEdit]);
 
             const filteredStaffList = useMemo(() => {
                 return staffList
@@ -1410,7 +1411,7 @@
                                 
                                 const phoneStr = String(phoneRaw || '').replace(/[^0-9]/g, '').trim();
                                 const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
-                                const uniqueKey = `yg${last4}`;
+                                const uniqueKey = `ygn${last4}`; // [Fix] 엑셀 업로드 시에도 ygn 으로 생성
                                 const email = `${uniqueKey}@ygnurim.com`;
                                 
                                 const docRef = db.collection('users').doc(email);
@@ -1461,7 +1462,7 @@
             };
 
             const handleBatchCreateAuth = async () => {
-                if (!window.confirm("현재 등록된 모든 직원의 계정을 'yg+휴대폰뒤4자리' (비밀번호: 123456) 형식으로 일괄 생성하시겠습니까?\n\n※ 이미 생성된 계정은 비밀번호만 초기화되며 기존 내역은 안전하게 유지됩니다.")) return;
+                if (!window.confirm("현재 등록된 모든 직원의 계정을 'ygn+휴대폰뒤4자리' (비밀번호: 123456) 형식으로 일괄 새롭게 생성하시겠습니까?\n\n※ 파이어베이스 정책 우회를 위해 아이디가 yg에서 ygn으로 변경되며 기존 내역은 완벽히 보존됩니다.")) return;
                 
                 setUploadMsg('계정 생성 중입니다. 잠시만 기다려주세요...');
                 
@@ -1481,14 +1482,16 @@
                         if (phoneStr.length < 4) continue;
                         
                         const last4 = phoneStr.slice(-4);
-                        const loginId = `yg${last4}`;
+                        const loginId = `ygn${last4}`; // [Fix] 아이디를 yg -> ygn 으로 변경하여 신규 가입 유도
                         const email = `${loginId}@ygnurim.com`;
                         const tempPw = '123456';
 
                         try {
                             await secondaryApp.auth().createUserWithEmailAndPassword(email, tempPw);
                         } catch (authErr) {
-                            if (authErr.code !== 'auth/email-already-in-use') {
+                            if (authErr.code === 'auth/email-already-in-use') {
+                                console.log('Account already exists, skipping:', email);
+                            } else {
                                 console.error('Auth Error:', authErr);
                             }
                         }
@@ -1511,7 +1514,7 @@
                     await batch.commit();
                     await secondaryApp.auth().signOut(); 
                     
-                    setUploadMsg(`✅ ${count}명 계정 발급 및 연동 완료!`);
+                    setUploadMsg(`✅ ${count}명 신규 계정(ygn) 발급 완료!`);
                     setTimeout(() => setUploadMsg(''), 4000);
                 } catch (err) {
                     setUploadMsg(`❌ 오류: ${err.message}`);
