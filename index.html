@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v4.4.3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v4.4.4)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -51,8 +51,8 @@
         const { createRoot } = ReactDOM;
 
         // --- Configuration ---
-        // [v4.4.3] 캘린더 내 연차 바로 등록 시 지정일/기간 설정 폼 활성화 픽스
-        const SYSTEM_VERSION = "4.4.3";
+        // [v4.4.4] 스마트 날짜 파싱 엔진(자가 치유) 및 엑셀 일괄 업로드 매칭 로직 강화
+        const SYSTEM_VERSION = "4.4.4";
 
         // --- Firebase Config ---
         const firebaseConfig = {
@@ -96,29 +96,49 @@
             return `${y}-${m}-${d}`;
         };
 
+        // [v4.4.4 핵심 개선] 스마트 날짜 파싱(자가 치유) 엔진
         const safeDate = (val) => {
             if (!val) return '';
             let str = String(val).trim().replace(/[\.\/]/g, '-');
+            
+            // 1. 6자리 생년월일 처리 (예: 900101 -> 1990-01-01)
+            if (str.length === 6 && !isNaN(str) && !str.includes('-')) {
+                let y = parseInt(str.substring(0,2));
+                y = y > 50 ? 1900 + y : 2000 + y; // 50 이상은 1900년대, 아니면 2000년대
+                return `${y}-${str.substring(2,4)}-${str.substring(4,6)}`;
+            }
+            
+            // 2. 8자리 처리 (예: 20240101 -> 2024-01-01)
+            if (str.length === 8 && !isNaN(str) && !str.includes('-')) {
+                return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`; 
+            }
+
+            // 3. 하이픈(-) 기반 날짜 처리 (예: 24-1-1 -> 2024-01-01)
             const parts = str.split('-');
             if (parts.length === 3) {
-                const y = parts[0]; const m = parts[1].padStart(2, '0'); const d = parts[2].padStart(2, '0');
+                let y = parts[0]; 
+                if (y.length === 2) y = parseInt(y) > 50 ? '19' + y : '20' + y; // 2자리 연도 보정
+                const m = parts[1].padStart(2, '0'); 
+                const d = parts[2].padStart(2, '0');
                 return `${y}-${m}-${d}`;
             }
+
+            // 4. 엑셀 고유 일련번호 변환
             if (/^\d{5,6}$/.test(str)) {
                 const n = parseInt(str);
                 if (n > 20000 && n < 60000) {
                     try {
                         const date = new Date((n - 25569) * 86400 * 1000);
-                        date.setHours(date.getHours() + 9);
+                        date.setHours(date.getHours() + 9); // 한국 시간 보정
                         return toLocalYMD(date);
                     } catch(e) { return str; }
                 }
             }
-            if (str.length === 8 && !isNaN(str)) { return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`; }
             return str;
         };
 
-        const calculateLeaveForYear = (joinDateStr, targetYear) => {
+        const calculateLeaveForYear = (rawJoinDate, targetYear) => {
+            const joinDateStr = safeDate(rawJoinDate); // [Fix] DB에 잘못 들어간 데이터도 여기서 자동 치유
             if (!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
             
             const [jYear, jMonth, jDay] = joinDateStr.split('-').map(Number);
@@ -141,8 +161,9 @@
             return { total: totalLeave, period: `${sStr} ~ ${eStr}`, startDate: sStr, endDate: eStr, notJoined: false, yearsWorked };
         };
 
-        const calculateAnnualLeave = (joinDateStr) => {
-            if(!joinDateStr) return { total: 0, period: '-' };
+        const calculateAnnualLeave = (rawJoinDate) => {
+            const joinDateStr = safeDate(rawJoinDate);
+            if(!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-' };
             const today = new Date();
             let baseYear = today.getFullYear();
             
@@ -163,7 +184,7 @@
             const endDate = new Date(eYear, eMonth - 1, eDay);
             
             if (leaveInfo.yearsWorked < 1) {
-                const [jYear, jMonth, jDay] = staff.joinDate.split('-').map(Number);
+                const [jYear, jMonth, jDay] = safeDate(staff.joinDate).split('-').map(Number);
                 const joinDate = new Date(jYear, jMonth - 1, jDay);
                 const oneYearDate = new Date(joinDate.getFullYear() + 1, joinDate.getMonth(), joinDate.getDate());
                 const notifyDate = new Date(oneYearDate);
@@ -235,10 +256,10 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">시스템 업데이트 완료</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p>✅ <b>개인 캘린더 내 '연차 바로 등록' 기능 추가</b></p>
-                        <p>✅ 직원별 '개인 연차 캘린더' 모달 추가</p>
+                        <p className="text-red-500">🚨 <b>스마트 날짜 자가 치유 엔진 탑재</b></p>
+                        <p>✅ <b>엑셀 일괄 업로드 매칭 로직 대폭 강화</b></p>
+                        <p>✅ 개인 캘린더 내 '연차 바로 등록' 오류 수정</p>
                         <p>✅ 연차 촉진 탭 '과거 다중 기간 조회' 지원</p>
-                        <p>✅ 직원 일괄 계정 신규 발급 연동(ygn/123456)</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -313,11 +334,11 @@
                             <h3 className="text-2xl font-bold text-slate-800">{staff.name}</h3><p className="text-sm text-slate-500 font-medium">{staff.resignDate ? '퇴사자 정보' : '상세 정보'}</p>
                         </div>
                         <div className="space-y-4">
-                            <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">생년월일</span><span className="text-sm font-bold text-slate-800">{staff.birth || '-'}</span></div>
+                            <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">생년월일</span><span className="text-sm font-bold text-slate-800">{safeDate(staff.birth) || '-'}</span></div>
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">휴대폰</span><span className="text-sm font-bold text-slate-800">{staff.phone || '-'}</span></div>
-                            <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">입사일</span><span className="text-sm font-bold text-slate-800">{staff.joinDate || '-'}</span></div>
+                            <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">입사일</span><span className="text-sm font-bold text-slate-800">{safeDate(staff.joinDate) || '-'}</span></div>
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">근무시간</span><span className="text-sm font-bold text-blue-600">{staff.workHours || 8}시간</span></div>
-                            {staff.resignDate && <div className="flex justify-between p-3 bg-red-50 rounded-xl border border-red-100"><span className="text-xs font-bold text-red-500">퇴사일</span><span className="text-sm font-bold text-red-600">{staff.resignDate}</span></div>}
+                            {staff.resignDate && <div className="flex justify-between p-3 bg-red-50 rounded-xl border border-red-100"><span className="text-xs font-bold text-red-500">퇴사일</span><span className="text-sm font-bold text-red-600">{safeDate(staff.resignDate)}</span></div>}
                         </div>
                         <button type="button" onClick={onClose} className="w-full mt-6 bg-slate-800 text-white py-3 rounded-xl text-sm font-bold hover:bg-slate-700 transition">닫기</button>
                     </div>
@@ -334,12 +355,17 @@
                 setMsg('저장 중...');
                 try {
                     let updates = { ...formData };
-                    if (formData.joinDate !== staff.joinDate) {
-                        const leaveInfo = calculateAnnualLeave(formData.joinDate);
+                    // 입력된 날짜를 DB에 저장할 때도 꼼꼼하게 검증 및 수정
+                    updates.joinDate = safeDate(formData.joinDate);
+                    updates.birth = safeDate(formData.birth);
+                    
+                    if (updates.joinDate !== staff.joinDate) {
+                        const leaveInfo = calculateAnnualLeave(updates.joinDate);
                         updates.annualLeaveTotal = leaveInfo.total;
                         updates.annualLeavePeriod = leaveInfo.period;
                     }
                     if (formData.resignDate && formData.resignDate.trim() !== "") {
+                        updates.resignDate = safeDate(formData.resignDate);
                         updates.status = 'resigned';
                     }
                     
@@ -357,8 +383,8 @@
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={formData.joinDate || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={formData.resignDate || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={safeDate(formData.joinDate) || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={safeDate(formData.resignDate) || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
                             <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
@@ -426,7 +452,7 @@
                                 </div>
                                 <div>
                                     <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">{staff.name} <span className="text-sm font-bold text-slate-500">개인 연차 캘린더</span></h3>
-                                    <p className="text-[11px] text-slate-400 font-medium">입사일: {staff.joinDate} (일 {staff.workHours || 8}h 근무)</p>
+                                    <p className="text-[11px] text-slate-400 font-medium">입사일: {safeDate(staff.joinDate)} (일 {staff.workHours || 8}h 근무)</p>
                                 </div>
                                 {onOpenModal && (
                                     <button 
@@ -492,7 +518,6 @@
                     let foundStatus = null;
                     let targetDate = '';
                     
-                    // 선택된 모든 달(과거~현재)을 순회하며 촉진 대상인지 확인 (v4.4 핵심 로직)
                     for (let val = startVal; val <= endVal; val++) {
                         const y = Math.floor((val - 1) / 12);
                         const m = ((val - 1) % 12) + 1;
@@ -500,7 +525,7 @@
                         if (status) {
                             foundStatus = status;
                             targetDate = `${y}년 ${m}월`;
-                            break; // 해당 기간 내에 걸리는 최초의 알림만 표시
+                            break; 
                         }
                     }
 
@@ -523,8 +548,6 @@
                 const targets = promotionList.filter(p => p.promoStatus.type.includes('1차'));
                 if (targets.length === 0) { alert("해당 기간에 1차 촉진 대상자가 없습니다."); return; }
                 const today = new Date();
-                const year = today.getFullYear();
-                const month = today.getMonth() + 1;
                 const day = today.getDate();
                 const excelData = targets.map(p => {
                     const [tYear, tMonth] = p.targetDate.replace('년 ', '-').replace('월', '').split('-').map(Number);
@@ -534,7 +557,7 @@
                         "사용연차(양지누림)": p.usedDays, "미사용(양지누림)": p.remainingDays,
                         "연차유급휴가 발생일(양지누림)": p.leaveInfo.startDate, "성명(양지누림)": p.name || "",
                         "소속(양지누림)": "", "직위(양지누림)": "",
-                        "연도(양지누림)-1": tYear, "월(양지누림)-1": tMonth, "일(양지누림)-1": day, // 타겟 연월 적용
+                        "연도(양지누림)-1": tYear, "월(양지누림)-1": tMonth, "일(양지누림)-1": day, 
                         "연도(양지누림)": tYear, "월(양지누림)": tMonth, "일(양지누림)": 20
                     };
                 });
@@ -569,7 +592,7 @@
                                 {promotionList.map((staff) => (
                                     <tr key={staff.id} className="hover:bg-slate-50">
                                         <td className="p-4 font-bold text-slate-800">{staff.name}</td>
-                                        <td className="p-4 text-slate-500">{staff.joinDate}</td>
+                                        <td className="p-4 text-slate-500">{safeDate(staff.joinDate)}</td>
                                         <td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td>
                                         <td className="p-4 text-center font-bold text-blue-600">{staff.targetDate}</td>
                                         <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.promoStatus.color}`}>{staff.promoStatus.type}</span></td>
@@ -670,7 +693,6 @@
         };
 
         const LeaveActionModal = ({ onClose, staffList, adminName, initialData = null }) => {
-            // [Fix] initialData에 id가 있을 때만 수정 모드로 인식 (캘린더 연차 등록 시에는 신규 모드 유지)
             const isEdit = !!(initialData && initialData.id); 
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             
@@ -1063,7 +1085,7 @@
                     const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
                     const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
                     
-                    const joinDateObj = new Date(staff.joinDate);
+                    const joinDateObj = new Date(safeDate(staff.joinDate)); // [Fix] Error prevention
                     const joinMonth = joinDateObj.getMonth() + 1;
                     const needsCheck = activeHistory.some(h => {
                         const hMonth = new Date(h.date).getMonth() + 1;
@@ -1171,10 +1193,28 @@
                             const name = row[1]; const birthRaw = row[2]; const leaveHours = safeParseFloat(row[5]);
                             if (name) {
                                 const normName = normalizeString(name);
-                                const parsedBirth = birthRaw ? safeDate(birthRaw) : '';
-                                const normBirth = normalizeString(parsedBirth);
+                                const excelCol2 = normalizeString(row[2]); // Could be birth or phone
                                 
-                                let targetStaff = staffList.find(s => normalizeString(s.name) === normName && normalizeString(s.birth) === normBirth);
+                                // [Fix] 엑셀 매칭 로직 대폭 강화 (동명이인 방지 및 생년월일 표기법 허용)
+                                let targetStaff = staffList.find(s => {
+                                    const dbName = normalizeString(s.name);
+                                    if (dbName !== normName) return false;
+
+                                    const dbBirth = normalizeString(s.birth);
+                                    const dbBirthSafe = normalizeString(safeDate(s.birth)); 
+                                    const excelCol2Safe = normalizeString(safeDate(excelCol2));
+                                    const dbPhone = normalizeString(s.phone);
+                                    
+                                    // 1. 생년월일이 완벽히 일치하거나 치유된 날짜 포맷이 일치하는 경우
+                                    if (dbBirth === excelCol2 || (dbBirthSafe && dbBirthSafe === excelCol2Safe)) return true;
+                                    
+                                    // 2. 관리자가 실수로 생년월일 칸에 휴대폰 번호를 넣은 경우 (교차 검증)
+                                    if (excelCol2 && dbPhone && (dbPhone.includes(excelCol2) || excelCol2.includes(dbPhone))) return true;
+                                    
+                                    return false;
+                                });
+
+                                // 그래도 못 찾았는데 동명이인이 없는 유일한 이름이라면 매칭
                                 if (!targetStaff) {
                                     const matchingNames = staffList.filter(s => normalizeString(s.name) === normName);
                                     if (matchingNames.length === 1) targetStaff = matchingNames[0]; 
@@ -1257,6 +1297,7 @@
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredList.map((data) => {
+                                    const isDateError = !data.joinDate || data.joinDate.length < 8; // 시각적 에러 표시용
                                     return (
                                         <tr key={data.id} className="hover:bg-slate-50 transition">
                                             <td className="p-4">
@@ -1278,7 +1319,9 @@
                                                 {data.workHours && <div className="text-xs text-slate-500 mt-1">일 {data.workHours}h</div>}
                                                 {data.needsCheck && <div className="text-xs text-orange-600 font-bold mt-1 flex items-center gap-1 animate-pulse"><Icons.Alert /> 날짜 확인 필요</div>}
                                             </td>
-                                            <td className="p-4 text-center font-bold text-blue-600">{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({data.totalDays}일)</span></td>
+                                            <td className="p-4 text-center font-bold text-blue-600">
+                                                {isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({data.totalDays}일)</span></>}
+                                            </td>
                                             <td className="p-4 text-center font-bold text-red-500">{fmt(data.usedHours)}h <span className="text-xs font-normal text-slate-400">({data.usedDays}일)</span></td>
                                             <td className={`p-4 text-center font-black text-lg ${data.remainingHours < 0 ? 'text-red-600 animate-pulse' : 'text-green-600'}`}>{fmt(data.remainingHours)}h <span className="text-xs font-normal text-slate-400">({data.remainingDays}일)</span></td>
                                             <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}</td>
@@ -1411,7 +1454,7 @@
                                 
                                 const phoneStr = String(phoneRaw || '').replace(/[^0-9]/g, '').trim();
                                 const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
-                                const uniqueKey = `ygn${last4}`; // [Fix] 엑셀 업로드 시에도 ygn 으로 생성
+                                const uniqueKey = `ygn${last4}`; 
                                 const email = `${uniqueKey}@ygnurim.com`;
                                 
                                 const docRef = db.collection('users').doc(email);
@@ -1419,7 +1462,7 @@
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (resignDate || '') : ''
+                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (safeDate(resignDate) || '') : ''
                                 }, { merge: true });
                                 count++;
                             }
@@ -1482,7 +1525,7 @@
                         if (phoneStr.length < 4) continue;
                         
                         const last4 = phoneStr.slice(-4);
-                        const loginId = `ygn${last4}`; // [Fix] 아이디를 yg -> ygn 으로 변경하여 신규 가입 유도
+                        const loginId = `ygn${last4}`; 
                         const email = `${loginId}@ygnurim.com`;
                         const tempPw = '123456';
 
@@ -1563,13 +1606,16 @@
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {processedStaffList.map((staff, idx) => {
+                                    const isDateError = !staff.joinDate || staff.joinDate.length < 8; // 시각적 에러 표시
                                     return (
                                         <tr key={idx} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
                                             <td className="p-4 text-center"><input type="checkbox" checked={selectedIds.has(staff.id)} onChange={() => handleSelectOne(staff.id)} /></td>
                                             <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>
                                                 {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
                                             </td>
-                                            <td className="p-4 text-center font-bold text-blue-600">{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></td>
+                                            <td className="p-4 text-center font-bold text-blue-600">
+                                                {isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></>}
+                                            </td>
                                             <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
                                             <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
@@ -1823,7 +1869,7 @@
                             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase hidden sm:block">Employee Portal</span>
                         </div>
                         <div className="flex items-center gap-4">
-                            <div className="text-right hidden sm:block"><p className="text-sm font-bold text-slate-800">{userData.name} 님</p><p className="text-[10px] text-slate-500 uppercase">{userData.joinDate} 입사</p></div>
+                            <div className="text-right hidden sm:block"><p className="text-sm font-bold text-slate-800">{userData.name} 님</p><p className="text-[10px] text-slate-500 uppercase">{safeDate(userData.joinDate)} 입사</p></div>
                             <button type="button" onClick={onLogout} className="p-2 text-slate-400 hover:text-red-500 transition bg-slate-50 rounded-full"><Icons.LogOut /></button>
                         </div>
                     </nav>
