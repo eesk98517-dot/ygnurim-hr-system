@@ -262,7 +262,7 @@
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
                         <p className="text-blue-600 font-bold">🌟 <b>월간 연차 조회 팝업 및 맞춤 엑셀 다운로드 탑재</b></p>
-                        <p>✅ 미사용 연차 촉진 탭 (PromotionTab) 복원 완료</p>
+                        <p>✅ 퇴사자 관리 탭 (ResignedStaffTab) 정상 복원 완료</p>
                         <p>✅ 직원용 포털 (StaffPortal) 접근 복원 완료</p>
                         <p>✅ 시스템 전체 무결성 검사 (Integrity Check) 통과</p>
                     </div>
@@ -368,6 +368,7 @@
                         updates.annualLeaveTotal = leaveInfo.total;
                         updates.annualLeavePeriod = leaveInfo.period;
                         
+                        // [v4.4.6 Fix] 입사일이 변경되면, 변경된 기간에 맞춰 '사용 연차'도 재계산
                         const totalUsedHours = (staff.leaveHistory || []).reduce((acc, curr) => {
                             if (curr.date >= leaveInfo.startDate && curr.date <= leaveInfo.endDate) return acc + (safeParseFloat(curr.days) || 0);
                             return acc;
@@ -596,114 +597,6 @@
                                             {leaves.map((l, i) => (
                                                 <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type.includes('반차') || l.type.includes('시간')?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'}`} title={`${l.name} (${l.type})`}>
                                                     {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const PersonalCalendarModal = ({ staff, onClose, onOpenModal }) => {
-            const [currentDate, setCurrentDate] = useState(new Date());
-
-            const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-            const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-            const goToday = () => setCurrentDate(new Date());
-
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-
-            const startOfMonth = new Date(year, month, 1);
-            const endOfMonth = new Date(year, month + 1, 0);
-            const startDay = startOfMonth.getDay(); 
-            const daysInMonth = endOfMonth.getDate();
-
-            const leaveMap = useMemo(() => {
-                const map = {};
-                if (staff && staff.leaveHistory) {
-                    staff.leaveHistory.forEach(leave => {
-                        if (leave.date && leave.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
-                            if (!map[leave.date]) map[leave.date] = [];
-                            map[leave.date].push(leave);
-                        }
-                    });
-                }
-                return map;
-            }, [staff, year, month]);
-
-            const weeks = [];
-            let currWeek = new Array(startDay).fill(null);
-            for (let i = 1; i <= daysInMonth; i++) {
-                currWeek.push(i);
-                if (currWeek.length === 7) {
-                    weeks.push(currWeek);
-                    currWeek = [];
-                }
-            }
-            if (currWeek.length > 0) {
-                while (currWeek.length < 7) currWeek.push(null);
-                weeks.push(currWeek);
-            }
-
-            const todayStr = toLocalYMD(new Date());
-
-            if (!staff) return null;
-
-            return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[250] animate-fade-in backdrop-blur-sm p-4">
-                    <div className="bg-white p-4 md:p-6 rounded-3xl shadow-2xl w-full max-w-2xl relative border border-slate-200">
-                        <button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2"><Icons.X /></button>
-                        
-                        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-4 border-slate-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-black shadow-inner">
-                                    {(staff.name || '?')[0]}
-                                </div>
-                                <div>
-                                    <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">{staff.name} <span className="text-sm font-bold text-slate-500">개인 연차 캘린더</span></h3>
-                                    <p className="text-[11px] text-slate-400 font-medium">입사일: {safeDate(staff.joinDate)} (일 {staff.workHours || 8}h 근무)</p>
-                                </div>
-                                {onOpenModal && (
-                                    <button 
-                                        type="button" 
-                                        onClick={() => { onClose(); onOpenModal(staff.id); }} 
-                                        className="ml-2 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm flex items-center gap-1 active:scale-95"
-                                        title={`${staff.name} 연차 바로 등록`}
-                                    >
-                                        <Icons.Plus /> 연차 등록
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-sm">
-                                <button type="button" onClick={prevMonth} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronLeft /></button>
-                                <span className="font-black text-slate-800 w-24 text-center text-sm">{year}년 {month + 1}월</span>
-                                <button type="button" onClick={nextMonth} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronRight /></button>
-                                <button type="button" onClick={goToday} className="text-xs font-bold text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg ml-2 hover:bg-blue-50 transition shadow-sm">오늘</button>
-                            </div>
-                        </div>
-
-                        <div className="w-full overflow-hidden border border-slate-200 rounded-xl bg-slate-200 gap-px grid grid-cols-7 shadow-sm">
-                            {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
-                                <div key={d} className={`bg-slate-50 py-2 text-center text-xs font-bold ${i===0?'text-red-500':i===6?'text-blue-500':'text-slate-600'}`}>{d}</div>
-                            ))}
-                            {weeks.flat().map((d, idx) => {
-                                const dateStr = d ? `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}` : '';
-                                const leaves = d ? (leaveMap[dateStr] || []) : [];
-                                const isToday = dateStr === todayStr;
-                                return (
-                                    <div key={idx} className={`bg-white h-20 md:h-24 p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50':'opacity-50 pointer-events-none'}`}>
-                                        <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>
-                                            {d || ''}
-                                        </div>
-                                        <div className="flex-1 overflow-y-auto space-y-1 mt-1 custom-scrollbar">
-                                            {leaves.map((l, i) => (
-                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-1 rounded-md leading-tight font-bold shadow-sm border ${l.type.includes('반차') || l.type.includes('시간') ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`} title={l.reason || l.type}>
-                                                    {l.type}
                                                 </div>
                                             ))}
                                         </div>
@@ -1042,117 +935,6 @@
                             <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">{isEdit ? '수정 내용 저장' : '연차 등록하기'}</button>
                             {msg && <p className="text-xs text-center font-bold text-red-500">{msg}</p>}
                         </form>
-                    </div>
-                </div>
-            );
-        };
-
-        const PromotionTab = ({ staffList }) => {
-            const today = new Date();
-            const [startMonth, setStartMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
-            const [endMonth, setEndMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
-
-            const promotionList = useMemo(() => {
-                const list = [];
-                const [sY, sM] = startMonth.split('-').map(Number);
-                const [eY, eM] = endMonth.split('-').map(Number);
-                if (isNaN(sY) || isNaN(eY)) return list;
-
-                const startVal = sY * 12 + sM;
-                const endVal = eY * 12 + eM;
-
-                staffList.forEach(staff => {
-                    let foundStatus = null;
-                    let targetDate = '';
-                    
-                    for (let val = startVal; val <= endVal; val++) {
-                        const y = Math.floor((val - 1) / 12);
-                        const m = ((val - 1) % 12) + 1;
-                        const status = getPromotionStatus(staff, y, m);
-                        if (status) {
-                            foundStatus = status;
-                            targetDate = `${y}년 ${m}월`;
-                            break; 
-                        }
-                    }
-
-                    if (foundStatus) {
-                        const leaveInfo = foundStatus.leaveInfo;
-                        const dailyHours = safeParseFloat(staff.workHours) || 8;
-                        const totalDays = leaveInfo.total || 0;
-                        const totalHours = totalDays * dailyHours;
-                        
-                        const activeHistory = (staff.leaveHistory || []).filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
-                        const usedHours = activeHistory.reduce((acc, cur) => acc + (safeParseFloat(cur.days) || 0), 0);
-                        
-                        const remainingHours = totalHours - usedHours;
-                        const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
-                        const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
-                        
-                        list.push({ ...staff, promoStatus: foundStatus, targetDate, leaveInfo, totalDays, usedDays, remainingDays });
-                    }
-                });
-                return list;
-            }, [staffList, startMonth, endMonth]);
-
-            const handleDownloadSignOK = () => {
-                const targets = promotionList.filter(p => p.promoStatus.type.includes('1차'));
-                if (targets.length === 0) { alert("해당 기간에 1차 촉진 대상자가 없습니다."); return; }
-                const today = new Date();
-                const day = today.getDate();
-                const excelData = targets.map(p => {
-                    const [tYear, tMonth] = p.targetDate.replace('년 ', '-').replace('월', '').split('-').map(Number);
-                    return {
-                        "이메일 또는 휴대폰번호(필수)": p.phone || "", "이름(필수)": p.name || "", "남길말(선택)": "",
-                        "연차 사용대상기간(양지누림)": p.leaveInfo.period || "", "발생연차(양지누림)": p.totalDays || 0,
-                        "사용연차(양지누림)": p.usedDays, "미사용(양지누림)": p.remainingDays,
-                        "연차유급휴가 발생일(양지누림)": p.leaveInfo.startDate, "성명(양지누림)": p.name || "",
-                        "소속(양지누림)": "", "직위(양지누림)": "",
-                        "연도(양지누림)-1": tYear, "월(양지누림)-1": tMonth, "일(양지누림)-1": day, 
-                        "연도(양지누림)": tYear, "월(양지누림)": tMonth, "일(양지누림)": 20
-                    };
-                });
-                const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "싸인오케이_대량발송");
-                XLSX.writeFile(wb, `1차촉진_통보대상_${startMonth}_to_${endMonth}.xlsx`);
-            };
-
-            return (
-                <div className="space-y-6 animate-fade-in">
-                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 조회</h3>
-                            <p className="text-xs md:text-sm text-slate-500">과거부터 현재까지의 촉진 누락 대상자를 조회합니다.</p>
-                        </div>
-                        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 w-full md:w-auto">
-                                <input type="month" value={startMonth} onChange={e => setStartMonth(e.target.value)} className="bg-white border rounded-lg px-2 py-1 text-sm font-bold text-slate-700 outline-none w-full md:w-32" />
-                                <span className="text-slate-400 font-bold">~</span>
-                                <input type="month" value={endMonth} onChange={e => setEndMonth(e.target.value)} className="bg-white border rounded-lg px-2 py-1 text-sm font-bold text-slate-700 outline-none w-full md:w-32" />
-                            </div>
-                            <button type="button" onClick={handleDownloadSignOK} className="w-full md:w-auto bg-green-600 text-white px-4 py-3 md:py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition shadow-sm"><Icons.FileText /> 싸인오케이 연동 (1차)</button>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                                <tr><th className="p-4">이름</th><th className="p-4">입사일</th><th className="p-4">연차 산정 기간</th><th className="p-4 text-center">조회된 촉진 시기</th><th className="p-4 text-center">촉진 단계</th><th className="p-4">조치 사항</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {promotionList.map((staff) => (
-                                    <tr key={staff.id} className="hover:bg-slate-50">
-                                        <td className="p-4 font-bold text-slate-800">{staff.name}</td>
-                                        <td className="p-4 text-slate-500">{safeDate(staff.joinDate)}</td>
-                                        <td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td>
-                                        <td className="p-4 text-center font-bold text-blue-600">{staff.targetDate}</td>
-                                        <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.promoStatus.color}`}>{staff.promoStatus.type}</span></td>
-                                        <td className="p-4 font-bold text-slate-600">{staff.promoStatus.msg}</td>
-                                    </tr>
-                                ))}
-                                {promotionList.length === 0 && <tr><td colSpan="6" className="p-12 text-center text-slate-400">선택된 기간에 대상자가 없습니다.</td></tr>}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             );
@@ -1514,6 +1296,328 @@
 
                     {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} />}
+                </div>
+            );
+        };
+
+        const StaffTab = ({ staffList }) => {
+            const fileInputRef = useRef(null);
+            const [uploadMsg, setUploadMsg] = useState('');
+            const [editingStaff, setEditingStaff] = useState(null);
+            const [viewingStaff, setViewingStaff] = useState(null);
+            const [selectedIds, setSelectedIds] = useState(new Set());
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+            
+            const activeStaffList = useMemo(() => staffList.filter(s => s.status !== 'resigned'), [staffList]);
+
+            const processedStaffList = useMemo(() => {
+                let data = [...activeStaffList];
+                if (searchTerm) {
+                    const lowerTerm = searchTerm.toLowerCase();
+                    data = data.filter(s => (s.name && s.name.toLowerCase().includes(lowerTerm)) || (s.phone && s.phone.includes(lowerTerm)));
+                }
+                
+                data = data.map(staff => {
+                    const leaveInfo = calculateAnnualLeave(staff.joinDate);
+                    const dailyHours = safeParseFloat(staff.workHours) || 8;
+                    const totalDays = leaveInfo.total || 0;
+                    const totalHours = totalDays * dailyHours;
+                    const usedHours = staff.annualLeaveUsed || 0;
+                    const remainingHours = totalHours - usedHours;
+                    const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
+                    const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
+                    
+                    return { ...staff, dailyHours, totalDays, totalHours, usedHours, remainingHours, remainingDays, usedDays, leaveInfo };
+                });
+
+                if (sortConfig.key) {
+                    data.sort((a, b) => {
+                        let aVal = a[sortConfig.key];
+                        let bVal = b[sortConfig.key];
+                        if (sortConfig.key === 'remaining') { aVal = a.remainingHours; bVal = b.remainingHours; }
+                        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                }
+                return data;
+            }, [activeStaffList, searchTerm, sortConfig]);
+
+            const handleSort = (key) => {
+                let direction = 'asc';
+                if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+                setSortConfig({ key, direction });
+            };
+            const getSortIcon = (key) => {
+                if (sortConfig.key !== key) return <span className="text-slate-300 ml-1">⇅</span>;
+                return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
+            };
+            
+            const handleFileUpload = (e, isResignedUpload = false) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
+                        const batch = db.batch();
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0]; 
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                
+                                const phoneStr = String(phoneRaw || '').replace(/[^0-9]/g, '').trim();
+                                const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
+                                const uniqueKey = `yg${last4}`;
+                                const email = `${uniqueKey}@ygnurim.com`;
+                                
+                                const docRef = db.collection('users').doc(email);
+                                batch.set(docRef, {
+                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (safeDate(resignDate) || '') : ''
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        setUploadMsg(`✅ ${count}명 처리 완료!`);
+                        setTimeout(() => setUploadMsg(''), 3000);
+                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
+                };
+            };
+
+            const handleDeleteOne = async (staff) => {
+                if (window.confirm(`정말 [${staff.name}] 직원을 삭제하시겠습니까?`)) {
+                    try { await db.collection('users').doc(staff.id).delete(); alert('삭제되었습니다.'); } catch (err) { alert('삭제 실패: ' + err.message); }
+                }
+            };
+            const handleSelectAll = (e) => {
+                if (e.target.checked) { const allIds = new Set(processedStaffList.map(s => s.id)); setSelectedIds(allIds); } else setSelectedIds(new Set());
+            };
+            const handleSelectOne = (id) => {
+                const newSet = new Set(selectedIds);
+                if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+                setSelectedIds(newSet);
+            };
+            const handleBulkDelete = async () => {
+                if (selectedIds.size === 0) return;
+                if (!window.confirm(`선택한 ${selectedIds.size}명을 삭제하시겠습니까?`)) return;
+                try {
+                    const batch = db.batch();
+                    selectedIds.forEach(id => { batch.delete(db.collection('users').doc(id)); });
+                    await batch.commit();
+                    alert(`${selectedIds.size}명 삭제 완료`);
+                    setSelectedIds(new Set());
+                } catch (err) { alert('오류: ' + err.message); }
+            };
+
+            const handleResetFilters = () => {
+                setSearchTerm('');
+                setSelectedIds(new Set());
+            };
+
+            const handleBatchCreateAuth = async () => {
+                if (!window.confirm("현재 등록된 모든 직원의 계정을 'yg+휴대폰뒤4자리' (비밀번호: 123456) 형식으로 일괄 새롭게 생성하시겠습니까?\n\n※ 기존 내역은 완벽히 보존됩니다.")) return;
+                
+                setUploadMsg('계정 생성 중입니다. 잠시만 기다려주세요...');
+                
+                try {
+                    let secondaryApp;
+                    if (!firebase.apps.find(app => app.name === 'Secondary')) {
+                        secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
+                    } else {
+                        secondaryApp = firebase.app('Secondary');
+                    }
+                    
+                    const batch = db.batch();
+                    let count = 0;
+
+                    for (const staff of activeStaffList) {
+                        const phoneStr = String(staff.phone || '').replace(/[^0-9]/g, '');
+                        if (phoneStr.length < 4) continue;
+                        
+                        const last4 = phoneStr.slice(-4);
+                        const loginId = `yg${last4}`; 
+                        const email = `${loginId}@ygnurim.com`;
+                        const tempPw = '123456';
+
+                        try {
+                            await secondaryApp.auth().createUserWithEmailAndPassword(email, tempPw);
+                        } catch (authErr) {
+                            if (authErr.code === 'auth/email-already-in-use') {
+                                console.log('Account already exists, skipping:', email);
+                            } else {
+                                console.error('Auth Error:', authErr);
+                            }
+                        }
+
+                        if (staff.id !== email) {
+                            const newRef = db.collection('users').doc(email);
+                            const oldRef = db.collection('users').doc(staff.id);
+                            
+                            const newData = { ...staff, employeeId: loginId, email: email, tempPw: tempPw };
+                            delete newData.id; 
+                            batch.set(newRef, newData);
+                            batch.delete(oldRef); 
+                        } else {
+                            const ref = db.collection('users').doc(staff.id);
+                            batch.update(ref, { tempPw: tempPw, employeeId: loginId });
+                        }
+                        count++;
+                    }
+
+                    await batch.commit();
+                    await secondaryApp.auth().signOut(); 
+                    
+                    setUploadMsg(`✅ ${count}명 신규 계정(yg) 발급 완료!`);
+                    setTimeout(() => setUploadMsg(''), 4000);
+                } catch (err) {
+                    setUploadMsg(`❌ 오류: ${err.message}`);
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} />}
+                    {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+                            <div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 (퇴사자 제외)</p></div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <div className="relative flex items-center w-full md:w-auto gap-1">
+                                <div className="relative group flex-1 md:flex-none">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div>
+                                    <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                                </div>
+                                <button onClick={handleResetFilters} className="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="초기화"><Icons.Refresh /></button>
+                            </div>
+                            {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex justify-center items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
+                            {uploadMsg && <span className="w-full md:w-auto text-sm font-bold text-blue-600 animate-pulse text-center">{uploadMsg}</span>}
+                            
+                            <button onClick={handleBatchCreateAuth} className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2" title="선택된 항목과 무관하게 모든 직원에게 계정을 발급합니다">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> 
+                                일괄 계정 발급
+                            </button>
+
+                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, false)} accept=".xlsx, .xls, .csv" className="hidden" />
+                            <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex justify-center items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                <tr>
+                                    <th className="p-4 w-12 text-center"><input type="checkbox" checked={processedStaffList.length > 0 && selectedIds.size === processedStaffList.length} onChange={handleSelectAll} /></th>
+                                    <th className="p-4 sortable" onClick={() => handleSort('name')}><div className="flex items-center">이름 (상세보기) {getSortIcon('name')}</div></th>
+                                    <th className="p-4 text-center text-blue-600">발생(시간)</th>
+                                    <th className="p-4 text-center text-red-500">사용(시간)</th>
+                                    <th className="p-4 text-center text-green-600 sortable" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여(시간) {getSortIcon('remaining')}</div></th>
+                                    <th className="p-4 text-center w-24 bg-slate-100">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {processedStaffList.map((staff, idx) => {
+                                    const isDateError = !staff.joinDate || staff.joinDate.length < 8;
+                                    return (
+                                        <tr key={idx} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
+                                            <td className="p-4 text-center"><input type="checkbox" checked={selectedIds.has(staff.id)} onChange={() => handleSelectOne(staff.id)} /></td>
+                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>
+                                                {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-blue-600">
+                                                {isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></>}
+                                            </td>
+                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
+                                            <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
+                                            <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
+                                        </tr>
+                                    );
+                                })}
+                                {processedStaffList.length === 0 && (<tr><td colSpan="6" className="p-12 text-center text-slate-400">데이터가 없습니다.</td></tr>)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick, onNameClick }) => {
+            const [isPastMode, setIsPastMode] = useState(false);
+            const resignedFileInputRef = useRef(null);
+            
+            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned' || (s.resignDate && s.resignDate.trim().length > 0)), [staffList]);
+
+            const handleResignedStaffUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        const batch = db.batch();
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0];
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                const email = `${name}_${String(phoneRaw||'').trim().slice(-4)}@ygnurim.com`;
+                                const docRef = db.collection('users').doc(email);
+                                batch.set(docRef, {
+                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: 'resigned', resignDate: resignDate || ''
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        alert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
+                    } catch (err) { alert('오류: ' + err.message); }
+                };
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-orange-50 p-4 rounded-xl border border-orange-100 gap-4">
+                        <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
+                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
+                            <label className="flex items-center justify-center gap-2 cursor-pointer bg-white px-3 py-3 md:py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
+                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
+                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
+                        </div>
+                    </div>
+                    <LeaveManagementTab 
+                        staffList={resignedList} 
+                        onOpenModal={() => alert("퇴사자는 신규 연차 등록이 불가능합니다.")} 
+                        onEditClick={onEditClick} 
+                        isPastMode={isPastMode} 
+                        isResignedTab={true}
+                        onNameClick={onNameClick}
+                        adminName="System"
+                    />
                 </div>
             );
         };
