@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v5.2.0)</title>
+    <title>양지누림 연차 관리 시스템 (Official v5.3.1)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -14,7 +14,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-    <!-- ZIP 압축을 위한 라이브러리 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <style>
@@ -25,14 +24,12 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         th { user-select: none; }
         
-        /* 그래프 및 팝업 애니메이션 */
         .bar-transition { transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
         .animate-fade-in { animation: fadeIn 0.2s ease-out; }
         .animate-slide-in-right { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
 
-        /* 캘린더 전용 초경량 스크롤바 디자인 */
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
@@ -51,9 +48,8 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "5.2.0";
+        const SYSTEM_VERSION = "5.3.1";
 
-        // --- Firebase Config ---
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
             authDomain: "ygnurim-attendance-management.firebaseapp.com",
@@ -278,13 +274,13 @@
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4">
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500">
                     <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
-                    <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 시스템 업데이트</h3>
-                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} (Branding Update)</p>
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 기능 고도화</h3>
+                    <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p className="text-blue-600 font-bold">🌟 <b>개별 PDF 파일 ZIP 압축 다운로드 기능 추가</b></p>
-                        <p>✅ 법인 컬러 로고(logo.png) 완벽 연동</p>
-                        <p>✅ PDF 출력 시 빈 화면(흰색) 현상 수정</p>
-                        <p>✅ 시스템 알림창(Alert/Confirm) 예쁜 모달로 교체</p>
+                        <p className="text-blue-600 font-bold">🌟 <b>사용시기 지정 통보서 양식 자동화 완료</b></p>
+                        <p>✅ 법정 표준 통보서 양식 디자인 시스템 내장</p>
+                        <p>✅ 미제출자의 대상기간 파악 후 "통보일" 자동 계산 로직 적용</p>
+                        <p>✅ 개별 통보서 자동 병합 및 ZIP 다운로드 기능 추가</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -335,28 +331,17 @@
             };
             return (
                 <div className="flex h-screen items-center justify-center bg-slate-100 p-4">
-                    <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl border border-slate-100 relative overflow-hidden">
-                        {/* 배경 데코 */}
-                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-                        
-                        <div className="text-center mb-8 pt-4">
-                            <img src="logo.png" alt="사단법인 장애인의 양지누림" className="h-16 mx-auto mb-4 object-contain drop-shadow-sm" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/300x80/f8fafc/64748b?text=로고+이미지(logo.png)+누락"; }} />
-                            <p className="text-slate-500 font-bold mb-3 tracking-widest text-sm">연차 관리 시스템</p>
-                            <span className="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded-full font-black uppercase tracking-wider border border-blue-100">Official v{SYSTEM_VERSION}</span>
+                    <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
+                        <div className="text-center mb-8">
+                            <img src="logo.png" alt="사단법인 장애인의 양지누림" className="h-16 mx-auto mb-4 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display='none'; }} />
+                            <p className="text-slate-500 font-bold mb-1">연차 관리 시스템</p>
+                            <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-1 rounded font-bold uppercase">Official v{SYSTEM_VERSION}</span>
                         </div>
-                        <form onSubmit={handleLogin} className="space-y-5">
-                            <div>
-                                <label className="block text-xs font-black text-slate-700 mb-2 ml-1">아이디 (이메일)</label>
-                                <input type="text" value={id} onChange={(e)=>setId(e.target.value)} className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:bg-white outline-none transition-all font-medium text-sm" placeholder="yg+뒷자리 (직원) / ygnurim (관리자)" required />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-slate-700 mb-2 ml-1">비밀번호</label>
-                                <input type="password" value={pw} onChange={(e)=>setPw(e.target.value)} className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:bg-white outline-none transition-all font-medium text-sm" required />
-                            </div>
-                            {error && <p className="text-red-500 text-xs font-bold text-center bg-red-50 py-2 rounded-lg">{error}</p>}
-                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-200 transition-all disabled:opacity-50 mt-4 tracking-wider">
-                                {loading ? '로그인 처리 중...' : '로그인 하기'}
-                            </button>
+                        <form onSubmit={handleLogin} className="space-y-6">
+                            <div><label className="block text-sm font-bold text-slate-700 mb-2">아이디 (이메일)</label><input type="text" value={id} onChange={(e)=>setId(e.target.value)} className="w-full px-4 py-3 border rounded-xl" placeholder="yg+뒷자리 (직원) / ygnurim (관리자)" required /></div>
+                            <div><label className="block text-sm font-bold text-slate-700 mb-2">비밀번호</label><input type="password" value={pw} onChange={(e)=>setPw(e.target.value)} className="w-full px-4 py-3 border rounded-xl" required /></div>
+                            {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+                            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition disabled:opacity-50">{loading ? '로그인...' : '로그인 하기'}</button>
                         </form>
                     </div>
                 </div>
@@ -1159,6 +1144,18 @@
                 XLSX.writeFile(wb, `1차촉진_통보대상_${startMonth}_to_${endMonth}.xlsx`);
             };
 
+            // [v5.3.0] 통보일 (Legal Notification Deadline) 계산 로직
+            const getNotifyDate = (leaveInfo) => {
+                if (!leaveInfo || !leaveInfo.endDate || leaveInfo.endDate === '') return new Date();
+                const endDate = new Date(leaveInfo.endDate);
+                if (leaveInfo.yearsWorked < 1) {
+                    endDate.setMonth(endDate.getMonth() - 1);
+                } else {
+                    endDate.setMonth(endDate.getMonth() - 2);
+                }
+                return endDate;
+            };
+
             const handleDownloadNoticePdfZip = async () => {
                 const unsubmittedList = promotionList.filter(p => !p.isPlanSubmitted && p.remainingDays > 0);
                 if (unsubmittedList.length === 0) {
@@ -1178,7 +1175,6 @@
                     const folderName = `사용시기지정통보서_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
                     const folder = zip.folder(folderName);
 
-                    // 각 대상자별로 개별 PDF 생성 후 ZIP에 추가
                     for (const staff of unsubmittedList) {
                         const elementId = `pdf-content-${staff.id}`;
                         const element = document.getElementById(elementId);
@@ -1193,12 +1189,10 @@
                             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                         };
 
-                        // html2pdf output을 blob으로 받아 zip에 파일 추가
                         const pdfBlob = await window.html2pdf().from(element).set(opt).output('blob');
                         folder.file(`연차사용시기지정통보서_${staff.name}.pdf`, pdfBlob);
                     }
 
-                    // ZIP 파일 생성 및 다운로드 트리거
                     const content = await zip.generateAsync({ type: "blob" });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(content);
@@ -1286,62 +1280,78 @@
                         </table>
                     </div>
 
-                    {}
+                    {/* [v5.3.0] PDF 렌더링용 숨김 영역 - 사용자 커스텀 템플릿 적용 */}
                     <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                        {promotionList.filter(p => !p.isPlanSubmitted && p.remainingDays > 0).map((staff) => (
-                            <div key={staff.id} id={`pdf-content-${staff.id}`} className="bg-white text-black text-left" style={{ width: '210mm', padding: '20mm', height: '297mm', boxSizing: 'border-box' }}>
-                                <div className="border border-black w-full h-full flex flex-col p-10 relative">
-                                    <h1 className="text-3xl font-black text-center mb-16 tracking-widest underline" style={{ textUnderlineOffset: '10px' }}>연차유급휴가 사용시기 지정 통보서</h1>
-                                    
-                                    <div className="mb-12 text-lg space-y-3 font-bold text-gray-800">
-                                        <p className="flex"><span className="w-24">수 신 :</span> <span>{staff.name} 님</span></p>
-                                        <p className="flex"><span className="w-24">입 사 일 :</span> <span>{safeDate(staff.joinDate)}</span></p>
-                                    </div>
-                                    
-                                    <p className="text-lg leading-relaxed mb-8" style={{ textIndent: '1rem', wordBreak: 'keep-all' }}>
-                                        「근로기준법」 제61조(연차 유급휴가의 사용 촉진) 규정에 의거, 회사의 1차 연차 사용 촉구에도 불구하고 귀하께서 미사용 연차휴가에 대한 사용 계획을 기한 내에 제출하지 않으셨습니다.
-                                    </p>
-                                    <p className="text-lg leading-relaxed mb-12" style={{ textIndent: '1rem', wordBreak: 'keep-all' }}>
-                                        이에 따라, 법 제61조에 의거하여 귀하의 미사용 연차유급휴가 사용시기를 아래와 같이 지정하여 통보하오니, 해당 일자에 연차휴가를 반드시 사용하시기 바랍니다.
-                                    </p>
+                        {promotionList.filter(p => !p.isPlanSubmitted && p.remainingDays > 0).map((staff) => {
+                            const notifyDate = getNotifyDate(staff.leaveInfo);
+                            const yearStr = notifyDate.getFullYear();
+                            const monthStr = notifyDate.getMonth() + 1;
+                            const dayStr = notifyDate.getDate();
+                            const currentYear = new Date().getFullYear();
 
-                                    <table className="w-full text-center border-collapse border-2 border-black mb-12 text-lg">
-                                        <tbody>
-                                            <tr>
-                                                <th className="border border-black p-4 bg-gray-100 w-1/3">연차 산정 기간</th>
-                                                <td className="border border-black p-4 font-bold">{staff.leaveInfo.period}</td>
-                                            </tr>
-                                            <tr>
-                                                <th className="border border-black p-4 bg-gray-100">총 발생 연차</th>
-                                                <td className="border border-black p-4 font-bold">{staff.totalDays}일</td>
-                                            </tr>
-                                            <tr>
-                                                <th className="border border-black p-4 bg-gray-100 text-red-700">미사용 연차 (잔여)</th>
-                                                <td className="border border-black p-4 font-black text-red-600">{staff.remainingDays}일</td>
-                                            </tr>
-                                            <tr>
-                                                <th className="border border-black p-4 bg-gray-100 h-32 align-middle">사용 지정일<br/><span className="text-sm font-normal text-gray-600">(회사 지정)</span></th>
-                                                <td className="border border-black p-4 text-left align-top text-gray-400">
-                                                    <br/><br/>(직원과 협의 또는 사내 규정에 따라 지정된 날짜 기입란)
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                            return (
+                                <div key={staff.id} id={`pdf-content-${staff.id}`} className="bg-white text-black text-left font-sans" style={{ width: '210mm', padding: '20mm', height: '297mm', boxSizing: 'border-box' }}>
+                                    <div className="w-full h-full flex flex-col relative">
+                                        <h1 className="text-3xl font-black text-center mb-4 tracking-widest">연차 유급휴가 사용시기 지정 통보서</h1>
+                                        <p className="text-center text-lg font-bold mb-10">&lt; 근로기준법 제61조(연차유급휴가의 사용촉진) 관련 &gt;</p>
+                                        
+                                        <h3 className="text-xl font-bold mb-2">1. 대상 근로자</h3>
+                                        <table className="w-full text-center border-collapse border border-black mb-8 text-lg">
+                                            <tbody>
+                                                <tr>
+                                                    <th className="border border-black p-3 bg-gray-100 w-1/4">성명</th>
+                                                    <td className="border border-black p-3 w-1/4 font-bold">{staff.name}</td>
+                                                    <th className="border border-black p-3 bg-gray-100 w-1/4">입사일</th>
+                                                    <td className="border border-black p-3 w-1/4">{safeDate(staff.joinDate)}</td>
+                                                </tr>
+                                                <tr>
+                                                    <th className="border border-black p-3 bg-gray-100">소속</th>
+                                                    <td className="border border-black p-3"></td>
+                                                    <th className="border border-black p-3 bg-gray-100">직위</th>
+                                                    <td className="border border-black p-3"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        
+                                        <h3 className="text-xl font-bold mb-2 leading-relaxed">
+                                            2. {currentYear}. 현재까지 사용하지 않은 연차 유급휴가 <span className="underline font-black text-red-600 px-1">{staff.remainingDays}</span>일에 대하여 아래와 같이 사용시기를 지정하여 통보합니다.
+                                        </h3>
+                                        
+                                        <p className="text-lg font-bold mt-6 mb-2 text-center">&lt; 미사용 연차 유급휴가 사용시기 지정 &gt;</p>
+                                        <table className="w-full text-center border-collapse border-2 border-black mb-12 text-lg">
+                                            <thead>
+                                                <tr>
+                                                    <th className="border border-black p-3 bg-gray-100">해당월</th>
+                                                    <th className="border border-black p-3 bg-gray-100">지정일자</th>
+                                                    <th className="border border-black p-3 bg-gray-100">사용일수</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {[1, 2, 3, 4, 5].map(i => (
+                                                    <tr key={i}>
+                                                        <td className="border border-black p-3 h-12 align-middle text-gray-400">월</td>
+                                                        <td className="border border-black p-3 align-middle text-gray-400">일</td>
+                                                        <td className="border border-black p-3 align-middle text-gray-400">일</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
 
-                                    <div className="bg-gray-50 p-6 border border-gray-300 rounded mb-12">
-                                        <p className="text-base font-bold text-gray-700 leading-relaxed">
-                                            ※ 주의사항<br/>
-                                            본 통보서를 통해 회사가 연차 사용 시기를 지정하여 통보하였음에도 불구하고, 귀하께서 지정된 일자에 휴가를 사용하지 않아 발생하는 연차유급휴가의 소멸에 대해서는 회사가 수당으로 보상할 의무가 없음을 알려드립니다.
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-auto text-center pb-10 flex flex-col items-center">
-                                        <p className="text-xl mb-6 font-bold">{new Date().getFullYear()}년 {new Date().getMonth() + 1}월 {new Date().getDate()}일</p>
-                                        <img src="logo.png" alt="사단법인 장애인의 양지누림" className="h-20 object-contain mx-auto" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/300x80/f8fafc/64748b?text=로고+이미지(logo.png)+누락"; }} />
+                                        <div className="mt-auto text-center pb-10 flex flex-col items-center w-full">
+                                            <p className="text-xl mb-12 font-bold">{yearStr}년 {monthStr}월 {dayStr}일</p>
+                                            
+                                            <div className="w-full flex justify-between items-center px-10 mb-8 text-xl font-bold">
+                                                <span className="flex-shrink-0">통보자:</span>
+                                                <div className="flex-grow flex justify-center">
+                                                    <img src="logo.png" alt="사단법인 장애인의 양지누림" className="h-16 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                                                </div>
+                                                <span className="flex-shrink-0 border-b border-black pb-1 w-32 text-right">(서명)</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                 </div>
@@ -2005,7 +2015,6 @@
             const [leaveDayType, setLeaveDayType] = useState('1'); 
             const [leaveHourValue, setLeaveHourValue] = useState(''); 
             const [reason, setReason] = useState('');
-            const [msg, setMsg] = useState('');
 
             useEffect(() => {
                 const unsub = db.collection('users').doc(user.email).onSnapshot(doc => {
@@ -2060,7 +2069,7 @@
                 if (!customDateInput.trim()) return;
                 const dailyHours = safeParseFloat(userData?.workHours) || 8;
                 let deductHours = inputType === 'day' ? (leaveDayType === '1' ? dailyHours : dailyHours / 2) : safeParseFloat(leaveHourValue);
-                if (deductHours <= 0) { setMsg('❌ 시간을 확인하세요.'); return; }
+                if (deductHours <= 0) { showAlert('❌ 시간을 확인하세요.'); return; }
                 const typeText = inputType === 'day' ? (leaveDayType === '1' ? '연차' : '반차') : `${deductHours}시간`;
 
                 const parts = customDateInput.split(/[, ]+/);
@@ -2087,8 +2096,8 @@
 
                 if (newParsedDates.length > 0) {
                     setCustomDates([...customDates, ...newParsedDates].sort((a,b) => a.date.localeCompare(b.date)));
-                    setCustomDateInput(''); setMsg('');
-                } else setMsg('❌ 올바른 날짜 형식을 입력하세요 (예: 4.1, 2026.5.21)');
+                    setCustomDateInput('');
+                } else showAlert('❌ 올바른 날짜 형식을 입력하세요 (예: 4.1, 2026.5.21)');
             };
 
             const handleSubmit = async (e) => {
@@ -2096,10 +2105,9 @@
                 if (!userData) return;
                 const dailyHours = leaveStats.dailyHours;
                 let deductHours = inputType === 'day' ? (leaveDayType === '1' ? dailyHours : dailyHours / 2) : safeParseFloat(leaveHourValue);
-                if (dateMode !== 'custom' && deductHours <= 0) { setMsg('❌ 시간을 입력하세요.'); return; }
-                if (validDates.length === 0) { setMsg('❌ 선택된 날짜가 없습니다.'); return; }
+                if (dateMode !== 'custom' && deductHours <= 0) { showAlert('❌ 시간을 입력하세요.'); return; }
+                if (validDates.length === 0) { showAlert('❌ 선택된 날짜가 없습니다.'); return; }
 
-                setMsg('신청 중...');
                 try {
                     let newHistory = [...(userData.leaveHistory || [])];
                     const typeText = inputType === 'day' ? (leaveDayType === '1' ? '연차' : '반차') : `${deductHours}시간`;
@@ -2123,10 +2131,9 @@
                         leaveHistory: newHistory 
                     });
                     
-                    setMsg('✅ 연차 등록 완료!'); 
+                    showAlert('✅ 연차 등록 완료!'); 
                     setCustomDates([]); setReason('');
-                    setTimeout(() => setMsg(''), 3000);
-                } catch (err) { setMsg('❌ 오류: ' + err.message); }
+                } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
 
             const handleDeleteLeave = (leaveId) => {
@@ -2157,10 +2164,10 @@
             );
 
             return (
-                <div className="min-h-screen bg-[#F1F5F9] font-sans">
+                <div className="min-h-screen bg-[#F1F5F9] font-sans relative">
                     <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-3">
-                            <img src="logo.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x40/f8fafc/64748b?text=로고"; }} />
+                            <img src="logo.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x30/ffffff/64748b?text=로고"; }} />
                             <h1 className="text-2xl font-black text-blue-600 tracking-tighter md:hidden">양지누림</h1>
                             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase hidden sm:block">Employee Portal</span>
                         </div>
@@ -2246,7 +2253,6 @@
 
                                     <div><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100" placeholder="신청 사유 입력 (선택)" /></div>
                                     <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">내 연차 등록하기</button>
-                                    {msg && <p className="text-xs text-center font-bold text-red-500">{msg}</p>}
                                 </form>
                             </div>
 
@@ -2291,9 +2297,8 @@
             const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
             const [toasts, setToasts] = useState([]); 
 
-            // 커스텀 모달 (Alert/Confirm) 상태
-            const [alertData, setAlertData] = useState(null); // { msg }
-            const [confirmData, setConfirmData] = useState(null); // { msg, onConfirm }
+            const [alertData, setAlertData] = useState(null); 
+            const [confirmData, setConfirmData] = useState(null);
 
             const showAlert = (msg) => setAlertData({ msg });
             const showConfirm = (msg, onConfirm) => setConfirmData({ msg, onConfirm });
@@ -2445,7 +2450,6 @@
             return (
                 <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
                     <ErrorBoundary>
-                        {/* 글로벌 모달 */}
                         {alertData && <CustomAlertModal msg={alertData.msg} onClose={() => setAlertData(null)} />}
                         {confirmData && <CustomConfirmModal msg={confirmData.msg} onConfirm={confirmData.onConfirm} onClose={() => setConfirmData(null)} />}
 
