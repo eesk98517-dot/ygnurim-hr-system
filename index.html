@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v5.3.2)</title>
+    <title>양지누림 연차 관리 시스템 (Official v5.4.1)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -48,7 +48,7 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "5.3.2";
+        const SYSTEM_VERSION = "5.4.1";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -277,9 +277,10 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 기능 고도화</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p className="text-blue-600 font-bold">🌟 <b>사용시기 지정 통보서 양식 최적화 완료</b></p>
-                        <p>✅ 통보서 여백 오류(쏠림 현상) 수정 및 로고 위치 조정</p>
-                        <p>✅ 미제출자의 남은 연차 개수에 따라 <b>'지정일자'</b>를 시스템이 자동으로 날짜(평일 기준) 배분하여 입력하는 지능형 알고리즘 탑재</p>
+                        <p className="text-blue-600 font-bold">🌟 <b>스마트 지정일 자동 배치 & 휴무일 설정 도입</b></p>
+                        <p>✅ <b>휴무일 반영:</b> 통보서 지정 시 직원의 휴무일과 주말을 피하여 날짜가 선택됩니다.</p>
+                        <p>✅ <b>랜덤 배치:</b> 지정일자가 연달아 붙지 않고, 기간 내에서 띄엄띄엄 무작위 추출됩니다.</p>
+                        <p>✅ <b>고정 휴무일 설정:</b> 직원 정보 수정 시 맞춤 요일(예: 수/일 휴무) 지정 가능</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -332,7 +333,7 @@
                 <div className="flex h-screen items-center justify-center bg-slate-100 p-4">
                     <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-xl">
                         <div className="text-center mb-8">
-                            <img src="가로 사단법인 컬러_2.png" alt="사단법인 장애인의 양지누림" className="h-16 mx-auto mb-4 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display='none'; }} />
+                            <img src="logo.png" alt="사단법인 장애인의 양지누림" className="h-16 mx-auto mb-4 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display='none'; }} />
                             <p className="text-slate-500 font-bold mb-1">연차 관리 시스템</p>
                             <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-1 rounded font-bold uppercase">Official v{SYSTEM_VERSION}</span>
                         </div>
@@ -362,6 +363,7 @@
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">휴대폰</span><span className="text-sm font-bold text-slate-800">{staff.phone || '-'}</span></div>
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">입사일</span><span className="text-sm font-bold text-slate-800">{safeDate(staff.joinDate) || '-'}</span></div>
                             <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">근무시간</span><span className="text-sm font-bold text-blue-600">{staff.workHours || 8}시간</span></div>
+                            <div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">고정 휴무일</span><span className="text-sm font-bold text-red-500">{(staff.offDays || [0]).map(d => ['일','월','화','수','목','금','토'][d]).join(', ')}요일</span></div>
                             {staff.resignDate && <div className="flex justify-between p-3 bg-red-50 rounded-xl border border-red-100"><span className="text-xs font-bold text-red-500">퇴사일</span><span className="text-sm font-bold text-red-600">{safeDate(staff.resignDate)}</span></div>}
                         </div>
                         <button type="button" onClick={onClose} className="w-full mt-6 bg-slate-800 text-white py-3 rounded-xl text-sm font-bold hover:bg-slate-700 transition">닫기</button>
@@ -373,7 +375,25 @@
         const EditStaffModal = ({ staff, onClose, showAlert }) => {
             const [formData, setFormData] = useState({ ...staff });
             const [msg, setMsg] = useState('');
+
+            const WEEK_DAYS = [
+                { label: '일', value: 0 }, { label: '월', value: 1 }, { label: '화', value: 2 },
+                { label: '수', value: 3 }, { label: '목', value: 4 }, { label: '금', value: 5 }, { label: '토', value: 6 }
+            ];
+
             const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+            
+            const handleOffDayChange = (val) => {
+                let currentOffDays = formData.offDays || [0];
+                if (currentOffDays.includes(val)) {
+                    currentOffDays = currentOffDays.filter(d => d !== val);
+                    if (currentOffDays.length === 0) currentOffDays = [val]; 
+                } else {
+                    currentOffDays = [...currentOffDays, val];
+                }
+                setFormData(prev => ({ ...prev, offDays: currentOffDays }));
+            };
+
             const handleSave = async (e) => {
                 e.preventDefault();
                 setMsg('저장 중...');
@@ -382,6 +402,10 @@
                     updates.joinDate = safeDate(formData.joinDate);
                     updates.birth = safeDate(formData.birth);
                     
+                    if (!updates.offDays || updates.offDays.length === 0) {
+                        updates.offDays = [0];
+                    }
+
                     if (updates.joinDate !== staff.joinDate) {
                         const leaveInfo = calculateAnnualLeave(updates.joinDate);
                         updates.annualLeaveTotal = leaveInfo.total;
@@ -402,6 +426,7 @@
                     setMsg('✅ 수정 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 1000);
                 } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
             };
+
             return (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4">
                     <div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative">
@@ -409,12 +434,28 @@
                         <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3>
                         <form onSubmit={handleSave} className="space-y-4">
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
-                            <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                                <div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-2">고정 휴무일 (다중 선택 가능)</label>
+                                <div className="flex gap-2 flex-wrap justify-between">
+                                    {WEEK_DAYS.map(day => (
+                                        <label key={day.value} className={`flex-1 text-center py-2 rounded-lg border text-sm cursor-pointer transition select-none ${(formData.offDays || [0]).includes(day.value) ? 'bg-red-50 border-red-200 text-red-600 font-bold shadow-inner' : 'bg-white text-slate-400 hover:bg-slate-50'}`}>
+                                            <input type="checkbox" className="hidden" checked={(formData.offDays || [0]).includes(day.value)} onChange={() => handleOffDayChange(day.value)} />
+                                            {day.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={safeDate(formData.joinDate) || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="YYYY-MM-DD" /></div>
                             <div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={safeDate(formData.resignDate) || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div>
-                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">수정 저장하기</button>
+                            
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 mt-2">수정 내용 저장</button>
                             {msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}
                         </form>
                     </div>
@@ -842,15 +883,19 @@
                 let last = new Date(endDate);
                 if (curr > last) return []; 
                 
+                // [v5.4.0] 휴무일 필터링 적용 (다중 날짜 선택 시)
+                const staff = staffList.find(s => s.id === selectedStaffId);
+                const offDays = staff && staff.offDays ? staff.offDays : [0]; 
+
                 while(curr <= last) {
                     const day = curr.getDay();
-                    if(day !== 0 && day !== 6) { 
+                    if(!offDays.includes(day)) { 
                         dates.push(toLocalYMD(curr));
                     }
                     curr.setDate(curr.getDate() + 1);
                 }
                 return dates;
-            }, [leaveDate, endDate, customDates, dateMode]);
+            }, [leaveDate, endDate, customDates, dateMode, selectedStaffId, staffList]);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -869,7 +914,7 @@
                 }
 
                 if ((dateMode === 'multi' || dateMode === 'custom') && validDates.length === 0) {
-                    setMsg('❌ 선택된 날짜가 없습니다.'); return;
+                    setMsg('❌ 선택된 날짜가 없습니다. (휴무일일 수 있습니다)'); return;
                 }
 
                 setMsg('처리 중...');
@@ -1008,7 +1053,7 @@
                             
                             {dateMode === 'multi' && (
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                    <label className="block text-xs font-bold text-blue-600 mb-1">기간 선택 (주말 자동 제외 / 연차 1일 단위 전용)</label>
+                                    <label className="block text-xs font-bold text-blue-600 mb-1">기간 선택 (직원 휴무일 자동 제외 / 연차 1일 단위 전용)</label>
                                     <div className="flex items-center gap-2">
                                         <input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required />
                                         <span className="text-slate-400 font-bold">~</span>
@@ -1057,7 +1102,6 @@
             const [startMonth, setStartMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
             const [endMonth, setEndMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
             const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-            const pdfContainerRef = useRef(null);
 
             const promotionList = useMemo(() => {
                 const list = [];
@@ -1154,28 +1198,52 @@
                 return endDate;
             };
 
-            // [v5.3.2] 지정일자(날짜) 자동 계산 엔진
-            const generateDesignatedDates = (notifyDate, remainingDays) => {
+            // [v5.4.0] 지정일자(날짜) 스마트 랜덤 계산 엔진 (휴무일 완벽 배제)
+            const generateDesignatedDates = (notifyDate, remainingDays, offDays = [0]) => {
                 const dates = [];
                 let current = new Date(notifyDate);
-                // 통보일로부터 7일 뒤를 최초 지정일로 설정
-                current.setDate(current.getDate() + 7); 
-                let daysToAssign = remainingDays;
+                current.setDate(current.getDate() + 7); // 통보일로부터 최소 7일 뒤부터 배정
 
-                while (daysToAssign > 0) {
-                    const dayOfWeek = current.getDay();
-                    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // 0=일요일, 6=토요일 (주말 건너뛰기)
-                        const useAmount = daysToAssign >= 1 ? 1 : 0.5;
-                        dates.push({
-                            month: current.getMonth() + 1,
-                            date: current.getDate(),
-                            days: useAmount
-                        });
-                        daysToAssign -= useAmount;
+                const validDatesPool = [];
+                // 약 90일(3달) 정도의 여유 기간 안에서 유효한 근무일 풀(Pool) 생성
+                for (let i = 0; i < 90; i++) {
+                    const testDate = new Date(current);
+                    testDate.setDate(testDate.getDate() + i);
+                    
+                    // 직원의 고정 휴무일(offDays)에 포함되지 않은 날만 풀에 담기
+                    if (!offDays.includes(testDate.getDay())) {
+                        validDatesPool.push(testDate);
                     }
-                    current.setDate(current.getDate() + 1);
                 }
-                // 표 포맷 유지를 위해 최소 5줄은 빈칸으로라도 생성
+
+                // 배열 무작위 섞기 (Fisher-Yates Shuffle) - 날짜가 연달아 나오지 않게 랜덤화
+                for (let i = validDatesPool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [validDatesPool[i], validDatesPool[j]] = [validDatesPool[j], validDatesPool[i]];
+                }
+
+                let daysToAssign = remainingDays;
+                let selectedDates = [];
+
+                // 필요한 만큼 랜덤 풀에서 뽑기
+                for (let i = 0; i < validDatesPool.length && daysToAssign > 0; i++) {
+                    const useAmount = daysToAssign >= 1 ? 1 : 0.5; // 남은게 0.5일이면 0.5만 배정
+                    selectedDates.push({ dateObj: validDatesPool[i], days: useAmount });
+                    daysToAssign -= useAmount;
+                }
+
+                // 뽑힌 랜덤 날짜들을 보기 좋게 오름차순(시간순) 정렬
+                selectedDates.sort((a, b) => a.dateObj - b.dateObj);
+
+                selectedDates.forEach(item => {
+                    dates.push({
+                        month: item.dateObj.getMonth() + 1,
+                        date: item.dateObj.getDate(),
+                        days: item.days
+                    });
+                });
+
+                // 표 5줄 포맷 유지를 위해 빈칸 채우기
                 while(dates.length < 5) {
                     dates.push({ month: '', date: '', days: '' });
                 }
@@ -1207,7 +1275,6 @@
                         
                         if (!element) continue;
 
-                        // [v5.3.2] 여백 및 쏠림 현상 방지를 위해 마진 최적화
                         const opt = {
                             margin: 15,
                             filename: `통보서_${staff.name}.pdf`,
@@ -1307,7 +1374,6 @@
                         </table>
                     </div>
 
-                    {/* [v5.3.2] PDF 렌더링용 숨김 영역 - 쏠림 현상 방지를 위해 width: 180mm 로 A4 안전영역 조정 */}
                     <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
                         {promotionList.filter(p => !p.isPlanSubmitted && p.remainingDays > 0).map((staff) => {
                             const notifyDate = getNotifyDate(staff.leaveInfo);
@@ -1316,16 +1382,17 @@
                             const dayStr = notifyDate.getDate();
                             const currentYear = new Date().getFullYear();
                             
-                            // [v5.3.2] 연차 지정일 알고리즘 호출
-                            const designatedDates = generateDesignatedDates(notifyDate, staff.remainingDays);
+                            // [v5.4.1] 직원의 휴무일 정보를 가져와서 랜덤 지정일 알고리즘 호출
+                            const offDaysArray = staff.offDays && staff.offDays.length > 0 ? staff.offDays : [0]; // 기본 일요일(0)
+                            const designatedDates = generateDesignatedDates(notifyDate, staff.remainingDays, offDaysArray);
 
                             return (
                                 <div key={staff.id} id={`pdf-content-${staff.id}`} className="bg-white text-black text-left font-sans flex flex-col" style={{ width: '180mm', minHeight: '260mm', padding: '10px', boxSizing: 'border-box' }}>
                                     <h1 className="text-2xl font-black text-center mb-4 tracking-widest">연차 유급휴가 사용시기 지정 통보서</h1>
-                                    <p className="text-center text-base font-bold mb-8">&lt; 근로기준법 제61조(연차유급휴가의 사용촉진) 관련 &gt;</p>
+                                    <p className="text-center text-sm font-bold mb-8">&lt; 근로기준법 제61조(연차유급휴가의 사용촉진) 관련 &gt;</p>
                                     
-                                    <h3 className="text-lg font-bold mb-2">1. 대상 근로자</h3>
-                                    <table className="w-full text-center border-collapse border border-black mb-8 text-base">
+                                    <h3 className="text-base font-bold mb-2">1. 대상 근로자</h3>
+                                    <table className="w-full text-center border-collapse border border-black mb-8 text-sm">
                                         <tbody>
                                             <tr>
                                                 <th className="border border-black p-2 bg-gray-100 w-1/4">성명</th>
@@ -1335,19 +1402,21 @@
                                             </tr>
                                             <tr>
                                                 <th className="border border-black p-2 bg-gray-100">소속</th>
-                                                <td className="border border-black p-2"></td>
+                                                {/* [v5.4.1] 소속 자동 입력 */}
+                                                <td className="border border-black p-2 font-bold">(사)장애인의양지누림</td>
                                                 <th className="border border-black p-2 bg-gray-100">직위</th>
-                                                <td className="border border-black p-2"></td>
+                                                {/* [v5.4.1] 직위 자동 입력 */}
+                                                <td className="border border-black p-2 font-bold">근로지원인</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                     
-                                    <h3 className="text-lg font-bold mb-2 leading-relaxed">
+                                    <h3 className="text-base font-bold mb-2 leading-relaxed">
                                         2. {currentYear}. 현재까지 사용하지 않은 연차 유급휴가 <span className="underline font-black text-red-600 px-1">{staff.remainingDays}</span>일에 대하여 아래와 같이 사용시기를 지정하여 통보합니다.
                                     </h3>
                                     
-                                    <p className="text-base font-bold mt-6 mb-2 text-center">&lt; 미사용 연차 유급휴가 사용시기 지정 &gt;</p>
-                                    <table className="w-full text-center border-collapse border-2 border-black mb-8 text-base">
+                                    <p className="text-sm font-bold mt-6 mb-2 text-center">&lt; 미사용 연차 유급휴가 사용시기 지정 &gt;</p>
+                                    <table className="w-full text-center border-collapse border-2 border-black mb-8 text-sm">
                                         <thead>
                                             <tr>
                                                 <th className="border border-black p-2 bg-gray-100">해당월</th>
@@ -1356,10 +1425,9 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {/* [v5.3.2] 알고리즘으로 생성된 날짜 매핑 */}
                                             {designatedDates.map((item, i) => (
                                                 <tr key={i}>
-                                                    <td className={`border border-black p-2 h-10 align-middle ${item.month ? 'font-bold' : 'text-gray-300'}`}>{item.month ? `${item.month}월` : '월'}</td>
+                                                    <td className={`border border-black p-2 h-8 align-middle ${item.month ? 'font-bold' : 'text-gray-300'}`}>{item.month ? `${item.month}월` : '월'}</td>
                                                     <td className={`border border-black p-2 align-middle ${item.date ? 'font-bold' : 'text-gray-300'}`}>{item.date ? `${item.date}일` : '일'}</td>
                                                     <td className={`border border-black p-2 align-middle ${item.days ? 'font-bold text-blue-600' : 'text-gray-300'}`}>{item.days ? `${item.days}일` : '일'}</td>
                                                 </tr>
@@ -1367,14 +1435,14 @@
                                         </tbody>
                                     </table>
 
-                                    {/* [v5.3.2] 꼬리말 부분 레이아웃 및 사이즈 최적화 */}
-                                    <div className="mt-auto pt-8 flex flex-col items-center w-full">
-                                        <p className="text-lg font-bold mb-10">{yearStr}년 {monthStr}월 {dayStr}일</p>
+                                    <div className="mt-auto pt-6 flex flex-col items-center w-full">
+                                        <p className="text-base font-bold mb-8">{yearStr}년 {monthStr}월 {dayStr}일</p>
                                         
                                         <div className="flex justify-center items-center gap-4 w-full">
-                                            <span className="text-lg font-bold">통보자:</span>
-                                            <img src="가로 사단법인 컬러_2.png" alt="양지누림 로고" className="h-10 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
-                                            <span className="text-lg font-bold border-b border-black w-24 text-right">(서명)</span>
+                                            <span className="text-base font-bold">통보자:</span>
+                                            {/* [v5.4.1] 하단 로고 배치 확인 */}
+                                            <img src="logo.png" alt="양지누림 로고" className="h-10 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                                            <span className="text-base font-bold border-b border-black w-24 text-right">(서명)</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1792,7 +1860,8 @@
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (safeDate(resignDate) || '') : ''
+                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (safeDate(resignDate) || '') : '',
+                                    offDays: [0] 
                                 }, { merge: true });
                                 count++;
                             }
@@ -1993,7 +2062,8 @@
                                     name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
                                     joinDate, role: 'staff', tempPw: '123456', 
                                     annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: 'resigned', resignDate: resignDate || ''
+                                    status: 'resigned', resignDate: resignDate || '',
+                                    offDays: [0] // [v5.4.0] 퇴사자 명부 업로드 시 기본 휴무일 일요일(0) 자동 부여
                                 }, { merge: true });
                                 count++;
                             }
@@ -2085,13 +2155,19 @@
                 let dates = [];
                 let curr = new Date(leaveDate); let last = new Date(endDate);
                 if (curr > last) return []; 
+
+                // [v5.4.0] 직원 포털 휴가 신청 시 본인의 휴무일 자동 제외
+                const offDays = userData && userData.offDays ? userData.offDays : [0]; 
+
                 while(curr <= last) {
                     const day = curr.getDay();
-                    if(day !== 0 && day !== 6) dates.push(toLocalYMD(curr));
+                    if(!offDays.includes(day)) {
+                        dates.push(toLocalYMD(curr));
+                    }
                     curr.setDate(curr.getDate() + 1);
                 }
                 return dates;
-            }, [leaveDate, endDate, customDates, dateMode]);
+            }, [leaveDate, endDate, customDates, dateMode, userData]);
 
             const handleAddCustomDate = () => {
                 if (!customDateInput.trim()) return;
@@ -2134,7 +2210,7 @@
                 const dailyHours = leaveStats.dailyHours;
                 let deductHours = inputType === 'day' ? (leaveDayType === '1' ? dailyHours : dailyHours / 2) : safeParseFloat(leaveHourValue);
                 if (dateMode !== 'custom' && deductHours <= 0) { showAlert('❌ 시간을 입력하세요.'); return; }
-                if (validDates.length === 0) { showAlert('❌ 선택된 날짜가 없습니다.'); return; }
+                if (validDates.length === 0) { showAlert('❌ 선택된 날짜가 없습니다. (휴무일과 겹치는지 확인해주세요)'); return; }
 
                 try {
                     let newHistory = [...(userData.leaveHistory || [])];
@@ -2195,7 +2271,7 @@
                 <div className="min-h-screen bg-[#F1F5F9] font-sans relative">
                     <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-3">
-                            <img src="가로 사단법인 컬러_2.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x30/ffffff/64748b?text=로고"; }} />
+                            <img src="logo.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                             <h1 className="text-2xl font-black text-blue-600 tracking-tighter md:hidden">양지누림</h1>
                             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase hidden sm:block">Employee Portal</span>
                         </div>
@@ -2253,6 +2329,7 @@
                                     
                                     {dateMode === 'multi' && (
                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                            <label className="block text-xs font-bold text-blue-600 mb-1">기간 선택 (직원 휴무일 자동 제외 / 연차 1일 단위 전용)</label>
                                             <div className="flex items-center gap-2">
                                                 <input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required />
                                                 <span className="text-slate-400 font-bold">~</span>
@@ -2498,7 +2575,7 @@
                             <div className="p-6 border-b border-slate-700/50 flex flex-col items-start gap-4">
                                 <div className="flex justify-between items-center w-full">
                                     <div className="bg-white p-2 rounded-lg w-full flex justify-center">
-                                       <img src="가로 사단법인 컬러_2.png" alt="양지누림 로고" className="h-8 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x30/ffffff/64748b?text=로고"; }} />
+                                       <img src="logo.png" alt="양지누림 로고" className="h-8 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x30/ffffff/64748b?text=로고"; }} />
                                     </div>
                                     <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white ml-2"><Icons.X /></button>
                                 </div>
