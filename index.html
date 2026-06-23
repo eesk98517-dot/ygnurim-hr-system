@@ -1679,6 +1679,89 @@
                 }).catch(err => showAlert("오류: " + err.message));
             };
 
+            // [v5.5.0] 파견기관 제출용 프리미엄 전체 엑셀 보고서 다운로드 엔진
+            const handleDownloadFullReport = () => {
+                const todayStr = new Date().toLocaleDateString();
+                
+                // Excel에서 스타일(CSS), 배경색, 로고 이미지를 유지하기 위해 HTML to XLS 방식으로 렌더링
+                let htmlString = `
+                <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        table { border-collapse: collapse; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; }
+                        th, td { border: 1px solid #cbd5e1; text-align: center; vertical-align: middle; }
+                        th { background-color: #1e293b; color: white; height: 40px; font-size: 14px; }
+                        .title { background-color: #2563eb; color: white; font-size: 24px; font-weight: bold; height: 60px; letter-spacing: 2px; }
+                        .meta { background-color: #f8fafc; color: #475569; text-align: right; height: 35px; font-size: 12px; font-weight: bold; }
+                        .footer { background-color: white; height: 100px; text-align: center; border: none !important; }
+                        .footer img { height: 60px; margin-top: 20px; }
+                        .name { font-weight: bold; background-color: #f1f5f9; font-size: 14px; }
+                        .total { color: #2563eb; font-weight: bold; font-size: 14px; }
+                        .used { color: #ea580c; font-weight: bold; font-size: 14px; }
+                        .rem-good { color: #16a34a; font-weight: bold; font-size: 14px; }
+                        .rem-warn { color: #dc2626; font-weight: bold; font-size: 14px; background-color: #fee2e2; }
+                    </style>
+                </head>
+                <body>
+                    <table>
+                        <tr>
+                            <td colspan="6" class="title">양지누림 임직원 연차 사용 현황 보고서</td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" class="meta">출력일자: ${todayStr} / 기준: 전체 임직원</td>
+                        </tr>
+                        <tr>
+                            <th style="width: 120px;">이름</th>
+                            <th style="width: 150px;">입사일</th>
+                            <th style="width: 120px;">일일 근무</th>
+                            <th style="width: 150px;">총 발생 연차(일)</th>
+                            <th style="width: 150px;">사용 연차(일)</th>
+                            <th style="width: 150px;">잔여 연차(일)</th>
+                        </tr>
+                `;
+
+                // 데이터 순회 및 조건부 서식(색상) 적용
+                filteredList.forEach(staff => {
+                    const isNegative = staff.remainingDays < 0;
+                    const remainingClass = isNegative ? 'rem-warn' : 'rem-good';
+                    htmlString += `
+                        <tr>
+                            <td class="name">${staff.name}</td>
+                            <td>${safeDate(staff.joinDate)}</td>
+                            <td>${staff.workHours || 8}시간</td>
+                            <td class="total">${staff.totalDays}</td>
+                            <td class="used">${staff.usedDays}</td>
+                            <td class="${remainingClass}">${staff.remainingDays}</td>
+                        </tr>
+                    `;
+                });
+
+                // 인터넷이 연결된 환경에서 엑셀이 로고를 불러올 수 있도록 절대경로(GitHub 주소) 적용
+                const logoUrl = "https://eesk98517-dot.github.io/ygnurim-hr-system/logo.png";
+                
+                htmlString += `
+                        <tr>
+                            <td colspan="6" class="footer" style="border: none;">
+                                <img src="${logoUrl}" alt="사단법인 장애인의 양지누림" />
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+                `;
+
+                // Blob 객체를 이용해 .xls 파일로 인코딩 (한글 깨짐 방지용 \ufeff 추가)
+                const blob = new Blob(['\ufeff' + htmlString], { type: 'application/vnd.ms-excel;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `양지누림_전체연차보고서_${todayStr.replace(/[\.\s]/g, '')}.xls`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             return (
                 <div className="space-y-6 relative">
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
@@ -1698,6 +1781,12 @@
                                 <div className="flex w-full md:w-auto gap-2 mt-2 md:mt-0 hidden md:flex">
                                     {!isResignedTab && <button onClick={handleResetAllLeaveHistory} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition" title="모든 직원의 연차 내역을 삭제합니다">전체 연차 초기화</button>}
                                     <button onClick={() => setShowMonthlyModal(true)} className="flex-1 md:flex-none bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-teal-700 transition shadow-sm" title="과거 특정 월을 선택하여 연차 현황을 조회 및 다운로드합니다."><Icons.FileText /> 월간 보고서</button>
+                                    
+                                    {/* [v5.5.0] 전체 보고서 다운로드 버튼 추가 */}
+                                    <button onClick={handleDownloadFullReport} className="flex-1 md:flex-none bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-indigo-700 transition shadow-sm" title="파견기관 제출용 전체 직원 연차 현황을 예쁜 엑셀로 다운로드합니다.">
+                                        <span className="text-lg">📊</span> 전체 보고서
+                                    </button>
+
                                     <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition"><Icons.Upload /> 일괄</button>
                                 </div>
                             </div>
@@ -1761,6 +1850,8 @@
 
                     {!isResignedTab && (
                         <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-40">
+                            {/* [v5.5.0] 모바일용 전체 보고서 버튼 추가 */}
+                            <button onClick={handleDownloadFullReport} className="md:hidden bg-indigo-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(79,70,229,0.4)] hover:bg-indigo-700 active:scale-95 transition-all" title="전체 보고서 엑셀 다운로드"><span className="text-xl">📊</span></button>
                             <button onClick={() => setShowMonthlyModal(true)} className="md:hidden bg-teal-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(13,148,136,0.4)] hover:bg-teal-700 active:scale-95 transition-all" title="보고서 다운로드"><Icons.FileText /></button>
                             <button onClick={() => fileInputRef.current.click()} className="md:hidden bg-green-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(22,163,74,0.4)] hover:bg-green-700 active:scale-95 transition-all" title="일괄 업로드"><Icons.Upload /></button>
                             <button onClick={() => onOpenModal()} className="bg-blue-600 text-white w-14 h-14 md:w-auto md:px-6 md:py-4 md:h-auto rounded-full flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(37,99,235,0.4)] hover:bg-blue-700 active:scale-95 md:hover:-translate-y-1 transition-all" title="연차 등록"><Icons.Plus /><span className="font-bold text-sm whitespace-nowrap hidden md:inline">연차 등록</span></button>
