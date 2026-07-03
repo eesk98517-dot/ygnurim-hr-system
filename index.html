@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v5.7.3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v5.7.4)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -50,7 +50,7 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "5.7.3";
+        const SYSTEM_VERSION = "5.7.4";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -291,9 +291,9 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 기능 고도화</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p className="text-blue-600 font-bold">🌟 <b>스마트 엑셀 인식 엔진 탑재</b></p>
-                        <p>✅ <b>양식 자유도:</b> 정해진 열(B열, F열)이 아니어도 엑셀 상단의 [이름]과 [시간/휴가]를 시스템이 스스로 찾아내어 검증합니다.</p>
-                        <p>✅ 기존에 누락되던 자유 양식 엑셀 파일들도 오차 없이 시스템과 정상적으로 대조되도록 수정되었습니다.</p>
+                        <p className="text-blue-600 font-bold">🌟 <b>검증 결과 엑셀 다운로드 탑재</b></p>
+                        <p>✅ <b>대조 결과 저장:</b> 엑셀 대조 검사 후, 리스트에 나온 결과(누락, 일치 여부)를 그대로 엑셀 파일로 즉시 다운로드할 수 있습니다.</p>
+                        <p>✅ 화면에 뜬 검증 결과를 영구적으로 기록하고 오류 보고용으로 활용하세요!</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -483,6 +483,44 @@
             const [error, setError] = useState('');
             const fileInputRef = useRef(null);
 
+            // [v5.7.4] 검증 결과 엑셀 다운로드 기능 추가
+            const handleDownloadResults = () => {
+                if (!results) return;
+
+                const getStatusText = (status) => {
+                    if (status === 'match') return '정상 일치';
+                    if (status === 'missing') return 'DB 누락 (미등록)';
+                    if (status === 'mismatch') return '시간 불일치';
+                    if (status === 'not_found') return '직원 정보 없음';
+                    return status;
+                };
+
+                const wsData = [
+                    [`양지누림 연차 대조 검증 결과 (${targetMonth})`],
+                    [`출력 일자: ${new Date().toLocaleDateString()}`],
+                    [],
+                    ['이름', '엑셀 입력시간', '시스템(DB) 등록시간', '검증 결과']
+                ];
+
+                results.forEach(r => {
+                    wsData.push([
+                        r.name,
+                        `${r.excelHours}h`,
+                        r.dbHours !== '-' ? `${r.dbHours}h` : '-',
+                        getStatusText(r.status)
+                    ]);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
+                if (!ws['!merges']) ws['!merges'] = [];
+                ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } });
+
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "검증결과");
+                XLSX.writeFile(wb, `양지누림_대조검증결과_${targetMonth.replace('-', '')}.xlsx`);
+            };
+
             const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -637,7 +675,14 @@
                                     <span className="font-bold text-slate-700 text-sm">
                                         검증 월: <span className="text-blue-600">{targetMonth}</span> | 총 <span className="text-indigo-600">{results.length}</span>건 대조 완료
                                     </span>
-                                    <button onClick={() => setResults(null)} className="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition">다시 검사하기</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={handleDownloadResults} className="text-xs bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 rounded-lg font-bold hover:bg-green-100 transition flex items-center gap-1 shadow-sm">
+                                            <Icons.Download /> 결과 엑셀 다운로드
+                                        </button>
+                                        <button onClick={() => setResults(null)} className="text-xs bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg font-bold hover:bg-slate-200 transition shadow-sm">
+                                            다시 검사하기
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl custom-scrollbar">
                                     <table className="w-full text-sm text-left whitespace-nowrap">
@@ -1927,8 +1972,6 @@
                                 <div className="flex w-full md:w-auto gap-2 mt-2 md:mt-0 hidden md:flex">
                                     {!isResignedTab && <button onClick={handleResetAllLeaveHistory} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition" title="모든 직원의 연차 내역을 삭제합니다">전체 연차 초기화</button>}
                                     <button onClick={() => setShowMonthlyModal(true)} className="flex-1 md:flex-none bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-teal-700 transition shadow-sm" title="과거 특정 월을 선택하여 연차 현황을 조회 및 다운로드합니다."><Icons.FileText /> 월간 보고서</button>
-                                    
-                                    {/* [v5.7.0] 엑셀 대조 검증 버튼으로 변경 */}
                                     <button onClick={() => setShowVerificationModal(true)} className="flex-1 md:flex-none bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-indigo-700 transition shadow-sm" title="엑셀 파일과 시스템(DB)을 대조하여 누락된 연차를 찾습니다"><Icons.CheckCircle /> 엑셀 대조 검증</button>
                                 </div>
                             </div>
