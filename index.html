@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v5.7.4)</title>
+    <title>양지누림 연차 관리 시스템 (Official v5.8.0)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -50,7 +50,7 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "5.7.4";
+        const SYSTEM_VERSION = "5.8.0";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -291,9 +291,9 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 기능 고도화</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p className="text-blue-600 font-bold">🌟 <b>검증 결과 엑셀 다운로드 탑재</b></p>
-                        <p>✅ <b>대조 결과 저장:</b> 엑셀 대조 검사 후, 리스트에 나온 결과(누락, 일치 여부)를 그대로 엑셀 파일로 즉시 다운로드할 수 있습니다.</p>
-                        <p>✅ 화면에 뜬 검증 결과를 영구적으로 기록하고 오류 보고용으로 활용하세요!</p>
+                        <p className="text-blue-600 font-bold">🌟 <b>캘린더 UI 전면 개편 및 고속 이동 탑재</b></p>
+                        <p>✅ <b>크기 고정:</b> 5주, 6주 달에 상관없이 달력의 세로 높이가 항상 일정하게 유지되도록 구조를 개편했습니다. 덜그럭거림이 완벽히 사라졌습니다!</p>
+                        <p>✅ <b>초고속 과거 조회:</b> 화살표를 여러 번 누를 필요 없이, 연도와 월을 한 번의 클릭으로 선택(드롭다운)하여 과거 데이터로 즉시 건너뛸 수 있습니다.</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -483,7 +483,6 @@
             const [error, setError] = useState('');
             const fileInputRef = useRef(null);
 
-            // [v5.7.4] 검증 결과 엑셀 다운로드 기능 추가
             const handleDownloadResults = () => {
                 if (!results) return;
 
@@ -537,11 +536,10 @@
                         const newResults = [];
                         let parseCount = 0;
 
-                        // [v5.7.3] 엑셀 열(Column) 자동 탐지 엔진
                         let nameColIdx = -1; 
                         let hourColIdx = -1; 
-                        let infoColIdx = -1; // 생년월일이나 폰번호 (선택)
-                        let startRowIdx = 1; // 기본적으로 두번째 줄부터 시작
+                        let infoColIdx = -1; 
+                        let startRowIdx = 1; 
 
                         for (let i = 0; i < Math.min(5, jsonData.length); i++) {
                             const row = jsonData[i];
@@ -567,9 +565,8 @@
                             }
                         }
                         
-                        // 만약 탐지 실패시 기본값 세팅 (기존 양식 호환)
-                        if (nameColIdx === -1) nameColIdx = 1; // B열
-                        if (hourColIdx === -1) hourColIdx = 5; // F열
+                        if (nameColIdx === -1) nameColIdx = 1; 
+                        if (hourColIdx === -1) hourColIdx = 5; 
 
                         for (let i = startRowIdx; i < jsonData.length; i++) {
                             const row = jsonData[i];
@@ -583,7 +580,6 @@
                                 parseCount++;
                                 const normName = normalizeString(name);
 
-                                // [v5.7.3] 동명이인 스마트 매칭
                                 const matchingStaffs = staffList.filter(s => normalizeString(s.name) === normName);
                                 let targetStaff = null;
 
@@ -956,6 +952,9 @@
 
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
+            
+            const baseYear = new Date().getFullYear();
+            const yearOptions = Array.from({length: 15}, (_, i) => baseYear - 10 + i);
 
             const startOfMonth = new Date(year, month, 1);
             const endOfMonth = new Date(year, month + 1, 0);
@@ -988,6 +987,11 @@
                 while (currWeek.length < 7) currWeek.push(null);
                 weeks.push(currWeek);
             }
+            
+            // [v5.8.0] 캘린더 크기 고정을 위해 무조건 6주(42일) 규격으로 맞춤
+            while (weeks.length < 6) {
+                weeks.push(new Array(7).fill(null));
+            }
 
             const todayStr = toLocalYMD(new Date());
 
@@ -995,11 +999,19 @@
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 mt-6 animate-fade-in overflow-hidden flex flex-col">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="font-bold text-slate-700 flex items-center gap-2 text-sm md:text-base"><Icons.Calendar /> 전사 휴가 캘린더</h3>
-                        <div className="flex items-center gap-1 md:gap-2">
-                            <button type="button" onClick={prevMonth} className="p-1 md:p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronLeft /></button>
-                            <span className="font-black text-slate-800 w-20 md:w-24 text-center text-sm md:text-base">{year}년 {month + 1}월</span>
-                            <button type="button" onClick={nextMonth} className="p-1 md:p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronRight /></button>
-                            <button type="button" onClick={goToday} className="text-[10px] md:text-xs font-bold text-blue-600 bg-blue-50 px-2 md:px-3 py-1.5 rounded-lg ml-1 md:ml-2 hover:bg-blue-100 transition shadow-sm border border-blue-100">오늘</button>
+                        <div className="flex items-center gap-1 md:gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-sm">
+                            <button type="button" onClick={prevMonth} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronLeft /></button>
+                            
+                            {/* [v5.8.0] 초고속 과거/미래 이동 드롭다운 탑재 */}
+                            <select value={year} onChange={e => setCurrentDate(new Date(parseInt(e.target.value), month, 1))} className="bg-white border border-slate-200 rounded-md px-1 md:px-2 py-1 text-xs md:text-sm font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">
+                                {yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}
+                            </select>
+                            <select value={month} onChange={e => setCurrentDate(new Date(year, parseInt(e.target.value), 1))} className="bg-white border border-slate-200 rounded-md px-1 md:px-2 py-1 text-xs md:text-sm font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">
+                                {Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{m + 1}월</option>)}
+                            </select>
+
+                            <button type="button" onClick={nextMonth} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronRight /></button>
+                            <button type="button" onClick={goToday} className="text-[10px] md:text-xs font-bold text-blue-600 bg-white border border-blue-100 px-2 md:px-3 py-1.5 rounded-lg ml-1 md:ml-2 hover:bg-blue-50 transition shadow-sm">오늘</button>
                         </div>
                     </div>
                     <div className="w-full overflow-x-auto no-scrollbar">
@@ -1012,7 +1024,7 @@
                                 const leaves = d ? (leaveMap[dateStr] || []) : [];
                                 const isToday = dateStr === todayStr;
                                 return (
-                                    <div key={idx} className={`bg-white h-[130px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
+                                    <div key={idx} className={`bg-white h-[90px] md:h-[110px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
                                         <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full mx-auto md:mx-0 ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>
                                             {d || ''}
                                         </div>
@@ -1041,6 +1053,9 @@
 
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
+
+            const baseYear = new Date().getFullYear();
+            const yearOptions = Array.from({length: 15}, (_, i) => baseYear - 10 + i);
 
             const startOfMonth = new Date(year, month, 1);
             const endOfMonth = new Date(year, month + 1, 0);
@@ -1074,13 +1089,18 @@
                 weeks.push(currWeek);
             }
 
+            // [v5.8.0] 캘린더 크기 고정을 위해 무조건 6주(42일) 규격으로 맞춤
+            while (weeks.length < 6) {
+                weeks.push(new Array(7).fill(null));
+            }
+
             const todayStr = toLocalYMD(new Date());
 
             if (!staff) return null;
 
             return (
                 <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[250] animate-fade-in backdrop-blur-sm p-4">
-                    <div className="bg-white p-4 md:p-6 rounded-3xl shadow-2xl w-full max-w-2xl relative border border-slate-200">
+                    <div className="bg-white p-4 md:p-6 rounded-3xl shadow-2xl w-full max-w-4xl relative border border-slate-200">
                         <button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-2"><Icons.X /></button>
                         
                         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b pb-4 border-slate-100">
@@ -1105,7 +1125,15 @@
                             </div>
                             <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-sm">
                                 <button type="button" onClick={prevMonth} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronLeft /></button>
-                                <span className="font-black text-slate-800 w-24 text-center text-sm">{year}년 {month + 1}월</span>
+                                
+                                {/* [v5.8.0] 초고속 과거/미래 이동 드롭다운 탑재 */}
+                                <select value={year} onChange={e => setCurrentDate(new Date(parseInt(e.target.value), month, 1))} className="bg-white border border-slate-200 rounded-md px-1 md:px-2 py-1 text-xs md:text-sm font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">
+                                    {yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}
+                                </select>
+                                <select value={month} onChange={e => setCurrentDate(new Date(year, parseInt(e.target.value), 1))} className="bg-white border border-slate-200 rounded-md px-1 md:px-2 py-1 text-xs md:text-sm font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">
+                                    {Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{m + 1}월</option>)}
+                                </select>
+
                                 <button type="button" onClick={nextMonth} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronRight /></button>
                                 <button type="button" onClick={goToday} className="text-xs font-bold text-blue-600 bg-white border border-blue-100 px-3 py-1.5 rounded-lg ml-2 hover:bg-blue-50 transition shadow-sm">오늘</button>
                             </div>
@@ -1120,7 +1148,7 @@
                                 const leaves = d ? (leaveMap[dateStr] || []) : [];
                                 const isToday = dateStr === todayStr;
                                 return (
-                                    <div key={idx} className={`bg-white h-20 md:h-24 p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50':'opacity-50 pointer-events-none'}`}>
+                                    <div key={idx} className={`bg-white h-[85px] md:h-[95px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50':'opacity-50 pointer-events-none'}`}>
                                         <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>
                                             {d || ''}
                                         </div>
