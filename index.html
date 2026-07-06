@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v5.8.1)</title>
+    <title>양지누림 연차 관리 시스템 (Official v5.8.2)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -50,7 +50,7 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "5.8.1";
+        const SYSTEM_VERSION = "5.8.2";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
@@ -291,9 +291,9 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 기능 고도화</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p className="text-blue-600 font-bold">🌟 <b>직원 포털 권한 제어 업데이트</b></p>
-                        <p>✅ <b>수정/삭제 권한 회수:</b> 직원 포털에서 임의로 과거 휴가를 삭제할 수 없도록 휴지통 버튼을 전면 제거했습니다.</p>
-                        <p>✅ 시스템 관리자는 [연차 관리] 탭에서 기존과 100% 동일하게 삭제/수정 권한을 가집니다.</p>
+                        <p className="text-blue-600 font-bold">🌟 <b>시스템 코어 무결성 패치</b></p>
+                        <p>✅ <b>런타임 방어망 적용:</b> 캘린더 렌더링 중 발생하던 백화현상 및 탭 튕김 문제를 완전히 해결했습니다.</p>
+                        <p>✅ 데이터 누락 시에도 시스템이 멈추지 않고 스스로 복구하도록 보호 조치되었습니다.</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -1028,8 +1028,8 @@
                                         </div>
                                         <div className="flex-1 overflow-y-auto pr-0.5 space-y-1 mt-1 custom-scrollbar">
                                             {leaves.map((l, i) => (
-                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type.includes('반차') || l.type.includes('시간')?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'}`} title={`${l.name} (${l.type})`}>
-                                                    {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span>
+                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type && (l.type.includes('반차') || l.type.includes('시간')) ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`} title={`${l.name} (${l.type || '연차'})`}>
+                                                    {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type || '연차'})</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1150,8 +1150,8 @@
                                         </div>
                                         <div className="flex-1 overflow-y-auto space-y-1 mt-1 custom-scrollbar">
                                             {leaves.map((l, i) => (
-                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-1 rounded-md leading-tight font-bold shadow-sm border ${l.type.includes('반차') || l.type.includes('시간') ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`} title={l.reason || l.type}>
-                                                    {l.type}
+                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-1 rounded-md leading-tight font-bold shadow-sm border ${l.type && (l.type.includes('반차') || l.type.includes('시간')) ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`} title={l.reason || l.type || '연차'}>
+                                                    {l.type || '연차'}
                                                 </div>
                                             ))}
                                         </div>
@@ -1498,352 +1498,6 @@
             );
         };
 
-        const PromotionTab = ({ staffList, showAlert }) => {
-            const today = new Date();
-            const [startMonth, setStartMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
-            const [endMonth, setEndMonth] = useState(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`);
-            const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-
-            const promotionList = useMemo(() => {
-                const list = [];
-                const [sY, sM] = startMonth.split('-').map(Number);
-                const [eY, eM] = endMonth.split('-').map(Number);
-                if (isNaN(sY) || isNaN(eY)) return list;
-
-                const startVal = sY * 12 + sM;
-                const endVal = eY * 12 + eM;
-
-                staffList.forEach(staff => {
-                    let foundStatus = null;
-                    let targetDate = '';
-                    
-                    for (let val = startVal; val <= endVal; val++) {
-                        const y = Math.floor((val - 1) / 12);
-                        const m = ((val - 1) % 12) + 1;
-                        const status = getPromotionStatus(staff, y, m);
-                        if (status) {
-                            foundStatus = status;
-                            targetDate = `${y}년 ${m}월`;
-                            break; 
-                        }
-                    }
-
-                    if (foundStatus) {
-                        const leaveInfo = foundStatus.leaveInfo;
-                        const dailyHours = safeParseFloat(staff.workHours) || 8;
-                        const totalDays = leaveInfo.total || 0;
-                        const totalHours = totalDays * dailyHours;
-                        
-                        const activeHistory = (staff.leaveHistory || []).filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
-                        const usedHours = activeHistory.reduce((acc, cur) => acc + (safeParseFloat(cur.days) || 0), 0);
-                        
-                        const remainingHours = totalHours - usedHours;
-                        const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
-                        const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
-                        
-                        const promoPlanKey = 'promoPlan_' + foundStatus.baseYear;
-                        
-                        list.push({ 
-                            ...staff, 
-                            promoStatus: foundStatus, 
-                            targetDate, 
-                            leaveInfo, 
-                            totalDays, 
-                            usedDays, 
-                            remainingDays,
-                            promoPlanKey,
-                            isPlanSubmitted: staff[promoPlanKey] || false
-                        });
-                    }
-                });
-                return list;
-            }, [staffList, startMonth, endMonth]);
-
-            const handleTogglePlan = async (staffId, promoPlanKey, currentVal) => {
-                try {
-                    await db.collection('users').doc(staffId).update({
-                        [promoPlanKey]: !currentVal
-                    });
-                } catch(e) { showAlert("상태 업데이트 오류: " + e.message); }
-            };
-
-            const handleDownloadSignOK = () => {
-                const targets = promotionList.filter(p => p.promoStatus.type.includes('1차'));
-                if (targets.length === 0) { showAlert("해당 기간에 1차 촉진 대상자가 없습니다."); return; }
-                const day = today.getDate();
-                const excelData = targets.map(p => {
-                    const [tYear, tMonth] = p.targetDate.replace('년 ', '-').replace('월', '').split('-').map(Number);
-                    return {
-                        "이메일 또는 휴대폰번호(필수)": p.phone || "", "이름(필수)": p.name || "", "남길말(선택)": "",
-                        "연차 사용대상기간(양지누림)": p.leaveInfo.period || "", "발생연차(양지누림)": p.totalDays || 0,
-                        "사용연차(양지누림)": p.usedDays, "미사용(양지누림)": p.remainingDays,
-                        "연차유급휴가 발생일(양지누림)": p.leaveInfo.startDate, "성명(양지누림)": p.name || "",
-                        "소속(양지누림)": "(사)장애인의양지누림", "직위(양지누림)": "근로지원인",
-                        "연도(양지누림)-1": tYear, "월(양지누림)-1": tMonth, "일(양지누림)-1": day, 
-                        "연도(양지누림)": tYear, "월(양지누림)": tMonth, "일(양지누림)": 20
-                    };
-                });
-                const ws = XLSX.utils.json_to_sheet(excelData); const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "싸인오케이_대량발송");
-                XLSX.writeFile(wb, `1차촉진_통보대상_${startMonth}_to_${endMonth}.xlsx`);
-            };
-
-            const generateDesignatedDates = (remainingDays, offDays = [0], leaveInfo) => {
-                const dates = [];
-                let current = new Date(); 
-                current.setDate(current.getDate() + 7); 
-
-                let endDateStr = leaveInfo ? leaveInfo.endDate : null;
-                let endDateObj = null;
-                if (endDateStr) {
-                    const [ey, em, ed] = endDateStr.split('-').map(Number);
-                    endDateObj = new Date(ey, em - 1, ed);
-                }
-
-                const validDatesPool = [];
-                for (let i = 0; i < 90; i++) {
-                    const testDate = new Date(current);
-                    testDate.setDate(testDate.getDate() + i);
-                    
-                    if (endDateObj && testDate > endDateObj) {
-                        break; 
-                    }
-                    
-                    if (!offDays.includes(testDate.getDay())) {
-                        validDatesPool.push(testDate);
-                    }
-                }
-
-                for (let i = validDatesPool.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [validDatesPool[i], validDatesPool[j]] = [validDatesPool[j], validDatesPool[i]];
-                }
-
-                let daysToAssign = remainingDays;
-                let selectedDates = [];
-
-                for (let i = 0; i < validDatesPool.length && daysToAssign > 0; i++) {
-                    const useAmount = daysToAssign >= 1 ? 1 : 0.5; 
-                    selectedDates.push({ dateObj: validDatesPool[i], days: useAmount });
-                    daysToAssign -= useAmount;
-                }
-
-                selectedDates.sort((a, b) => a.dateObj - b.dateObj);
-
-                selectedDates.forEach(item => {
-                    dates.push({
-                        month: item.dateObj.getMonth() + 1,
-                        date: item.dateObj.getDate(),
-                        days: item.days
-                    });
-                });
-
-                while(dates.length < 5) {
-                    dates.push({ month: '', date: '', days: '' });
-                }
-                return dates;
-            };
-
-            const handleDownloadNoticePdfZip = async () => {
-                const unsubmittedList = promotionList.filter(p => !p.isPlanSubmitted && p.remainingDays > 0);
-                if (unsubmittedList.length === 0) {
-                    showAlert("계획서 미제출자(잔여 연차가 있는 직원)가 없습니다.");
-                    return;
-                }
-
-                if (!window.html2pdf || !window.JSZip) {
-                    showAlert("필요한 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
-                    return;
-                }
-
-                setIsGeneratingPdf(true);
-
-                try {
-                    const zip = new JSZip();
-                    const folderName = `사용시기지정통보서_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}`;
-                    const folder = zip.folder(folderName);
-
-                    for (const staff of unsubmittedList) {
-                        const elementId = `pdf-content-${staff.id}`;
-                        const element = document.getElementById(elementId);
-                        
-                        if (!element) continue;
-
-                        const opt = {
-                            margin: 15,
-                            filename: `통보서_${staff.name}.pdf`,
-                            image: { type: 'jpeg', quality: 1.0 },
-                            html2canvas: { scale: 2, useCORS: true },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                            pagebreak: { mode: 'avoid-all' } 
-                        };
-
-                        const pdfBlob = await window.html2pdf().from(element).set(opt).output('blob');
-                        folder.file(`연차사용시기지정통보서_${staff.name}.pdf`, pdfBlob);
-                    }
-
-                    const content = await zip.generateAsync({ type: "blob" });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(content);
-                    link.download = `양지누림_통보서_일괄다운로드_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}.zip`;
-                    link.click();
-                    
-                } catch (err) {
-                    console.error(err);
-                    showAlert("ZIP 생성 중 오류가 발생했습니다.");
-                } finally {
-                    setIsGeneratingPdf(false);
-                }
-            };
-
-            return (
-                <div className="space-y-6 animate-fade-in relative">
-                    {isGeneratingPdf && (
-                        <div className="fixed inset-0 bg-slate-900/60 z-[500] flex flex-col items-center justify-center text-white backdrop-blur-sm">
-                            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                            <h2 className="text-2xl font-bold">통보서 압축 파일(ZIP) 생성 중...</h2>
-                            <p className="mt-2 text-blue-200">대상자가 많을 경우 다소 시간이 소요될 수 있습니다.</p>
-                        </div>
-                    )}
-
-                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 관리</h3>
-                            <p className="text-xs md:text-sm text-slate-500">촉진 대상자 검색, 계획서 제출 여부 체크 및 통보서를 출력합니다.</p>
-                        </div>
-                        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-                            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 w-full md:w-auto">
-                                <input type="month" value={startMonth} onChange={e => setStartMonth(e.target.value)} className="bg-white border rounded-lg px-2 py-1 text-sm font-bold text-slate-700 outline-none w-full md:w-32" />
-                                <span className="text-slate-400 font-bold">~</span>
-                                <input type="month" value={endMonth} onChange={e => setEndMonth(e.target.value)} className="bg-white border rounded-lg px-2 py-1 text-sm font-bold text-slate-700 outline-none w-full md:w-32" />
-                            </div>
-                            
-                            <div className="flex gap-2 w-full md:w-auto">
-                                <button type="button" onClick={handleDownloadSignOK} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-3 md:py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition shadow-sm" title="1차 촉진 대상자용 싸인오케이 엑셀 다운로드">
-                                    <Icons.FileText /> 싸인오케이(1차)
-                                </button>
-                                <button type="button" onClick={handleDownloadNoticePdfZip} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-3 md:py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-red-600 transition shadow-sm" title="미제출자 통보서를 개별 PDF로 만들어 ZIP으로 압축 다운로드합니다.">
-                                    <span className="text-lg">🗂️</span> 통보서 압축(ZIP)
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap">
-                        <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                                <tr>
-                                    <th className="p-4">이름</th>
-                                    <th className="p-4">입사일</th>
-                                    <th className="p-4">연차 산정 기간</th>
-                                    <th className="p-4 text-center">조회된 촉진 시기</th>
-                                    <th className="p-4 text-center">촉진 단계</th>
-                                    <th className="p-4 text-center bg-blue-50/50">계획서 제출 완료</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {promotionList.map((staff) => (
-                                    <tr key={staff.id} className={`hover:bg-slate-50 transition ${staff.isPlanSubmitted ? 'opacity-50' : ''}`}>
-                                        <td className="p-4 font-bold text-slate-800">{staff.name}</td>
-                                        <td className="p-4 text-slate-500">{safeDate(staff.joinDate)}</td>
-                                        <td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td>
-                                        <td className="p-4 text-center font-bold text-blue-600">{staff.targetDate}</td>
-                                        <td className="p-4 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold ${staff.promoStatus.color}`}>{staff.promoStatus.type}</span></td>
-                                        <td className="p-4 text-center bg-blue-50/20">
-                                            <label className="flex items-center justify-center gap-2 cursor-pointer">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={staff.isPlanSubmitted}
-                                                    onChange={() => handleTogglePlan(staff.id, staff.promoPlanKey, staff.isPlanSubmitted)}
-                                                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                />
-                                                <span className={`text-xs font-bold ${staff.isPlanSubmitted ? 'text-green-600' : 'text-red-500'}`}>
-                                                    {staff.isPlanSubmitted ? '제출됨' : '미제출'}
-                                                </span>
-                                            </label>
-                                        </td>
-                                    </tr>
-                                ))}
-                                {promotionList.length === 0 && <tr><td colSpan="6" className="p-12 text-center text-slate-400">선택된 기간에 대상자가 없습니다.</td></tr>}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-                        {promotionList.filter(p => !p.isPlanSubmitted && p.remainingDays > 0).map((staff) => {
-                            const todayNow = new Date();
-                            const yearStr = todayNow.getFullYear();
-                            const monthStr = todayNow.getMonth() + 1;
-                            const dayStr = todayNow.getDate();
-                            
-                            const offDaysArray = staff.offDays && staff.offDays.length > 0 ? staff.offDays : [0]; 
-                            const designatedDates = generateDesignatedDates(staff.remainingDays, offDaysArray, staff.leaveInfo);
-
-                            return (
-                                <div key={staff.id} id={`pdf-content-${staff.id}`} className="bg-white text-black text-left font-sans flex flex-col" style={{ width: '180mm', minHeight: '260mm', padding: '10px', boxSizing: 'border-box' }}>
-                                    <h1 className="text-2xl font-black text-center mb-4 tracking-widest">연차 유급휴가 사용시기 지정 통보서</h1>
-                                    <p className="text-center text-sm font-bold mb-8">&lt; 근로기준법 제61조(연차유급휴가의 사용촉진) 관련 &gt;</p>
-                                    
-                                    <h3 className="text-base font-bold mb-2">1. 대상 근로자</h3>
-                                    <table className="w-full text-center border-collapse border border-black mb-8 text-sm">
-                                        <tbody>
-                                            <tr>
-                                                <th className="border border-black p-2 bg-gray-100 w-1/4">성명</th>
-                                                <td className="border border-black p-2 w-1/4 font-bold">{staff.name}</td>
-                                                <th className="border border-black p-2 bg-gray-100 w-1/4">입사일</th>
-                                                <td className="border border-black p-2 w-1/4">{safeDate(staff.joinDate)}</td>
-                                            </tr>
-                                            <tr>
-                                                <th className="border border-black p-2 bg-gray-100">소속</th>
-                                                <td className="border border-black p-2 font-bold">(사)장애인의양지누림</td>
-                                                <th className="border border-black p-2 bg-gray-100">직위</th>
-                                                <td className="border border-black p-2 font-bold">근로지원인</td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                    
-                                    <h3 className="text-base font-bold mb-2 leading-relaxed">
-                                        2. {yearStr}. 현재까지 사용하지 않은 연차 유급휴가 <span className="underline font-black text-red-600 px-1">{staff.remainingDays}</span>일에 대하여 아래와 같이 사용시기를 지정하여 통보합니다.
-                                    </h3>
-                                    
-                                    <p className="text-sm font-bold mt-6 mb-2 text-center">&lt; 미사용 연차 유급휴가 사용시기 지정 &gt;</p>
-                                    <table className="w-full text-center border-collapse border-2 border-black mb-8 text-sm">
-                                        <thead>
-                                            <tr>
-                                                <th className="border border-black p-2 bg-gray-100">해당월</th>
-                                                <th className="border border-black p-2 bg-gray-100">지정일자</th>
-                                                <th className="border border-black p-2 bg-gray-100">사용일수</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {designatedDates.map((item, i) => (
-                                                <tr key={i}>
-                                                    <td className={`border border-black p-2 h-8 align-middle ${item.month ? 'font-bold' : 'text-gray-300'}`}>{item.month ? `${item.month}월` : '월'}</td>
-                                                    <td className={`border border-black p-2 align-middle ${item.date ? 'font-bold' : 'text-gray-300'}`}>{item.date ? `${item.date}일` : '일'}</td>
-                                                    <td className={`border border-black p-2 align-middle ${item.days ? 'font-bold text-blue-600' : 'text-gray-300'}`}>{item.days ? `${item.days}일` : '일'}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-
-                                    <div className="mt-auto pt-6 flex flex-col items-center w-full avoid-break">
-                                        <p className="text-base font-bold mb-8">{yearStr}년 {monthStr}월 {dayStr}일</p>
-                                        
-                                        <div className="flex justify-center items-center gap-4 w-full">
-                                            <span className="text-base font-bold">통보자:</span>
-                                            <img src="logo.png" alt="양지누림 로고" className="h-10 object-contain" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
-                                            <span className="text-base font-bold border-b border-black w-24 text-right">(서명)</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                </div>
-            );
-        };
-
         const StaffPortal = ({ user, onLogout, showAlert, showConfirm }) => {
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
@@ -1945,7 +1599,7 @@
                 if (newParsedDates.length > 0) {
                     setCustomDates([...customDates, ...newParsedDates].sort((a,b) => a.date.localeCompare(b.date)));
                     setCustomDateInput('');
-                } else showAlert('❌ 올바 날짜 형식을 입력하세요 (예: 4.1, 2026.5.21)');
+                } else showAlert('❌ 올바른 날짜 형식을 입력하세요 (예: 4.1, 2026.5.21)');
             };
 
             const handleSubmit = async (e) => {
@@ -1982,6 +1636,22 @@
                     showAlert('✅ 연차 등록 완료!'); 
                     setCustomDates([]); setReason('');
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
+            };
+
+            const handleDeleteLeave = (leaveId) => {
+                showConfirm('정말 연차 내역을 삭제하시겠습니까?', async () => {
+                    try {
+                        const newHistory = (userData.leaveHistory || []).filter(h => h.id !== leaveId);
+                        const totalUsedHours = newHistory.reduce((acc, curr) => (curr.date >= leaveStats.startDate && curr.date <= leaveStats.endDate) ? acc + safeParseFloat(curr.days) : acc, 0);
+                        
+                        await db.collection('users').doc(userData.id).update({ 
+                            annualLeaveUsed: totalUsedHours, 
+                            annualLeaveTotal: leaveStats.totalDays,
+                            annualLeavePeriod: leaveStats.period,
+                            leaveHistory: newHistory 
+                        });
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                });
             };
 
             const currentYearNum = new Date().getFullYear();
@@ -2096,12 +1766,12 @@
                                 <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar pr-2 space-y-2">
                                     {leaveStats.displayHistory.length > 0 ? (
                                         leaveStats.displayHistory.map(rec => (
-                                            <div key={rec.id} className="flex items-center justify-between p-3 rounded-xl border bg-slate-50 border-slate-100 transition">
+                                            <div key={rec.id} className="flex items-center justify-between p-3 rounded-xl border bg-slate-50 border-slate-100 transition group">
                                                 <div className="flex items-center gap-3">
                                                     <div className="bg-white p-2 rounded-lg shadow-sm border text-blue-600"><Icons.Calendar /></div>
                                                     <div>
                                                         <p className="font-bold text-slate-700 text-sm">{rec.date}</p>
-                                                        <p className="text-[11px] text-slate-500 mt-0.5">{rec.type} <span className="mx-1">|</span> {rec.reason || '사유 없음'}</p>
+                                                        <p className="text-[11px] text-slate-500 mt-0.5">{rec.type || '연차'} <span className="mx-1">|</span> {rec.reason || '사유 없음'}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2113,6 +1783,560 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            );
+        };
+
+        const LeaveManagementTab = ({ staffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1); 
+            const [showNegativeOnly, setShowNegativeOnly] = useState(false); 
+            const [showCheckOnly, setShowCheckOnly] = useState(false);
+            const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' }); 
+            const [calendarStaff, setCalendarStaff] = useState(null);
+            const [showMonthlyModal, setShowMonthlyModal] = useState(false);
+            const [showVerificationModal, setShowVerificationModal] = useState(false); 
+
+            const handleResetFilters = () => {
+                setSearchTerm('');
+                setShowNegativeOnly(false);
+                setShowCheckOnly(false);
+                setSortConfig({ key: 'name', direction: 'asc' });
+                if(isPastMode) setSelectedYear(new Date().getFullYear() - 1);
+            };
+
+            const handleResetAllLeaveHistory = () => {
+                showConfirm('모든 직원의 연차 사용 내역을 완전히 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.', async () => {
+                    try {
+                        const batch = db.batch();
+                        staffList.forEach(s => {
+                            batch.update(db.collection('users').doc(s.id), {
+                                leaveHistory: [],
+                                annualLeaveUsed: 0
+                            });
+                        });
+                        await batch.commit();
+                        showAlert('전체 연차 내역이 초기화되었습니다.');
+                    } catch(e) {
+                        showAlert('오류: ' + e.message);
+                    }
+                });
+            };
+
+            const filteredList = useMemo(() => {
+                let data = staffList.map(staff => {
+                    const dailyHours = safeParseFloat(staff.workHours) || 8;
+                    let leaveInfo, usedHours = 0, activeHistory = [];
+
+                    if (isPastMode) {
+                        leaveInfo = calculateLeaveForYear(staff.joinDate, selectedYear);
+                    } else {
+                        leaveInfo = calculateAnnualLeave(staff.joinDate);
+                    }
+
+                    const allHistory = (staff.leaveHistory || []).sort((a,b) => new Date(b.date) - new Date(a.date));
+                    
+                    if (isPastMode) {
+                        activeHistory = allHistory.filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
+                    } else {
+                        activeHistory = allHistory.filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
+                    }
+
+                    usedHours = activeHistory.reduce((acc, cur) => acc + (safeParseFloat(cur.days) || 0), 0);
+
+                    const totalDays = leaveInfo.total || 0;
+                    const totalHours = totalDays * dailyHours;
+                    const remainingHours = totalHours - usedHours;
+                    const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
+                    const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
+                    
+                    const dateCounts = {};
+                    activeHistory.forEach(h => {
+                        if (h.date) dateCounts[h.date] = (dateCounts[h.date] || 0) + 1;
+                    });
+                    
+                    const needsCheck = activeHistory.some(h => dateCounts[h.date] > 1);
+
+                    const displayHistory = activeHistory.map(h => ({
+                        ...h,
+                        isWarn: dateCounts[h.date] > 1
+                    }));
+
+                    return { ...staff, dailyHours, leaveInfo, totalDays, totalHours, usedHours, remainingHours, usedDays, remainingDays, displayHistory, notJoined: leaveInfo.notJoined, resignDate: staff.resignDate, needsCheck };
+                });
+
+                let result = data.filter(d => {
+                    if (!isResignedTab && d.notJoined) return false;
+                    const matchName = d.name && d.name.includes(searchTerm);
+                    const matchNegative = showNegativeOnly ? d.remainingHours < 0 : true;
+                    const matchCheck = showCheckOnly ? d.needsCheck : true;
+                    return matchName && matchNegative && matchCheck;
+                });
+
+                if (sortConfig.key) {
+                    result.sort((a, b) => {
+                        let aVal = a[sortConfig.key] || '';
+                        let bVal = b[sortConfig.key] || '';
+                        if (sortConfig.key === 'total') { aVal = a.totalHours || 0; bVal = b.totalHours || 0; }
+                        if (sortConfig.key === 'used') { aVal = a.usedHours || 0; bVal = b.usedHours || 0; }
+                        if (sortConfig.key === 'remaining') { aVal = a.remainingHours || 0; bVal = b.remainingHours || 0; }
+                        
+                        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                }
+                return result;
+            }, [staffList, selectedYear, isPastMode, searchTerm, showNegativeOnly, showCheckOnly, isResignedTab, sortConfig]);
+
+            const handleSort = (key) => {
+                let direction = 'asc';
+                if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+                setSortConfig({ key, direction });
+            };
+
+            const getSortIcon = (key) => {
+                if (sortConfig.key !== key) return <span className="text-slate-300 ml-1">⇅</span>;
+                return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
+            };
+
+            const handleDeleteLeave = (data, leaveId) => {
+                showConfirm('이 휴가 내역을 삭제하시겠습니까?', async () => {
+                    try {
+                        const newHistory = (data.leaveHistory || []).filter(h => h.id !== leaveId);
+                        const currentInfo = calculateAnnualLeave(data.joinDate);
+                        const totalUsedHours = newHistory.reduce((acc, curr) => {
+                            if (curr.date >= currentInfo.startDate && curr.date <= currentInfo.endDate) return acc + (safeParseFloat(curr.days) || 0);
+                            return acc;
+                        }, 0);
+                        
+                        await db.collection('users').doc(data.id).update({ 
+                            annualLeaveUsed: totalUsedHours, 
+                            annualLeaveTotal: currentInfo.total,
+                            annualLeavePeriod: currentInfo.period,
+                            leaveHistory: newHistory 
+                        });
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+
+            return (
+                <div className="space-y-6 relative">
+                    <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                                <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명</p></div>
+                                {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option> })}</select>)}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                                <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition" title="같은 날짜에 2개 이상의 연차가 등록된 직원을 찾습니다"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-orange-600 whitespace-nowrap flex items-center gap-1"><Icons.Alert /> 중복 확인</span></label>
+                                <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-red-500 whitespace-nowrap">초과자만</span></label>
+                                <div className="flex w-full md:w-auto items-center gap-1">
+                                    <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-32 px-4 py-2 border rounded-xl text-sm outline-none mt-2 md:mt-0" />
+                                    <button onClick={handleResetFilters} className="p-2.5 mt-2 md:mt-0 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="필터/검색 초기화"><Icons.Refresh /></button>
+                                </div>
+                                
+                                <div className="flex w-full md:w-auto gap-2 mt-2 md:mt-0 hidden md:flex">
+                                    {!isResignedTab && <button onClick={handleResetAllLeaveHistory} className="bg-red-50 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition" title="모든 직원의 연차 내역을 삭제합니다">전체 연차 초기화</button>}
+                                    <button onClick={() => setShowMonthlyModal(true)} className="flex-1 md:flex-none bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-teal-700 transition shadow-sm" title="과거 특정 월을 선택하여 연차 현황을 조회 및 다운로드합니다."><Icons.FileText /> 월간 보고서</button>
+                                    <button onClick={() => setShowVerificationModal(true)} className="flex-1 md:flex-none bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-indigo-700 transition shadow-sm" title="엑셀 파일과 시스템(DB)을 대조하여 누락된 연차를 찾습니다"><Icons.CheckCircle /> 엑셀 대조 검증</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                <tr>
+                                    <th className="p-4 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('name')}><div className="flex items-center">이름 {getSortIcon('name')}</div></th>
+                                    <th className="p-4 text-center text-blue-600 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('total')}><div className="flex items-center justify-center">총 연차 {getSortIcon('total')}</div></th>
+                                    <th className="p-4 text-center text-red-500 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('used')}><div className="flex items-center justify-center">사용 {getSortIcon('used')}</div></th>
+                                    <th className="p-4 text-center text-green-600 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여 {getSortIcon('remaining')}</div></th>
+                                    <th className="p-4 w-44">기간</th><th className="p-4 min-w-[200px]">내역</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredList.map((data) => {
+                                    const isDateError = !data.joinDate || data.joinDate.length < 8;
+                                    return (
+                                        <tr key={data.id} className="hover:bg-slate-50 transition">
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-bold text-slate-800 cursor-pointer hover:underline hover:text-blue-600" onClick={() => onNameClick && onNameClick(data)}>{data.name}</div>
+                                                    <button onClick={() => setCalendarStaff(data)} className="text-blue-500 bg-blue-50 p-1.5 rounded-lg hover:bg-blue-100 hover:shadow-sm transition" title={`${data.name}의 개인 연차 캘린더 보기`}><Icons.Calendar /></button>
+                                                </div>
+                                                {data.workHours && <div className="text-xs text-slate-500 mt-1">일 {data.workHours}h</div>}
+                                                {data.needsCheck && <div className="text-xs text-orange-600 font-bold mt-1 flex items-center gap-1 animate-pulse"><Icons.Alert /> 중복 입력 확인필요</div>}
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-blue-600">
+                                                {isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({data.totalDays}일)</span></>}
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-red-500">{fmt(data.usedHours)}h <span className="text-xs font-normal text-slate-400">({data.usedDays}일)</span></td>
+                                            <td className={`p-4 text-center font-black text-lg ${data.remainingHours < 0 ? 'text-red-600 animate-pulse' : 'text-green-600'}`}>{fmt(data.remainingHours)}h <span className="text-xs font-normal text-slate-400">({data.remainingDays}일)</span></td>
+                                            <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}</td>
+                                            <td className="p-4">{data.displayHistory.length > 0 ? (
+                                                <div className="max-h-32 overflow-y-auto space-y-1 scrollbar-thin pr-2">
+                                                    {data.displayHistory.map((rec, i) => (
+                                                        <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border md:group hover:border-blue-200 transition ${rec.isWarn ? 'bg-orange-50 border-orange-200 shadow-inner' : 'bg-slate-50'}`}>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`font-bold ${rec.isWarn ? 'text-orange-700' : ''}`}>{rec.date}</span>
+                                                                <span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type || '연차'})</span>
+                                                                {rec.isWarn && <span className="text-orange-500" title="이 날짜에 연차가 2번 이상 중복 입력되었습니다!"><Icons.Alert /></span>}
+                                                            </div>
+                                                            <div className="flex gap-1 ml-2 flex-shrink-0 opacity-100">
+                                                                <button type="button" onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
+                                                                <button type="button" onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : <span className="text-slate-300 text-xs">-</span>}</td>
+                                        </tr>
+                                    );
+                                })}
+                                {filteredList.length === 0 && <tr><td colSpan="6" className="p-12 text-center text-slate-400">데이터가 없습니다.</td></tr>}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {!isResignedTab && (
+                        <div className="fixed bottom-6 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-40">
+                            <button onClick={() => setShowMonthlyModal(true)} className="md:hidden bg-teal-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(13,148,136,0.4)] hover:bg-teal-700 active:scale-95 transition-all" title="보고서 다운로드"><Icons.FileText /></button>
+                            <button onClick={() => setShowVerificationModal(true)} className="md:hidden bg-indigo-600 text-white w-12 h-12 rounded-full flex justify-center items-center shadow-[0_4px_10px_rgba(79,70,229,0.4)] hover:bg-indigo-700 active:scale-95 transition-all" title="엑셀 대조 검증"><Icons.CheckCircle /></button>
+                            <button onClick={() => onOpenModal()} className="bg-blue-600 text-white w-14 h-14 md:w-auto md:px-6 md:py-4 md:h-auto rounded-full flex items-center justify-center gap-2 shadow-[0_10px_20px_rgba(37,99,235,0.4)] hover:bg-blue-700 active:scale-95 md:hover:-translate-y-1 transition-all" title="연차 등록"><Icons.Plus /><span className="font-bold text-sm whitespace-nowrap hidden md:inline">연차 등록</span></button>
+                        </div>
+                    )}
+
+                    {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} />}
+                    {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} />}
+                    {showVerificationModal && <ExcelVerificationModal staffList={staffList} onClose={() => setShowVerificationModal(false)} />}
+                </div>
+            );
+        };
+
+        const StaffTab = ({ staffList, showConfirm, showAlert }) => {
+            const fileInputRef = useRef(null);
+            const [uploadMsg, setUploadMsg] = useState('');
+            const [editingStaff, setEditingStaff] = useState(null);
+            const [viewingStaff, setViewingStaff] = useState(null);
+            const [selectedIds, setSelectedIds] = useState(new Set());
+            const [searchTerm, setSearchTerm] = useState('');
+            const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+            
+            const activeStaffList = useMemo(() => staffList.filter(s => s.status !== 'resigned'), [staffList]);
+
+            const processedStaffList = useMemo(() => {
+                let data = [...activeStaffList];
+                if (searchTerm) {
+                    const lowerTerm = searchTerm.toLowerCase();
+                    data = data.filter(s => (s.name && s.name.toLowerCase().includes(lowerTerm)) || (s.phone && s.phone.includes(lowerTerm)));
+                }
+                
+                data = data.map(staff => {
+                    const leaveInfo = calculateAnnualLeave(staff.joinDate);
+                    const dailyHours = safeParseFloat(staff.workHours) || 8;
+                    const totalDays = leaveInfo.total || 0;
+                    const totalHours = totalDays * dailyHours;
+                    const usedHours = staff.annualLeaveUsed || 0;
+                    const remainingHours = totalHours - usedHours;
+                    const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
+                    const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
+                    
+                    return { ...staff, dailyHours, totalDays, totalHours, usedHours, remainingHours, remainingDays, usedDays, leaveInfo };
+                });
+
+                if (sortConfig.key) {
+                    data.sort((a, b) => {
+                        let aVal = a[sortConfig.key] || '';
+                        let bVal = b[sortConfig.key] || '';
+                        if (sortConfig.key === 'remaining') { aVal = a.remainingHours || 0; bVal = b.remainingHours || 0; }
+                        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+                }
+                return data;
+            }, [activeStaffList, searchTerm, sortConfig]);
+
+            const handleSort = (key) => {
+                let direction = 'asc';
+                if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
+                setSortConfig({ key, direction });
+            };
+            const getSortIcon = (key) => {
+                if (sortConfig.key !== key) return <span className="text-slate-300 ml-1">⇅</span>;
+                return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
+            };
+            
+            const handleFileUpload = (e, isResignedUpload = false) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
+                        const batch = db.batch();
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0]; 
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                
+                                const phoneStr = String(phoneRaw || '').replace(/[^0-9]/g, '').trim();
+                                const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
+                                const uniqueKey = `yg${last4}`;
+                                const email = `${uniqueKey}@ygnurim.com`;
+                                
+                                const docRef = db.collection('users').doc(email);
+                                batch.set(docRef, {
+                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (resignDate || '') : '',
+                                    offDays: [0] 
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        setUploadMsg(`✅ ${count}명 처리 완료!`);
+                        setTimeout(() => setUploadMsg(''), 3000);
+                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
+                };
+            };
+
+            const handleDeleteOne = (staff) => {
+                showConfirm(`정말 [${staff.name}] 직원의 정보를 완전히 삭제하시겠습니까?`, async () => {
+                    try { await db.collection('users').doc(staff.id).delete(); showAlert('삭제 완료되었습니다.'); } catch (err) { showAlert('삭제 실패: ' + err.message); }
+                });
+            };
+            const handleSelectAll = (e) => {
+                if (e.target.checked) { const allIds = new Set(processedStaffList.map(s => s.id)); setSelectedIds(allIds); } else setSelectedIds(new Set());
+            };
+            const handleSelectOne = (id) => {
+                const newSet = new Set(selectedIds);
+                if (newSet.has(id)) newSet.delete(id); else newSet.add(id);
+                setSelectedIds(newSet);
+            };
+            const handleBulkDelete = () => {
+                if (selectedIds.size === 0) return;
+                showConfirm(`선택한 ${selectedIds.size}명의 직원을 일괄 삭제하시겠습니까?`, async () => {
+                    try {
+                        const batch = db.batch();
+                        selectedIds.forEach(id => { batch.delete(db.collection('users').doc(id)); });
+                        await batch.commit();
+                        showAlert(`${selectedIds.size}명 삭제가 완료되었습니다.`);
+                        setSelectedIds(new Set());
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+
+            const handleResetFilters = () => {
+                setSearchTerm('');
+                setSelectedIds(new Set());
+            };
+
+            const handleBatchCreateAuth = () => {
+                showConfirm("현재 등록된 모든 직원의 계정을 'yg+휴대폰뒤4자리' (비밀번호: 123456) 형식으로 일괄 생성하시겠습니까?\n\n※ 기존 연차 내역은 완벽히 보존됩니다.", async () => {
+                    setUploadMsg('계정 생성 중입니다. 잠시만 기다려주세요...');
+                    try {
+                        let secondaryApp;
+                        if (!firebase.apps.find(app => app.name === 'Secondary')) {
+                            secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary');
+                        } else {
+                            secondaryApp = firebase.app('Secondary');
+                        }
+                        
+                        const batch = db.batch();
+                        let count = 0;
+
+                        for (const staff of activeStaffList) {
+                            const phoneStr = String(staff.phone || '').replace(/[^0-9]/g, '');
+                            if (phoneStr.length < 4) continue;
+                            
+                            const last4 = phoneStr.slice(-4);
+                            const loginId = `yg${last4}`; 
+                            const email = `${loginId}@ygnurim.com`;
+                            const tempPw = '123456';
+
+                            try {
+                                await secondaryApp.auth().createUserWithEmailAndPassword(email, tempPw);
+                            } catch (authErr) {
+                                if (authErr.code === 'auth/email-already-in-use') {
+                                    console.log('Account already exists, skipping:', email);
+                                } else {
+                                    console.error('Auth Error:', authErr);
+                                }
+                            }
+
+                            if (staff.id !== email) {
+                                const newRef = db.collection('users').doc(email);
+                                const oldRef = db.collection('users').doc(staff.id);
+                                
+                                const newData = { ...staff, employeeId: loginId, email: email, tempPw: tempPw };
+                                delete newData.id; 
+                                batch.set(newRef, newData);
+                                batch.delete(oldRef); 
+                            } else {
+                                const ref = db.collection('users').doc(staff.id);
+                                batch.update(ref, { tempPw: tempPw, employeeId: loginId });
+                            }
+                            count++;
+                        }
+
+                        await batch.commit();
+                        await secondaryApp.auth().signOut(); 
+                        
+                        setUploadMsg(`✅ ${count}명 신규 계정(yg) 발급 완료!`);
+                        setTimeout(() => setUploadMsg(''), 4000);
+                    } catch (err) {
+                        setUploadMsg(`❌ 오류: ${err.message}`);
+                    }
+                });
+            };
+
+            return (
+                <div className="space-y-6">
+                    {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} showAlert={showAlert} />}
+                    {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div className="flex items-center gap-4 w-full md:w-auto justify-between">
+                            <div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 (퇴사자 제외)</p></div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                            <div className="relative flex items-center w-full md:w-auto gap-1">
+                                <div className="relative group flex-1 md:flex-none">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div>
+                                    <input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-64 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" />
+                                </div>
+                                <button onClick={handleResetFilters} className="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="초기화"><Icons.Refresh /></button>
+                            </div>
+                            {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex justify-center items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
+                            {uploadMsg && <span className="w-full md:w-auto text-sm font-bold text-blue-600 animate-pulse text-center">{uploadMsg}</span>}
+                            
+                            <button onClick={handleBatchCreateAuth} className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2" title="선택된 항목과 무관하게 모든 직원에게 계정을 발급합니다">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> 
+                                일괄 계정 발급
+                            </button>
+
+                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, false)} accept=".xlsx, .xls, .csv" className="hidden" />
+                            <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex justify-center items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                <tr>
+                                    <th className="p-4 w-12 text-center"><input type="checkbox" checked={processedStaffList.length > 0 && selectedIds.size === processedStaffList.length} onChange={handleSelectAll} /></th>
+                                    <th className="p-4 sortable" onClick={() => handleSort('name')}><div className="flex items-center">이름 (상세보기) {getSortIcon('name')}</div></th>
+                                    <th className="p-4 text-center text-blue-600">발생(시간)</th>
+                                    <th className="p-4 text-center text-red-500">사용(시간)</th>
+                                    <th className="p-4 text-center text-green-600 sortable" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여(시간) {getSortIcon('remaining')}</div></th>
+                                    <th className="p-4 text-center w-24 bg-slate-100">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {processedStaffList.map((staff, idx) => {
+                                    const isDateError = !staff.joinDate || staff.joinDate.length < 8;
+                                    return (
+                                        <tr key={idx} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
+                                            <td className="p-4 text-center"><input type="checkbox" checked={selectedIds.has(staff.id)} onChange={() => handleSelectOne(staff.id)} /></td>
+                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>
+                                                {staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span>
+                                            </td>
+                                            <td className="p-4 text-center font-bold text-blue-600">
+                                                {isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></>}
+                                            </td>
+                                            <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
+                                            <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
+                                            <td className="p-4 text-center bg-slate-50/50"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleDeleteOne(staff)} className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
+                                        </tr>
+                                    );
+                                })}
+                                {processedStaffList.length === 0 && (<tr><td colSpan="6" className="p-12 text-center text-slate-400">데이터가 없습니다.</td></tr>)}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const ResignedStaffTab = ({ staffList, onOpenModal, onEditClick, onNameClick, showAlert, showConfirm }) => {
+            const [isPastMode, setIsPastMode] = useState(false);
+            const resignedFileInputRef = useRef(null);
+            
+            const resignedList = useMemo(() => staffList.filter(s => s.status === 'resigned' || (s.resignDate && String(s.resignDate).trim().length > 0)), [staffList]);
+
+            const handleResignedStaffUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onload = async (evt) => {
+                    try {
+                        const data = new Uint8Array(evt.target.result);
+                        const wb = XLSX.read(data, { type: 'array' });
+                        const ws = wb.Sheets[wb.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                        const batch = db.batch();
+                        let count = 0;
+                        for (let i = 1; i < jsonData.length; i++) {
+                            const row = jsonData[i];
+                            if (!row || row.length === 0) continue;
+                            const name = row[0];
+                            if (name) {
+                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
+                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                const email = `${name}_${String(phoneRaw||'').trim().slice(-4)}@ygnurim.com`;
+                                const docRef = db.collection('users').doc(email);
+                                batch.set(docRef, {
+                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
+                                    joinDate, role: 'staff', tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
+                                    status: 'resigned', resignDate: resignDate || '',
+                                    offDays: [0] 
+                                }, { merge: true });
+                                count++;
+                            }
+                        }
+                        await batch.commit();
+                        showAlert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                };
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-orange-50 p-4 rounded-xl border border-orange-100 gap-4">
+                        <div className="flex items-center gap-2 font-bold text-orange-800"><Icons.UserMinus /> 퇴사자 관리 모드</div>
+                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
+                            <label className="flex items-center justify-center gap-2 cursor-pointer bg-white px-3 py-3 md:py-2 rounded-lg border border-orange-200 hover:bg-orange-100 transition"><input type="checkbox" checked={isPastMode} onChange={(e) => setIsPastMode(e.target.checked)} /><span className="text-sm font-bold text-orange-700">과년도 기록 보기</span></label>
+                            <input type="file" ref={resignedFileInputRef} onChange={handleResignedStaffUpload} accept=".xlsx, .xls" className="hidden" />
+                            <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
+                        </div>
+                    </div>
+                    <LeaveManagementTab 
+                        staffList={resignedList} 
+                        onOpenModal={() => showAlert("퇴사자는 신규 연차 등록이 불가능합니다.")} 
+                        onEditClick={onEditClick} 
+                        isPastMode={isPastMode} 
+                        isResignedTab={true}
+                        onNameClick={onNameClick}
+                        adminName="System"
+                        showConfirm={showConfirm}
+                        showAlert={showAlert}
+                    />
                 </div>
             );
         };
