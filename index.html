@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.1.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.1.2-stable)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -51,10 +51,18 @@
         const { createRoot } = ReactDOM;
 
         // 시스템 정식 버전 업데이트 (Stable)
-        const SYSTEM_VERSION = "6.1.1-stable";
+        const SYSTEM_VERSION = "6.1.2-stable";
 
         // 시스템 업데이트 로그 데이터
         const UPDATE_LOGS = [
+            {
+                version: "6.1.2-stable",
+                date: "2026-07-07",
+                details: [
+                    "긴급 패치: 엑셀 업로드 시 입사일 파싱 오류 및 연차 내역 표기 누락 현상 완벽 수정",
+                    "스마트 엑셀 헤더 파서 도입 (엑셀 열 순서 무관하게 데이터 자동 매핑 및 입사일 보호)"
+                ]
+            },
             {
                 version: "6.1.1-stable",
                 date: "2026-07-07",
@@ -79,24 +87,6 @@
                     "🎉 기능 안정성 검증 완료 및 정식(Stable) 버전 승격",
                     "대시보드 우측 '버전 별 업데이트 로그' 확인 패널 신설",
                     "<UI/UX 변경 사항> 대시보드 레이아웃 2:1 분할 (캘린더 2, 로그 1 비율)"
-                ]
-            },
-            {
-                version: "5.9.0-beta",
-                date: "2026-07-05",
-                details: [
-                    "전사/개인 캘린더 연차 내역 클릭 시 즉각 수정 모달창 연동",
-                    "<UI/UX 변경 사항> 대시보드 상단 요약 3단 카드 입체감 적용",
-                    "<UI/UX 변경 사항> 메인 배경 쿨그레이 톤 변경 및 여백 정밀 조정"
-                ]
-            },
-            {
-                version: "5.8.5",
-                date: "2026-06-28",
-                details: [
-                    "퇴사자 전용 관리 탭 신설 및 엑셀 명부 업로드 기능 추가",
-                    "엑셀 누락자 대조 검증 모달 시스템 고도화",
-                    "연차 촉진 계획서 제출 여부 체크 및 PDF 압축(ZIP) 기능 반영"
                 ]
             }
         ];
@@ -166,7 +156,7 @@
                 if (y.length === 2) y = parseInt(y) > 50 ? '19' + y : '20' + y;
                 const m = parts[1].padStart(2, '0'); 
                 const d = parts[2].padStart(2, '0');
-                return `${y}-${m}-${d}`;
+                if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return `${y}-${m}-${d}`;
             }
 
             if (/^\d{5,6}$/.test(str)) {
@@ -176,8 +166,13 @@
                         const date = new Date((n - 25569) * 86400 * 1000);
                         date.setHours(date.getHours() + 9);
                         return toLocalYMD(date);
-                    } catch(e) { return str; }
+                    } catch(e) { return ''; }
                 }
+            }
+            
+            // 날짜 형식이 아니면 완전히 무시하여 DB 날짜를 보호함
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+                return '';
             }
             return str;
         };
@@ -2208,38 +2203,68 @@
                         let updateCount = 0;
                         let resignCount = 0;
 
-                        // 1. 엑셀 데이터 파싱
+                        // 1. 헤더 동적 매핑 (양식이 달라도 무조건 찾아냅니다)
+                        let nameCol = -1, birthCol = -1, phoneCol = -1, joinCol = -1, workCol = -1;
+                        let startRow = 1;
+                        for (let i = 0; i < Math.min(5, jsonData.length); i++) {
+                            const row = jsonData[i];
+                            if (!row) continue;
+                            let tempName = -1;
+                            for (let j = 0; j < row.length; j++) {
+                                const val = String(row[j] || '').replace(/\s/g, '');
+                                if (val.includes('이름') || val.includes('성명') || val.includes('근로지원인')) tempName = j;
+                                else if (val.includes('생년월일') || val.includes('생일')) birthCol = j;
+                                else if (val.includes('연락처') || val.includes('휴대폰') || val.includes('전화')) phoneCol = j;
+                                else if (val.includes('입사')) joinCol = j;
+                                else if (val.includes('근무') || val.includes('시간')) workCol = j;
+                            }
+                            if (tempName !== -1) {
+                                nameCol = tempName;
+                                startRow = i + 1;
+                                break;
+                            }
+                        }
+
+                        // 헤더를 도저히 못 찾으면 기본 인덱스 사용
+                        if (nameCol === -1) nameCol = 0;
+                        if (birthCol === -1) birthCol = 1;
+                        if (phoneCol === -1) phoneCol = 2;
+                        if (joinCol === -1) joinCol = 3;
+                        if (workCol === -1) workCol = 4;
+
+                        // 2. 엑셀 데이터 파싱
                         const excelStaffs = [];
-                        for (let i = 1; i < jsonData.length; i++) {
+                        for (let i = startRow; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
-                            const name = String(row[0] || '').trim();
+                            const name = String(row[nameCol] || '').trim();
                             if (name) {
                                 excelStaffs.push({
                                     name,
                                     normName: normalizeString(name),
-                                    birthRaw: row[1],
-                                    phoneRaw: row[2],
-                                    joinRaw: row[3],
-                                    workRaw: row[4]
+                                    birthRaw: birthCol !== -1 ? row[birthCol] : '',
+                                    phoneRaw: phoneCol !== -1 ? row[phoneCol] : '',
+                                    joinRaw: joinCol !== -1 ? row[joinCol] : '',
+                                    workRaw: workCol !== -1 ? row[workCol] : ''
                                 });
                             }
                         }
 
-                        // 2. DB(activeStaffList)와 엑셀 대조
+                        // 3. DB(activeStaffList)와 엑셀 대조
                         const matchedExcelIndices = new Set();
                         const todayStr = toLocalYMD(new Date());
 
                         activeStaffList.forEach(dbStaff => {
                             const normDbName = normalizeString(dbStaff.name);
-                            // 엑셀에서 이 직원의 이름 찾기
                             const matchIdx = excelStaffs.findIndex((es, idx) => !matchedExcelIndices.has(idx) && es.normName === normDbName);
 
                             if (matchIdx !== -1) {
-                                // [조건 1] 엑셀에 있고 DB에도 있음 -> 정보 업데이트 (유지)
                                 matchedExcelIndices.add(matchIdx);
                                 const es = excelStaffs[matchIdx];
-                                const joinDate = safeDate(es.joinRaw) || dbStaff.joinDate;
+                                
+                                // 입사일 파싱에 실패하면 안전하게 기존 DB 입사일 유지
+                                const safeJoin = safeDate(es.joinRaw);
+                                const joinDate = safeJoin ? safeJoin : dbStaff.joinDate;
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 
                                 const docRef = db.collection('users').doc(dbStaff.id);
@@ -2253,17 +2278,16 @@
                                 });
                                 updateCount++;
                             } else {
-                                // [조건 3] DB에는 있는데 엑셀에는 없음 -> 퇴사 처리
                                 const docRef = db.collection('users').doc(dbStaff.id);
                                 batch.update(docRef, {
                                     status: 'resigned',
-                                    resignDate: todayStr // 업로드 시점 기준 퇴사일
+                                    resignDate: todayStr 
                                 });
                                 resignCount++;
                             }
                         });
 
-                        // 3. [조건 2] 엑셀에만 있고 DB에 없음 -> 신규 직원 추가
+                        // 4. 신규 직원 추가
                         excelStaffs.forEach((es, idx) => {
                             if (!matchedExcelIndices.has(idx)) {
                                 const joinDate = safeDate(es.joinRaw); 
@@ -2273,7 +2297,6 @@
                                 const phoneStr = String(es.phoneRaw || '').replace(/[^0-9]/g, '').trim();
                                 const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
                                 const uniqueKey = `yg${last4}`;
-                                // 초기 DB 중복 덮어씌움 방지를 위해 고유 ID 발급 (추후 계정 발급 시 yg뒷자리로 통합됨)
                                 const randomSuffix = Math.random().toString(36).substring(2, 6);
                                 const email = `${uniqueKey}_${randomSuffix}@ygnurim.com`;
                                 
@@ -2294,7 +2317,7 @@
                                     offDays: [0],
                                     leaveHistory: [],
                                     annualLeaveUsed: 0,
-                                    authStatus: 'pending' // 미발급 상태로 신규 추가
+                                    authStatus: 'pending' 
                                 });
                                 newCount++;
                             }
@@ -2304,7 +2327,6 @@
                         setUploadMsg(`✅ 신규:${newCount}명 / 유지:${updateCount}명 / 퇴사:${resignCount}명`);
                         setTimeout(() => setUploadMsg(''), 6000);
                         
-                        // 중복 업로드를 방지하기 위해 파일 input 초기화
                         e.target.value = '';
                     } catch (err) { 
                         setUploadMsg('❌ 오류: ' + err.message); 
@@ -2563,12 +2585,47 @@
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         const batch = db.batch();
                         let count = 0;
-                        for (let i = 1; i < jsonData.length; i++) {
+
+                        let nameCol = -1, birthCol = -1, phoneCol = -1, joinCol = -1, workCol = -1, resignCol = -1;
+                        let startRow = 1;
+                        for (let i = 0; i < Math.min(5, jsonData.length); i++) {
+                            const row = jsonData[i];
+                            if (!row) continue;
+                            let tempName = -1;
+                            for (let j = 0; j < row.length; j++) {
+                                const val = String(row[j] || '').replace(/\s/g, '');
+                                if (val.includes('이름') || val.includes('성명') || val.includes('근로지원인')) tempName = j;
+                                else if (val.includes('생년월일') || val.includes('생일')) birthCol = j;
+                                else if (val.includes('연락처') || val.includes('휴대폰') || val.includes('전화')) phoneCol = j;
+                                else if (val.includes('입사')) joinCol = j;
+                                else if (val.includes('근무') || val.includes('시간')) workCol = j;
+                                else if (val.includes('퇴사')) resignCol = j;
+                            }
+                            if (tempName !== -1) {
+                                nameCol = tempName;
+                                startRow = i + 1;
+                                break;
+                            }
+                        }
+
+                        if (nameCol === -1) nameCol = 0;
+                        if (birthCol === -1) birthCol = 1;
+                        if (phoneCol === -1) phoneCol = 2;
+                        if (joinCol === -1) joinCol = 3;
+                        if (workCol === -1) workCol = 4;
+                        if (resignCol === -1) resignCol = 5;
+
+                        for (let i = startRow; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
-                            const name = row[0];
+                            const name = String(row[nameCol] || '').trim();
                             if (name) {
-                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4]; const resignRaw = row[5];
+                                const birthRaw = birthCol !== -1 ? row[birthCol] : ''; 
+                                const phoneRaw = phoneCol !== -1 ? row[phoneCol] : ''; 
+                                const joinRaw = joinCol !== -1 ? row[joinCol] : ''; 
+                                const workRaw = workCol !== -1 ? row[workCol] : ''; 
+                                const resignRaw = resignCol !== -1 ? row[resignCol] : '';
+
                                 const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw); const resignDate = safeDate(resignRaw);
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 const email = `${name}_${String(phoneRaw||'').trim().slice(-4)}@ygnurim.com`;
