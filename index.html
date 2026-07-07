@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v5.8.1)</title>
+    <title>양지누림 연차 관리 시스템 (Official v5.9.0-beta)</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -50,8 +50,12 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "5.8.1";
+        // 시스템 버전 업데이트
+        const SYSTEM_VERSION = "5.9.0-beta";
 
+        // ========================================================================= //
+        //                                파이어베이스 설정                            //
+        // ========================================================================= //
         const firebaseConfig = {
             apiKey: "AIzaSyCs3xfpAkHbLMXLiIeSXT2Mj10T1avAb_w",
             authDomain: "ygnurim-attendance-management.firebaseapp.com",
@@ -68,6 +72,9 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // ========================================================================= //
+        //                            공용 유틸리티 및 함수                             //
+        // ========================================================================= //
         const safeParseFloat = (val) => { const num = parseFloat(val); return isNaN(num) ? 0 : num; };
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
@@ -214,6 +221,9 @@
             return null;
         };
 
+        // ========================================================================= //
+        //                               공용 UI 컴포넌트                             //
+        // ========================================================================= //
         const Icons = {
             Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
             Grid: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
@@ -291,9 +301,8 @@
                     <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 기능 고도화</h3>
                     <p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 업데이트 배포</p>
                     <div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium">
-                        <p className="text-blue-600 font-bold">🌟 <b>직원 포털 권한 제어 업데이트</b></p>
-                        <p>✅ <b>수정/삭제 권한 회수:</b> 직원 포털에서 임의로 과거 휴가를 삭제할 수 없도록 휴지통 버튼을 전면 제거했습니다.</p>
-                        <p>✅ 시스템 관리자는 [연차 관리] 탭에서 기존과 100% 동일하게 삭제/수정 권한을 가집니다.</p>
+                        <p className="text-blue-600 font-bold">🌟 <b>관리자 캘린더 인터랙션 업데이트</b></p>
+                        <p>✅ <b>캘린더 즉시 수정:</b> 대시보드의 전사 캘린더나 개인 캘린더 화면에서 휴가 항목을 <b>클릭</b>하면 곧바로 수정/삭제 창이 열리도록 기능을 강화했습니다.</p>
                     </div>
                     <button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
                 </div>
@@ -360,6 +369,10 @@
                 </div>
             );
         };
+
+        // ========================================================================= //
+        //                                관리자 페이지                               //
+        // ========================================================================= //
 
         const StaffDetailModal = ({ staff, onClose }) => {
             if (!staff) return null;
@@ -653,7 +666,7 @@
                             <div className="flex flex-col gap-4">
                                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                                     <label className="block text-sm font-bold text-blue-800 mb-2">1. 대조할 기준 월 선택</label>
-                                    <input type="month" value={targetMonth} onChange={e => setTargetMonth(e.target.value)} className="w-full md:w-auto border-2 border-blue-200 rounded-xl px-4 py-2 text-sm font-bold text-blue-700 outline-none focus:border-blue-500 bg-white" />
+                                    <input type="month" value={targetMonth} onChange={e => setTargetMonth(e.target.value)} className="w-full md:w-auto border-2 border-blue-200 rounded-xl px-4 py-2 text-sm font-bold text-blue-700 outline-none focus:border-blue-50 bg-white" />
                                 </div>
                                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                                     <label className="block text-sm font-bold text-slate-700 mb-2">2. 엑셀 파일 업로드</label>
@@ -929,7 +942,7 @@
             );
         };
 
-        const CalendarView = ({ staffList }) => {
+        const CalendarView = ({ staffList, onEditClick }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
 
             const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -953,7 +966,7 @@
                     (staff.leaveHistory || []).forEach(leave => {
                         if (leave.date && leave.date.startsWith(`${year}-${String(month + 1).padStart(2, '0')}`)) {
                             if (!map[leave.date]) map[leave.date] = [];
-                            map[leave.date].push({ name: staff.name, type: leave.type });
+                            map[leave.date].push({ ...leave, name: staff.name, staffId: staff.id });
                         }
                     });
                 });
@@ -1014,7 +1027,13 @@
                                         </div>
                                         <div className="flex-1 overflow-y-auto pr-0.5 space-y-1 mt-1 custom-scrollbar">
                                             {leaves.map((l, i) => (
-                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type.includes('반차') || l.type.includes('시간')?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'}`} title={`${l.name} (${l.type})`}>
+                                                <div key={i} 
+                                                     onClick={(e) => {
+                                                         e.stopPropagation();
+                                                         if (onEditClick) onEditClick(l.staffId, 0, l);
+                                                     }}
+                                                     className={`cursor-pointer hover:opacity-80 text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type.includes('반차') || l.type.includes('시간')?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'}`} 
+                                                     title={`${l.name} (${l.type}) - 클릭하여 수정`}>
                                                     {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span>
                                                 </div>
                                             ))}
@@ -1028,7 +1047,7 @@
             );
         };
 
-        const PersonalCalendarModal = ({ staff, onClose, onOpenModal }) => {
+        const PersonalCalendarModal = ({ staff, onClose, onOpenModal, onEditClick }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
 
             const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -1136,7 +1155,13 @@
                                         </div>
                                         <div className="flex-1 overflow-y-auto space-y-1 mt-1 custom-scrollbar">
                                             {leaves.map((l, i) => (
-                                                <div key={i} className={`text-[10px] md:text-[11px] px-1.5 py-1 rounded-md leading-tight font-bold shadow-sm border ${l.type.includes('반차') || l.type.includes('시간') ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`} title={l.reason || l.type}>
+                                                <div key={i} 
+                                                     onClick={(e) => {
+                                                         e.stopPropagation();
+                                                         if (onEditClick) onEditClick(staff.id, 0, l);
+                                                     }}
+                                                     className={`cursor-pointer hover:opacity-80 text-[10px] md:text-[11px] px-1.5 py-1 rounded-md leading-tight font-bold shadow-sm border ${l.type.includes('반차') || l.type.includes('시간') ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`} 
+                                                     title={`${l.reason || l.type} - 클릭하여 수정`}>
                                                     {l.type}
                                                 </div>
                                             ))}
@@ -2051,7 +2076,7 @@
                         </div>
                     )}
 
-                    {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} />}
+                    {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} />}
                     {showVerificationModal && <ExcelVerificationModal staffList={staffList} onClose={() => setShowVerificationModal(false)} />}
                 </div>
@@ -2384,6 +2409,9 @@
             );
         };
 
+        // ========================================================================= //
+        //                                직원 전용 페이지                              //
+        // ========================================================================= //
         const StaffPortal = ({ user, onLogout, showAlert, showConfirm }) => {
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
@@ -2657,6 +2685,9 @@
             );
         };
 
+        // ========================================================================= //
+        //                               메인 앱 진입점                                //
+        // ========================================================================= //
         const App = () => {
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -2772,185 +2803,125 @@
                 );
             }
 
-            if (user.role === 'admin' && !adminName) {
-                return <AdminNameModal onSave={handleAdminNameSave} />;
-            }
+            const activeStaffs = staffList.filter(s => s.status !== 'resigned');
 
-            const activeStaffList = staffList.filter(s => s.status !== 'resigned');
-            const todayStr = toLocalYMD(new Date());
-            const todayLeaveCount = activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length || 0;
-            
-            let totalGenCurrentYear = 0;
-            let totalUsedCurrentYear = 0;
-
-            activeStaffList.forEach(staff => {
-                const leaveInfo = calculateAnnualLeave(staff.joinDate);
-                if (leaveInfo.notJoined) return;
-                const dailyHours = safeParseFloat(staff.workHours) || 8;
-                const totalHours = (leaveInfo.total || 0) * dailyHours;
-                const currentUsed = (staff.leaveHistory || []).reduce((acc, h) => {
-                    if (h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate) return acc + (safeParseFloat(h.days) || 0);
-                    return acc;
-                }, 0);
-                totalGenCurrentYear += totalHours;
-                totalUsedCurrentYear += currentUsed;
-            });
-
-            const currentYearRate = totalGenCurrentYear > 0 ? Math.round((totalUsedCurrentYear / totalGenCurrentYear) * 100) : 0;
-            const currentYear = new Date().getFullYear();
-            const years = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear];
-            
-            const yearlyStats = years.map(year => {
-                let yGen = 0; let yUsed = 0;
-                staffList.forEach(staff => {
-                    const info = calculateLeaveForYear(staff.joinDate, year);
-                    if (info.notJoined) return; 
-                    const daily = safeParseFloat(staff.workHours) || 8;
-                    yGen += (info.total * daily);
-                    yUsed += (staff.leaveHistory || []).reduce((acc, h) => {
-                        if (h.date >= info.startDate && h.date <= info.endDate) return acc + (safeParseFloat(h.days) || 0);
-                        return acc;
-                    }, 0);
-                });
-                return { year, rate: yGen > 0 ? Math.round((yUsed / yGen) * 100) : 0 };
-            });
-
-            const DASHBOARD_STATS = [
-                { label: "총 임직원", value: activeStaffList.length, unit: "명", color: "bg-blue-50 text-blue-600", icon: <Icons.Users /> },
-                { label: "금일 휴가자", value: todayLeaveCount, unit: "명", color: "bg-orange-50 text-orange-600", icon: <Icons.Briefcase /> },
-                { label: "금년 연차 소진율", value: currentYearRate, unit: "%", color: "bg-purple-50 text-purple-600", icon: <Icons.CheckCircle /> },
-            ];
+            const dashStats = {
+                totalStaff: activeStaffs.length,
+                todayLeaves: (() => {
+                    const todayStr = toLocalYMD(new Date());
+                    return activeStaffs.filter(s => (s.leaveHistory || []).some(h => h.date === todayStr)).length;
+                })(),
+                warningStaff: activeStaffs.filter(s => {
+                    const li = calculateAnnualLeave(s.joinDate);
+                    const dh = safeParseFloat(s.workHours) || 8;
+                    const used = (s.leaveHistory || []).filter(h => h.date >= li.startDate && h.date <= li.endDate).reduce((acc,cur) => acc + safeParseFloat(cur.days), 0);
+                    return ((li.total || 0) * dh) - used < 0;
+                }).length
+            };
 
             return (
-                <div className="flex h-screen bg-[#F1F5F9] text-slate-800 font-sans overflow-hidden">
-                    <ErrorBoundary>
-                        {alertData && <CustomAlertModal msg={alertData.msg} onClose={() => setAlertData(null)} />}
-                        {confirmData && <CustomConfirmModal msg={confirmData.msg} onConfirm={confirmData.onConfirm} onClose={() => setConfirmData(null)} />}
+                <div className="flex h-screen bg-[#F1F5F9] font-sans overflow-hidden text-slate-800">
+                    {forceUpdateRequired && <ForceUpdateModal />}
+                    {!adminName && <AdminNameModal onSave={handleAdminNameSave} />}
+                    {showUpdateModal && <VersionAlertModal onClose={handleUpdateConfirm} />}
+                    {alertData && <CustomAlertModal msg={alertData.msg} onClose={() => setAlertData(null)} />}
+                    {confirmData && <CustomConfirmModal msg={confirmData.msg} onConfirm={confirmData.onConfirm} onClose={() => setConfirmData(null)} />}
+                    
+                    {viewingStaffDetail && <StaffDetailModal staff={viewingStaffDetail} onClose={() => setViewingStaffDetail(null)} />}
 
-                        <div className="fixed top-6 right-6 z-[400] flex flex-col gap-3">
-                            {toasts.map(t => (
-                                <div key={t.id} className="bg-slate-800 text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 animate-slide-in-right border border-slate-700">
-                                    <div className="text-green-400"><Icons.CheckCircle /></div>
-                                    <span className="font-bold text-sm">{t.msg}</span>
-                                </div>
-                            ))}
+                    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
+                        {toasts.map(t => (
+                            <div key={t.id} className={`pointer-events-auto px-4 py-3 rounded-xl shadow-lg font-bold text-sm flex items-center gap-2 animate-slide-in-right border ${t.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                                <Icons.Info /> {t.msg}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className={`fixed inset-0 bg-slate-900/50 z-40 md:hidden transition-opacity ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+                    <div className={`fixed md:static inset-y-0 left-0 w-64 bg-slate-900 text-white flex flex-col z-50 transform transition-transform duration-300 md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+                        <div className="p-6 text-center border-b border-slate-800">
+                            <img src="logo.png" alt="양지누림" className="h-10 mx-auto mb-3 object-contain invert brightness-0" onError={(e) => { e.target.onerror = null; e.target.style.display='none'; }} />
+                            <h2 className="text-xl font-black tracking-tight">양지누림 HR</h2>
+                            <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest">Admin Portal</p>
                         </div>
-
-                        {forceUpdateRequired && <ForceUpdateModal />}
-                        {!forceUpdateRequired && showUpdateModal && <VersionAlertModal onClose={handleUpdateConfirm} />}
-                        {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
-
-                        <aside className={`fixed md:static inset-y-0 left-0 w-64 bg-[#1E293B] text-white flex flex-col z-50 shadow-xl transform transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-                            <div className="p-6 border-b border-slate-700/50 flex flex-col items-start gap-4">
-                                <div className="flex justify-between items-center w-full">
-                                    <div className="bg-white p-2 rounded-lg w-full flex justify-center">
-                                       <img src="logo.png" alt="양지누림 로고" className="h-8 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/120x30/ffffff/64748b?text=로고"; }} />
-                                    </div>
-                                    <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-slate-400 hover:text-white ml-2"><Icons.X /></button>
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            {[
+                                { id: 'dashboard', icon: <Icons.Grid />, label: '대시보드' },
+                                { id: 'leave', icon: <Icons.Calendar />, label: '연차 관리' },
+                                { id: 'past', icon: <Icons.History />, label: '과년도 관리' },
+                                { id: 'staff', icon: <Icons.Users />, label: '직원 명부' },
+                                { id: 'promotion', icon: <Icons.Megaphone />, label: '연차 촉진' },
+                                { id: 'resigned', icon: <Icons.UserMinus />, label: '퇴사자 관리' },
+                            ].map(item => (
+                                <button key={item.id} onClick={() => handleTabClick(item.id)} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition text-sm ${activeTab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+                                    {item.icon} {item.label}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="p-4 border-t border-slate-800">
+                            <div className="bg-slate-800 rounded-xl p-3 mb-3 flex items-center justify-between border border-slate-700">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-blue-400"><Icons.User /></div>
+                                    <div className="text-left truncate max-w-[120px]"><p className="text-xs font-bold text-white truncate">{adminName}</p><p className="text-[10px] text-slate-400">관리자 계정</p></div>
                                 </div>
-                                <div>
-                                    <p className="text-xs text-blue-300 font-bold flex items-center gap-1"><Icons.User /> {adminName}님 접속 중</p>
-                                </div>
+                                <button onClick={() => setAdminName('')} className="p-1.5 text-slate-400 hover:text-white transition"><Icons.Edit /></button>
                             </div>
-                            <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto no-scrollbar">
-                                <button onClick={() => handleTabClick('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Grid /> 대시보드</button>
-                                <button onClick={() => handleTabClick('leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Calendar /> 연차 관리</button>
-                                <button onClick={() => handleTabClick('past_leave')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'past_leave' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.History /> 과년도 연차관리</button>
-                                <button onClick={() => handleTabClick('promotion')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'promotion' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Megaphone /> 미사용 연차 촉진</button>
-                                <button onClick={() => handleTabClick('resigned')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'resigned' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.UserMinus /> 퇴사자 관리</button>
-                                <button onClick={() => handleTabClick('staff')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition ${activeTab === 'staff' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}><Icons.Users /> 직원 명부</button>
-                            </nav>
-                            <div className="p-4 bg-[#0F172A]">
-                                <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 text-slate-400 hover:text-white text-xs font-bold py-2"><Icons.LogOut /> 로그아웃</button>
-                                <p className="text-[10px] text-slate-500 text-center mt-4">Ver {SYSTEM_VERSION}<br/>© 2026 YangjiNurim</p>
-                            </div>
-                        </aside>
+                            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-red-400 transition font-bold text-sm"><Icons.LogOut /> 로그아웃</button>
+                        </div>
+                    </div>
 
-                        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative w-full overflow-x-hidden">
-                            <header className="flex justify-between items-center mb-6 md:mb-8">
-                                <div className="flex items-center gap-3">
-                                    <button className="md:hidden p-2 bg-white rounded-lg shadow-sm border border-slate-100 text-slate-600" onClick={() => setIsMobileMenuOpen(true)}>
-                                        <Icons.Menu />
-                                    </button>
-                                    <h2 className="text-xl md:text-2xl font-bold text-slate-800">관리자 시스템</h2>
-                                </div>
-                                <div className="text-xs md:text-sm font-bold text-slate-500 bg-white px-3 py-1.5 md:bg-transparent md:p-0 rounded-lg shadow-sm md:shadow-none border md:border-none border-slate-100">
-                                    {new Date().toLocaleDateString()}
-                                </div>
-                            </header>
-                            
+                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                        <header className="bg-white px-4 md:px-8 py-4 shadow-sm flex justify-between items-center z-30 sticky top-0">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"><Icons.Menu /></button>
+                                <h1 className="text-xl font-black text-slate-800">
+                                    {activeTab === 'dashboard' && '종합 대시보드'}
+                                    {activeTab === 'leave' && '연차 등록 및 관리'}
+                                    {activeTab === 'past' && '과년도 연차 기록'}
+                                    {activeTab === 'staff' && '전체 직원 명부'}
+                                    {activeTab === 'promotion' && '미사용 연차 사용 촉진'}
+                                    {activeTab === 'resigned' && '퇴사자 정보 관리'}
+                                </h1>
+                            </div>
+                            <div className="flex items-center gap-2"><span className="text-[10px] md:text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded hidden sm:inline-block">v{SYSTEM_VERSION}</span></div>
+                        </header>
+
+                        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F1F5F9] custom-scrollbar">
                             {activeTab === 'dashboard' && (
                                 <div className="space-y-6 animate-fade-in">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {DASHBOARD_STATS.map((s,i) => (
-                                            <div key={i} className="bg-white p-5 rounded-2xl border shadow-sm flex justify-between items-center hover:shadow-md transition">
-                                                <div><p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{s.label}</p><span className="text-2xl font-black text-slate-800">{s.value}</span><span className="text-sm font-bold text-slate-400 ml-1">{s.unit}</span></div>
-                                                <div className={`p-3 rounded-xl ${s.color} bg-opacity-50`}>{s.icon}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 flex flex-col">
-                                            <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-6 text-sm md:text-base"><Icons.Grid /> 연도별 연차 소진율 추이</h3>
-                                            <div className="flex-1 flex items-end justify-around gap-2 md:gap-4 h-64 pb-2 border-b border-slate-100">
-                                                {yearlyStats.map((stat) => (
-                                                    <div key={stat.year} className="flex flex-col items-center group w-full h-full justify-end">
-                                                        <div className="relative w-full max-w-[40px] md:max-w-[60px] h-full bg-slate-100 rounded-t-lg overflow-hidden">
-                                                            <div 
-                                                                className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg shadow-lg group-hover:bg-blue-600 bar-transition min-h-[1px]" 
-                                                                style={{ height: `${stat.rate}%` }}
-                                                            >
-                                                                <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] md:text-xs py-1 px-1.5 md:px-2 rounded opacity-0 group-hover:opacity-100 transition shadow-lg font-bold z-10">{stat.rate}%</span>
-                                                            </div>
-                                                        </div>
-                                                        <span className="mt-3 text-[10px] md:text-sm font-bold text-slate-500">{stat.year}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                                            <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500"><Icons.Users /></div>
+                                            <div><p className="text-sm font-bold text-slate-500">재직중인 직원</p><p className="text-2xl font-black text-slate-800">{dashStats.totalStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div>
                                         </div>
-
-                                        <div className="space-y-6">
-                                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
-                                                <h3 className="font-bold text-slate-700 flex items-center gap-2 mb-4 text-sm md:text-base"><span className="w-2 h-6 bg-orange-400 rounded-sm"></span> 금일 부재 현황</h3>
-                                                <div className="space-y-3 max-h-48 overflow-y-auto no-scrollbar">
-                                                    {activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).length > 0 ? (
-                                                        activeStaffList.filter(s => s.leaveHistory?.some(r => r.date === todayStr)).map(s => (
-                                                            <div key={s.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                                <div className="flex items-center gap-3"><div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white border flex items-center justify-center text-xs md:text-sm font-bold text-slate-600 shadow-sm">{s.name[0]}</div><div><p className="text-xs md:text-sm font-bold text-slate-800">{s.name}</p><p className="text-[10px] md:text-xs text-slate-500 font-medium mt-0.5">휴가 중</p></div></div><span className="px-2 py-1 md:px-3 md:py-1 rounded-lg text-[10px] md:text-xs font-bold bg-orange-100 text-orange-700">휴가</span>
-                                                            </div>
-                                                        ))
-                                                    ) : (<p className="text-slate-400 text-xs md:text-sm text-center py-8">금일 휴가자가 없습니다.</p>)}
-                                                </div>
-                                            </div>
-                                            <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-200 hidden md:block">
-                                                <h3 className="font-bold text-lg mb-1">빠른 연차 등록</h3>
-                                                <p className="text-blue-100 text-sm mb-4">관리자가 직원의 연차를 대리 등록합니다.</p>
-                                                <button onClick={() => { setEditingLeaveData(null); setShowLeaveModal(true); }} className="w-full bg-white text-blue-700 py-3 rounded-xl text-sm font-bold hover:bg-blue-50 transition">+ 연차 등록하기</button>
-                                            </div>
+                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-teal-300 transition" onClick={() => setActiveTab('leave')}>
+                                            <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-500"><Icons.Calendar /></div>
+                                            <div><p className="text-sm font-bold text-slate-500">금일 휴가자</p><p className="text-2xl font-black text-slate-800">{dashStats.todayLeaves}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div>
+                                        </div>
+                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-red-300 transition" onClick={() => setActiveTab('leave')}>
+                                            <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500"><Icons.Alert /></div>
+                                            <div><p className="text-sm font-bold text-slate-500">연차 초과자</p><p className="text-2xl font-black text-red-500">{dashStats.warningStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div>
                                         </div>
                                     </div>
-
-                                    <CalendarView staffList={activeStaffList} />
-                                    
+                                    <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} />
                                 </div>
                             )}
 
-                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffList} adminName={adminName} onOpenModal={(staffId) => { setEditingLeaveData(typeof staffId === 'string' ? { staffId } : null); setShowLeaveModal(true); }} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showAlert={showAlert} showConfirm={showConfirm} />}
-                            {activeTab === 'past_leave' && <LeaveManagementTab staffList={activeStaffList} adminName={adminName} onOpenModal={(staffId) => { setEditingLeaveData(typeof staffId === 'string' ? { staffId } : null); setShowLeaveModal(true); }} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showAlert={showAlert} showConfirm={showConfirm} />}
-                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffList} showAlert={showAlert} />}
-                            {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={() => showAlert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showAlert={showAlert} showConfirm={showConfirm} />}
-                            {activeTab === 'staff' && <StaffTab staffList={staffList} showAlert={showAlert} showConfirm={showConfirm} />}
+                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} adminName={adminName} onOpenModal={() => { setEditingLeaveData(null); setShowLeaveModal(true); }} onEditClick={handleEditLeave} onNameClick={(staff) => setViewingStaffDetail(staff)} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} adminName={adminName} onOpenModal={() => { setEditingLeaveData(null); setShowLeaveModal(true); }} onEditClick={handleEditLeave} isPastMode={true} onNameClick={(staff) => setViewingStaffDetail(staff)} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'staff' && <StaffTab staffList={staffList} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} showAlert={showAlert} />}
+                            {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={() => { setEditingLeaveData(null); setShowLeaveModal(true); }} onEditClick={handleEditLeave} onNameClick={(staff) => setViewingStaffDetail(staff)} showConfirm={showConfirm} showAlert={showAlert} />}
                         </main>
-                        {showLeaveModal && <LeaveActionModal staffList={activeStaffList} adminName={adminName} onClose={closeLeaveModal} initialData={editingLeaveData} showAlert={showAlert} />}
-                        {viewingStaffDetail && <StaffDetailModal staff={viewingStaffDetail} onClose={() => setViewingStaffDetail(null)} />}
-                    </ErrorBoundary>
+                        
+                        {showLeaveModal && <LeaveActionModal onClose={closeLeaveModal} staffList={staffList} adminName={adminName} initialData={editingLeaveData} showAlert={showAlert} />}
+                    </div>
                 </div>
             );
         };
 
         const root = createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<ErrorBoundary><App /></ErrorBoundary>);
     </script>
 </body>
 </html>
