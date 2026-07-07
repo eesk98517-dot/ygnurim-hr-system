@@ -51,10 +51,18 @@
         const { createRoot } = ReactDOM;
 
         // 시스템 정식 버전 업데이트 (Stable)
-        const SYSTEM_VERSION = "6.1.0-stable";
+        const SYSTEM_VERSION = "6.1.1-stable";
 
         // 시스템 업데이트 로그 데이터
         const UPDATE_LOGS = [
+            {
+                version: "6.1.1-stable",
+                date: "2026-07-07",
+                details: [
+                    "직원명부 엑셀 업로드 시 기존 데이터 중복 생성 오류 완벽 수정",
+                    "엑셀 대조 엔진 고도화 (유지/신규/퇴사 자동 3단 분류 처리 적용)"
+                ]
+            },
             {
                 version: "6.1.0-stable",
                 date: "2026-07-07",
@@ -2182,7 +2190,7 @@
                 return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1"><Icons.SortAsc /></span> : <span className="text-blue-600 ml-1"><Icons.SortDesc /></span>;
             };
             
-            const handleFileUpload = (e, isResignedUpload = false) => {
+            const handleFileUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const reader = new FileReader();
@@ -2194,37 +2202,113 @@
                         const ws = wb.Sheets[wb.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
                         if (jsonData.length < 2) { setUploadMsg('❌ 데이터 없음'); return; }
+                        
                         const batch = db.batch();
-                        let count = 0;
+                        let newCount = 0;
+                        let updateCount = 0;
+                        let resignCount = 0;
+
+                        // 1. 엑셀 데이터 파싱
+                        const excelStaffs = [];
                         for (let i = 1; i < jsonData.length; i++) {
                             const row = jsonData[i];
                             if (!row || row.length === 0) continue;
-                            const name = row[0]; 
+                            const name = String(row[0] || '').trim();
                             if (name) {
-                                const birthRaw = row[1]; const phoneRaw = row[2]; const joinRaw = row[3]; const workRaw = row[4];
-                                const joinDate = safeDate(joinRaw); const birthDate = safeDate(birthRaw);
+                                excelStaffs.push({
+                                    name,
+                                    normName: normalizeString(name),
+                                    birthRaw: row[1],
+                                    phoneRaw: row[2],
+                                    joinRaw: row[3],
+                                    workRaw: row[4]
+                                });
+                            }
+                        }
+
+                        // 2. DB(activeStaffList)와 엑셀 대조
+                        const matchedExcelIndices = new Set();
+                        const todayStr = toLocalYMD(new Date());
+
+                        activeStaffList.forEach(dbStaff => {
+                            const normDbName = normalizeString(dbStaff.name);
+                            // 엑셀에서 이 직원의 이름 찾기
+                            const matchIdx = excelStaffs.findIndex((es, idx) => !matchedExcelIndices.has(idx) && es.normName === normDbName);
+
+                            if (matchIdx !== -1) {
+                                // [조건 1] 엑셀에 있고 DB에도 있음 -> 정보 업데이트 (유지)
+                                matchedExcelIndices.add(matchIdx);
+                                const es = excelStaffs[matchIdx];
+                                const joinDate = safeDate(es.joinRaw) || dbStaff.joinDate;
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 
-                                const phoneStr = String(phoneRaw || '').replace(/[^0-9]/g, '').trim();
+                                const docRef = db.collection('users').doc(dbStaff.id);
+                                batch.update(docRef, {
+                                    birth: safeDate(es.birthRaw) || dbStaff.birth || '',
+                                    phone: es.phoneRaw || dbStaff.phone || '',
+                                    workHours: es.workRaw || dbStaff.workHours || '',
+                                    joinDate: joinDate,
+                                    annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0,
+                                    annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-'
+                                });
+                                updateCount++;
+                            } else {
+                                // [조건 3] DB에는 있는데 엑셀에는 없음 -> 퇴사 처리
+                                const docRef = db.collection('users').doc(dbStaff.id);
+                                batch.update(docRef, {
+                                    status: 'resigned',
+                                    resignDate: todayStr // 업로드 시점 기준 퇴사일
+                                });
+                                resignCount++;
+                            }
+                        });
+
+                        // 3. [조건 2] 엑셀에만 있고 DB에 없음 -> 신규 직원 추가
+                        excelStaffs.forEach((es, idx) => {
+                            if (!matchedExcelIndices.has(idx)) {
+                                const joinDate = safeDate(es.joinRaw); 
+                                const birthDate = safeDate(es.birthRaw);
+                                const leaveInfo = calculateAnnualLeave(joinDate);
+                                
+                                const phoneStr = String(es.phoneRaw || '').replace(/[^0-9]/g, '').trim();
                                 const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
                                 const uniqueKey = `yg${last4}`;
-                                const email = `${uniqueKey}@ygnurim.com`;
+                                // 초기 DB 중복 덮어씌움 방지를 위해 고유 ID 발급 (추후 계정 발급 시 yg뒷자리로 통합됨)
+                                const randomSuffix = Math.random().toString(36).substring(2, 6);
+                                const email = `${uniqueKey}_${randomSuffix}@ygnurim.com`;
                                 
                                 const docRef = db.collection('users').doc(email);
                                 batch.set(docRef, {
-                                    name, birth: birthDate, phone: phoneRaw || '', workHours: workRaw || '', 
-                                    joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', 
-                                    annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-',
-                                    status: isResignedUpload ? 'resigned' : 'active', resignDate: isResignedUpload ? (safeDate(resignDate) || '') : '',
-                                    offDays: [0] 
-                                }, { merge: true });
-                                count++;
+                                    name: es.name, 
+                                    birth: birthDate, 
+                                    phone: es.phoneRaw || '', 
+                                    workHours: es.workRaw || '', 
+                                    joinDate, 
+                                    employeeId: uniqueKey, 
+                                    role: 'staff', 
+                                    tempPw: '123456', 
+                                    annualLeaveTotal: leaveInfo.total || 0, 
+                                    annualLeavePeriod: leaveInfo.period || '-',
+                                    status: 'active', 
+                                    resignDate: '',
+                                    offDays: [0],
+                                    leaveHistory: [],
+                                    annualLeaveUsed: 0,
+                                    authStatus: 'pending' // 미발급 상태로 신규 추가
+                                });
+                                newCount++;
                             }
-                        }
+                        });
+
                         await batch.commit();
-                        setUploadMsg(`✅ ${count}명 처리 완료!`);
-                        setTimeout(() => setUploadMsg(''), 3000);
-                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
+                        setUploadMsg(`✅ 신규:${newCount}명 / 유지:${updateCount}명 / 퇴사:${resignCount}명`);
+                        setTimeout(() => setUploadMsg(''), 6000);
+                        
+                        // 중복 업로드를 방지하기 위해 파일 input 초기화
+                        e.target.value = '';
+                    } catch (err) { 
+                        setUploadMsg('❌ 오류: ' + err.message); 
+                    }
                 };
             };
 
@@ -2407,7 +2491,7 @@
                                 일괄 계정 발급
                             </button>
 
-                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e, false)} accept=".xlsx, .xls, .csv" className="hidden" />
+                            <input type="file" ref={fileInputRef} onChange={(e) => handleFileUpload(e)} accept=".xlsx, .xls, .csv" className="hidden" />
                             <button onClick={() => fileInputRef.current.click()} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition flex justify-center items-center gap-2"><Icons.Upload /> 엑셀 업로드</button>
                         </div>
                     </div>
