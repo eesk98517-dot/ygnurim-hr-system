@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.3.8-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.4.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -22,7 +22,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         th { user-select: none; }
         .bar-transition { transition: height 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
         .animate-slide-in-right { animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
@@ -44,11 +44,11 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.3.8-stable";
+        const SYSTEM_VERSION = "6.4.0-stable";
         const UPDATE_LOGS = [
-            { version: "6.3.8-stable", date: "2026-07-13", details: ["🚀 개별 캘린더, 월간 보고서, 엑셀 검증 모달 누락 현상 완벽 복구", "💡 깃허브 버전 체크 정규식 및 비교 로직 안전성 수정 (업데이트 알림 정상화)"] },
-            { version: "6.3.7-stable", date: "2026-07-10", details: ["🚀 전체 코드 구조화 완벽 재정립 및 컴포넌트 유실 현상 영구 차단", "💡 CalendarView, PromotionTab 등 탭 누락 에러 완벽 해결", "✨ 연차 촉진 사전 엑셀 대조: 특정 월 촉진 대상자 필터 및 동명이인(-1) 매칭 기능 통합 확보"] },
-            { version: "6.3.0-stable", date: "2026-07-10", details: ["🚀 연차 촉진 다중 엑셀 대조: '스마트 동명이인 방어 로직' 탑재", "✨ 특정 월 촉진 대상자만 필터링하여 대조 및 추출하는 기능 안정화"] }
+            { version: "6.4.0-stable", date: "2026-07-13", details: ["🚀 대시보드 '월별 연차 소진율 추이 막대 그래프' 전면 복구 완료", "✨ 기존의 모든 엑셀 검증 로직 및 프리미엄 리포트 로직 무결성 확인 및 유지"] },
+            { version: "6.3.8-stable", date: "2026-07-13", details: ["🚀 개별 캘린더, 월간 보고서, 엑셀 검증 모달 누락 현상 완벽 복구", "💡 깃허브 버전 체크 정규식 강화 (업데이트 알림 정상화)"] },
+            { version: "6.3.7-stable", date: "2026-07-10", details: ["🚀 전체 코드 구조화 완벽 재정립 및 컴포넌트 유실 현상 영구 차단", "✨ 특정 월 촉진 대상자 필터 및 동명이인(-1) 매칭 기능 통합"] }
         ];
 
         const firebaseConfig = {
@@ -725,7 +725,6 @@
 
             return (
                 <div className="space-y-6 relative">
-                    {/* 뼈대 복구: 누락되었던 모달 컴포넌트들을 렌더링 영역에 완벽하게 복구했습니다 */}
                     {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} />}
                     {showVerificationModal && <ExcelVerificationModal staffList={staffList} onClose={() => setShowVerificationModal(false)} />}
@@ -1589,6 +1588,40 @@
                                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-teal-300 transition" onClick={() => setActiveTab('leave')}><div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-500"><Icons.Calendar /></div><div><p className="text-sm font-bold text-slate-500">금일 휴가자</p><p className="text-2xl font-black text-slate-800">{dashStats.todayLeaves}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
                                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-red-300 transition" onClick={() => setActiveTab('leave')}><div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500"><Icons.Alert /></div><div><p className="text-sm font-bold text-slate-500">연차 초과자</p><p className="text-2xl font-black text-red-500">{dashStats.warningStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
                                     </div>
+
+                                    {/* 월별 연차 사용 추이 그래프 복원 영역 */}
+                                    <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 animate-fade-in">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base"><Icons.Grid /> 전사 월별 연차 소진율 추이 ({new Date().getFullYear()}년)</h3>
+                                            <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">막대에 마우스를 올리면 상세 시간이 표시됩니다.</span>
+                                        </div>
+                                        <div className="flex items-end justify-between gap-1 md:gap-2 h-48 md:h-64 mt-4 pt-8 border-b border-slate-100 pb-2">
+                                            {(() => {
+                                                const cy = new Date().getFullYear();
+                                                const stats = Array.from({length:12}, (_,i)=>({m:i+1, h:0}));
+                                                activeStaffs.forEach(s => {
+                                                    (s.leaveHistory||[]).forEach(l => {
+                                                        if(l.date && l.date.startsWith(`${cy}-`)) {
+                                                            const mo = parseInt(l.date.split('-')[1], 10);
+                                                            if(mo>=1 && mo<=12) stats[mo-1].h += safeParseFloat(l.days);
+                                                        }
+                                                    });
+                                                });
+                                                const maxH = Math.max(...stats.map(st=>st.h), 1);
+                                                return stats.map(st => (
+                                                    <div key={st.m} className="flex-1 flex flex-col items-center group h-full justify-end relative">
+                                                        <div className="w-full max-w-[40px] relative h-full flex items-end rounded-t-lg bg-slate-50/50 hover:bg-slate-100 transition-colors">
+                                                            <div className="absolute bottom-0 w-full bg-blue-500 rounded-t-md shadow-sm group-hover:bg-blue-600 bar-transition min-h-[4px]" style={{ height: `${Math.max((st.h/maxH)*100, 2)}%` }}>
+                                                                <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] md:text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap transition-opacity z-10 font-bold">{fmt(st.h)}h</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-[10px] md:text-xs font-bold text-slate-500 mt-3">{st.m}월</div>
+                                                    </div>
+                                                ));
+                                            })()}
+                                        </div>
+                                    </div>
+
                                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
                                         <div className="xl:col-span-2 h-full"><CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} /></div>
                                         <div className="xl:col-span-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 animate-fade-in flex flex-col h-[500px]">
