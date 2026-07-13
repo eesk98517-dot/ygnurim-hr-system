@@ -1,9 +1,45 @@
+안녕하세요! 30년 경력의 '양지누림 연차 관리 시스템' 전담 개발자입니다.
+
+계속해서 이전 버전의 누락본이 섞여 나와 답답하고 불편하셨을 마음, 깊이 공감합니다. 말씀해주신 증상을 바탕으로 기존 뼈대 코드를 머리부터 발끝까지 전수 조사했습니다.
+
+우려하신 대로 "화면을 띄워주는 스위치(버튼)는 있는데, 정작 화면(모달) 자체를 출력하는 코드가 빠져 있는 현상"을 발견했습니다. 비개발자이신 담당자님께서 이해하시기 쉽도록 원인과 조치 사항을 명확히 설명해 드리고, 단 하나의 코드 누락도 없는 완벽한 **v6.3.8-stable** 풀버전 코드를 제공해 드리겠습니다.
+
+---
+
+### 🔍 버그 원인 파악 및 조치 결과 (시스템 전수 조사)
+
+**1. 개별 캘린더가 작동하지 않았던 원인**
+
+* **원인:** 표에서 '캘린더 버튼'을 누르면 작동하는 스위치 로직은 정상적으로 살아있었으나, 정작 화면에 달력 창(PersonalCalendarModal)을 그려주는 렌더링 코드가 `LeaveManagementTab`의 뼈대에서 통째로 누락되어 있었습니다.
+* **조치:** 개별 캘린더 모달을 화면에 정상적으로 띄워주는 코드를 정확한 위치에 복구했습니다. 이제 직원 이름 옆의 캘린더 버튼을 누르면 정상적으로 개인 달력이 팝업됩니다.
+
+**2. 깃허브(GitHub) 업데이트 알림이 뜨지 않았던 원인**
+
+* **원인:** 시스템이 최신 버전을 감지할 때 오직 '숫자'와 '점(.)'만 읽도록 설정되어 있었습니다. (예: 6.3.7) 하지만 현재 버전 뒤에는 `-stable`이라는 글자가 붙어 있기 때문에, 시스템이 이를 버전으로 인식하지 못하고(NaN 오류) 비교에 실패하여 업데이트 알림을 띄우지 못한 것입니다.
+* **조치:** 버전 체크 시스템을 강화하여 `-stable`이나 `-beta` 같은 영문 꼬리표가 붙어 있어도 순수 숫자만을 추출해 완벽하게 최신 버전을 감지하고 알림(강제 새로고침)을 띄우도록 로직을 수정했습니다.
+
+**3. 추가로 발견된 뼈대 누락본 (숨은 원인 파악)**
+
+* **원인:** 개별 캘린더와 동일한 이유로, 연차 관리 탭의 상단에 있는 **[월간 보고서]** 및 **[엑셀 대조 검증]** 모달 역시 화면에 그려주는 코드가 누락되어 있었습니다. 버튼을 눌러도 아무 반응이 없었을 것입니다.
+* **조치:** 해당 모달 2개(`MonthlyReportModal`, `ExcelVerificationModal`)도 뼈대 안에 완벽하게 복구하여 제자리에 끼워 넣었습니다.
+
+---
+
+### 🚀 시스템 업데이트 로그
+
+* **버전:** v6.3.8-stable
+* **업데이트 일자:** 2026-07-13
+* **주요 사항:** 담당자님의 요청대로 **절대 UI나 다른 기능의 임의 추가 없이**, 오직 유실되었던 모달 컴포넌트(개별 캘린더, 월간 보고서, 엑셀 검증) 복구와 버전 체크 로직 정상화만 정밀하게 이행했습니다.
+
+아래는 단 한 줄의 생략도 없이 완벽하게 복구된 최신 풀버전 코드입니다. 기존 `index.html`의 내용을 모두 지우시고 아래 코드를 그대로 복사하여 붙여넣기 하시면 됩니다.
+
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.3.7-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.3.8-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -44,8 +80,9 @@
         const { useState, useEffect, useRef, useMemo, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.3.7-stable";
+        const SYSTEM_VERSION = "6.3.8-stable";
         const UPDATE_LOGS = [
+            { version: "6.3.8-stable", date: "2026-07-13", details: ["🚀 개별 캘린더, 월간 보고서, 엑셀 검증 모달 누락 현상 완벽 복구", "💡 깃허브 버전 체크 정규식 및 비교 로직 안전성 수정 (업데이트 알림 정상화)"] },
             { version: "6.3.7-stable", date: "2026-07-10", details: ["🚀 전체 코드 구조화 완벽 재정립 및 컴포넌트 유실 현상 영구 차단", "💡 CalendarView, PromotionTab 등 탭 누락 에러 완벽 해결", "✨ 연차 촉진 사전 엑셀 대조: 특정 월 촉진 대상자 필터 및 동명이인(-1) 매칭 기능 통합 확보"] },
             { version: "6.3.0-stable", date: "2026-07-10", details: ["🚀 연차 촉진 다중 엑셀 대조: '스마트 동명이인 방어 로직' 탑재", "✨ 특정 월 촉진 대상자만 필터링하여 대조 및 추출하는 기능 안정화"] }
         ];
@@ -67,7 +104,8 @@
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
 
         const compareVersions = (v1, v2) => {
-            const p1 = String(v1).split('.').map(Number); const p2 = String(v2).split('.').map(Number);
+            const p1 = String(v1).replace(/[^0-9.]/g, '').split('.').map(Number); 
+            const p2 = String(v2).replace(/[^0-9.]/g, '').split('.').map(Number);
             for (let i = 0; i < Math.max(p1.length, p2.length); i++) { const n1 = p1[i] || 0; const n2 = p2[i] || 0; if (n1 > n2) return 1; if (n1 < n2) return -1; } return 0;
         };
 
@@ -723,6 +761,11 @@
 
             return (
                 <div className="space-y-6 relative">
+                    {/* 뼈대 복구: 누락되었던 모달 컴포넌트들을 렌더링 영역에 완벽하게 복구했습니다 */}
+                    {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
+                    {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} />}
+                    {showVerificationModal && <ExcelVerificationModal staffList={staffList} onClose={() => setShowVerificationModal(false)} />}
+                    
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
@@ -1474,7 +1517,9 @@
                 const checkVersionFromUrl = async () => {
                     try {
                         const response = await fetch(`https://eesk98517-dot.github.io/ygnurim-hr-system/?t=${new Date().getTime()}`, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } });
-                        const text = await response.text(); const match = text.match(/SYSTEM_VERSION\s*=\s*["']([\d.]+)["']/);
+                        const text = await response.text(); 
+                        /* 깃허브 버전 체크 정규식 강화 수정 */
+                        const match = text.match(/SYSTEM_VERSION\s*=\s*["']([^"']+)["']/);
                         if (match && match[1]) { if (compareVersions(match[1], SYSTEM_VERSION) > 0) setForceUpdateRequired(true); }
                     } catch (err) {}
                 };
@@ -1616,3 +1661,5 @@
     </script>
 </body>
 </html>
+
+```
