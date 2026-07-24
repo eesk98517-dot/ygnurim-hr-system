@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.8.2-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.9.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.8.2-stable";
+        const SYSTEM_VERSION = "6.9.0-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.9.0-stable", date: "2026-07-24", details: ["🛡️ [연차 대조] 재직자 한정 대조 완성 — 대조 모달이 퇴사자 명부를 못 받아 필터가 무력화되던 데이터 전달 결함 수정", "🎯 [정밀 매칭] 재직자 안에서 이름 완전일치로 먼저 찾고, 동명이인은 생년월일·연락처로 특정하도록 강화", "🙈 [퇴사자 처리] 퇴사자는 오차 목록에 올리지 않고 조용히 제외 (제외 건수만 표시)", "👥 [진단] 동명이인이라 특정하지 못한 인원을 결과 화면에 별도 안내"] },
             { version: "6.8.2-stable", date: "2026-07-24", details: ["🎯 [엑셀 대조] 2단 헤더 양식(1행 큰제목 + 2행 항목명) 완벽 인식 — '근로지원인명'이 미등록 직원으로 뜨던 문제 해결", "🧠 [헤더 판정] 후보 행마다 인식 품질 점수를 매겨 가장 정확한 헤더 행을 선택하도록 개선", "🚫 [행 필터] 합계·소계·헤더 잔재 등 사람 이름이 아닌 행을 대조 대상에서 자동 제외"] },
             { version: "6.8.1-stable", date: "2026-07-24", details: ["🐞 [긴급 수정] 엑셀 대조 시 사용시간이 전부 0으로 집계되던 문제 해결 — 헤더 탐색이 '근무시간' 등 엉뚱한 열을 먼저 잡던 우선순위 버그 수정", "🔧 [자동 복구] 시간 열을 못 찾으면 숫자 데이터를 직접 훑어 실제 시간 열을 자동 탐색", "🧾 [진단 표시] 엑셀에서 읽은 총 시간·자동복구·건너뛴 파일을 결과 화면에 즉시 안내", "📄 [제목행 대응] 첫 행이 '○○년 ○월 근로지원인 현황' 같은 제목이어도 진짜 헤더 행을 찾아냄"] },
             { version: "6.8.0-stable", date: "2026-07-24", details: ["🔦 [직원 페이지] 실제 화면 요소를 밝게 뚫어주는 '스포트라이트 오버레이 투어' 신설 (5단계)", "🤝 [가이드 병행] 개요 설명은 4단계 모달, 위치 안내는 오버레이 투어로 이원화 · 모달 마지막에서 바로 연결", "🛟 [안전 착지] 요소 미탐지 시 자동 건너뜀, 좁은 화면·화면 이탈 시 하단 고정 카드로 자동 전환"] },
@@ -670,12 +671,32 @@
             const [filterPromoMonth, setFilterPromoMonth] = useState(defaultMonth);
 
             // 재직자 / 퇴사자를 명확히 분리
-            const activeStaffs = useMemo(() => staffList.filter(s => s.status !== 'resigned' && !(s.resignDate && String(s.resignDate).trim())), [staffList]);
-            const resignedNameSet = useMemo(() => {
-                const set = new Set();
-                staffList.forEach(s => { if (s.status === 'resigned' || (s.resignDate && String(s.resignDate).trim())) set.add(cleanName(s.name)); });
-                return set;
-            }, [staffList]);
+            // ===== [v6.9.0] 재직/퇴사 판정 및 대조 대상 구성 =====
+            // isResigned : status가 'resigned' 이거나, 퇴사일이 입력되어 있으면 퇴사자로 봅니다.
+            const isResigned = (s) => s.status === 'resigned' || !!(s.resignDate && String(s.resignDate).trim());
+            const activeStaffs = useMemo(() => staffList.filter(s => !isResigned(s)), [staffList]);
+            const resignedStaffs = useMemo(() => staffList.filter(isResigned), [staffList]);
+
+            // 퇴사자 판별용 인덱스 — 이름뿐 아니라 '이름+생년월일' 조합도 함께 봅니다.
+            // (동명이인 중 한 명만 퇴사한 경우, 재직자까지 통째로 제외되는 사고를 막기 위함)
+            const resignedIndex = useMemo(() => {
+                const byName = new Map();   // 이름 → 퇴사자 수
+                const byKey = new Set();    // 이름|생년월일
+                resignedStaffs.forEach(s => {
+                    const n = cleanName(s.name); if (!n) return;
+                    byName.set(n, (byName.get(n) || 0) + 1);
+                    const b = normalizeString(safeDate(s.birth));
+                    if (b) byKey.add(n + '|' + b);
+                });
+                return { byName, byKey };
+            }, [resignedStaffs]);
+
+            // 재직자 이름 → 인원수 (동명이인 판별용)
+            const activeNameCount = useMemo(() => {
+                const m = new Map();
+                activeStaffs.forEach(s => { const n = cleanName(s.name); if (n) m.set(n, (m.get(n) || 0) + 1); });
+                return m;
+            }, [activeStaffs]);
 
             const handleFileSelect = (e) => {
                 const selected = Array.from(e.target.files); if (!selected.length) return;
@@ -703,7 +724,7 @@
                     }
 
                     const excelDataMap = {}; const unmatchedExcelData = []; let skipped = 0;
-                    const autoFixedFiles = []; const failedFiles = [];
+                    const autoFixedFiles = []; const failedFiles = []; const ambiguousRows = [];
                     // 우선순위 순서 (앞쪽일수록 강함) — '근무시간' 같은 열에 오인식되지 않도록 구체적 키워드를 앞에 둡니다
                     const NEEDS = {
                         name: ['근로지원인', '성명', '이름'],
@@ -757,26 +778,50 @@
                             // [v6.8.2] 헤더/합계/소계 같은 '사람이 아닌 행'은 이름으로 취급하지 않습니다
                             if (isNotPersonName(exName)) continue;
 
-                            // ▼▼ [핵심] 퇴사자 명부와 일치하면 대조 대상에서 완전히 제외 ▼▼
-                            if (resignedNameSet.has(exName)) { skipped++; continue; }
-
                             const infoStr = infoCol !== -1 ? normalizeString(row[infoCol]) : '';
-                            const matching = activeStaffs.filter(s => { const db = cleanName(s.name); return db === exName || s.name.includes(exName); });
+                            const exBirth = normalizeString(safeDate(infoStr));
 
+                            // ===== [v6.9.0 핵심] 재직자 한정 대조 =====
+                            // 1) 먼저 '재직 중인 직원' 안에서만 정확히 일치하는 사람을 찾습니다.
+                            const sameName = activeStaffs.filter(s => cleanName(s.name) === exName);
                             let targetStaffId = null;
-                            if (matching.length === 1) targetStaffId = matching[0].id;
-                            else if (matching.length > 1) {
-                                const found = matching.find(s => {
+
+                            if (sameName.length === 1) {
+                                // 양쪽 모두 생년월일을 가지고 있는데 서로 다르면 동일인이 아닙니다.
+                                // (같은 이름의 퇴사자 데이터가 재직자에게 잘못 붙는 것을 막습니다)
+                                const only = sameName[0];
+                                const onlyBirth = normalizeString(safeDate(only.birth));
+                                if (onlyBirth && exBirth && onlyBirth !== exBirth) {
+                                    if (resignedIndex.byKey.has(exName + '|' + exBirth)) { skipped++; continue; }
+                                    unmatchedExcelData.push({ name: rawName, month: mapItem.month, hours });
+                                    continue;
+                                }
+                                targetStaffId = only.id;
+                            } else if (sameName.length > 1) {
+                                // 동명이인 → 생년월일 / 연락처로 특정합니다
+                                const found = sameName.find(s => {
                                     const sBirth = normalizeString(safeDate(s.birth));
                                     const sPhone = normalizeString(s.phone);
-                                    const exInfo = normalizeString(safeDate(infoStr)) || infoStr;
-                                    return (sBirth && exInfo && (sBirth === exInfo || exInfo.includes(sBirth.replace(/-/g, '')))) || (sPhone && exInfo && (sPhone.includes(exInfo) || exInfo.includes(sPhone)));
+                                    return (sBirth && exBirth && sBirth === exBirth)
+                                        || (sPhone && infoStr && (sPhone.includes(infoStr) || infoStr.includes(sPhone)));
                                 });
                                 if (found) targetStaffId = found.id;
+                                else { ambiguousRows.push({ name: rawName, month: mapItem.month, hours }); continue; }
                             }
 
-                            if (targetStaffId) { const key = `${targetStaffId}_${mapItem.month}`; excelDataMap[key] = (excelDataMap[key] || 0) + hours; }
-                            else unmatchedExcelData.push({ name: rawName, month: mapItem.month, hours });
+                            // 2) 재직자 중에 없다면 — 퇴사자인지 확인하고, 맞으면 조용히 제외합니다.
+                            if (!targetStaffId) {
+                                const isResignedPerson = exBirth
+                                    ? resignedIndex.byKey.has(exName + '|' + exBirth) || (resignedIndex.byName.has(exName) && !activeNameCount.has(exName))
+                                    : resignedIndex.byName.has(exName) && !activeNameCount.has(exName);
+                                if (isResignedPerson) { skipped++; continue; }
+                                // 3) 재직자도 퇴사자도 아니면 진짜 미등록 인원입니다.
+                                unmatchedExcelData.push({ name: rawName, month: mapItem.month, hours });
+                                continue;
+                            }
+
+                            const key = `${targetStaffId}_${mapItem.month}`;
+                            excelDataMap[key] = (excelDataMap[key] || 0) + hours;
                         }
                     }
 
@@ -805,7 +850,7 @@
                     auditRes.sort((a, b) => a.month.localeCompare(b.month) || a.name.localeCompare(b.name));
                     const totalExcelHours = Object.values(excelDataMap).reduce((a, b) => a + b, 0)
                         + unmatchedExcelData.reduce((a, u) => a + u.hours, 0);
-                    setDiag({ autoFixed: autoFixedFiles, failed: failedFiles, totalExcelHours });
+                    setDiag({ autoFixed: autoFixedFiles, failed: failedFiles, totalExcelHours, ambiguous: ambiguousRows });
                     setResults(auditRes); setSkippedCount(skipped); setStep(3);
                 } catch (e) { showAlert("대조 중 오류 발생: " + e.message); }
                 setIsProcessing(false);
@@ -841,11 +886,12 @@
                     )}
                     {step === 3 && (
                         <div className="flex flex-col flex-1 overflow-hidden"><div className="flex justify-between items-center mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200"><div><span className="font-black text-slate-800 text-lg">오차 검출: <span className="text-red-600">{results.length}</span>건</span><p className="text-xs font-bold text-slate-500 mt-1">재직자 {activeStaffs.length}명 기준 대조 완료{skippedCount > 0 && <span className="text-orange-600"> · 퇴사자 {skippedCount}건 자동 제외됨</span>}{diag && <span className="text-indigo-600"> · 엑셀에서 읽은 총 {fmt(diag.totalExcelHours)}h</span>}</p></div><div className="flex gap-2"><button onClick={handleDownloadResults} className="bg-green-50 text-green-700 border border-green-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-100 transition shadow-sm flex items-center gap-2"><Icons.Download /> 결과 엑셀</button><button onClick={() => { setStep(1); setMappings([]); setResults(null); setSkippedCount(0); setDiag(null); }} className="bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-700 transition shadow-sm">초기화</button></div></div>
-                            {diag && (diag.failed.length > 0 || diag.autoFixed.length > 0 || diag.totalExcelHours <= 0) && (
+                            {diag && (diag.failed.length > 0 || diag.autoFixed.length > 0 || diag.totalExcelHours <= 0 || (diag.ambiguous && diag.ambiguous.length > 0)) && (
                                 <div className={`mb-3 p-3 rounded-xl border text-xs font-bold ${diag.totalExcelHours <= 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
                                     {diag.totalExcelHours <= 0 && (<p className="mb-1">⚠️ 엑셀에서 읽어들인 사용시간 합계가 0입니다. 시간이 적힌 열을 찾지 못했을 수 있습니다.</p>)}
                                     {diag.autoFixed.length > 0 && (<p className="mb-1">🔧 헤더 인식 실패로 숫자 열을 자동 탐색했습니다: {diag.autoFixed.join(', ')}</p>)}
                                     {diag.failed.length > 0 && (<p>❌ 시간 열을 찾지 못해 건너뛴 파일: {diag.failed.join(', ')}</p>)}
+                                    {diag.ambiguous && diag.ambiguous.length > 0 && (<p className="mb-1">👥 동명이인이라 특정하지 못한 인원: {diag.ambiguous.map(a => a.name).join(', ')} — 직원 명부에 생년월일을 입력하면 자동 구분됩니다.</p>)}
                                     <p className="mt-1 font-medium opacity-80">엑셀 첫 행의 열 제목에 '휴가' 또는 '사용시간' 이 포함되어 있는지 확인해주세요.</p>
                                 </div>
                             )}
@@ -1087,7 +1133,7 @@
             return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? <Icons.SortAsc /> : <Icons.SortDesc />}</span>;
         };
 
-        const LeaveManagementTab = ({ staffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert }) => {
+        const LeaveManagementTab = ({ staffList, allStaffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1);
             const [showNegativeOnly, setShowNegativeOnly] = useState(false);
@@ -1166,7 +1212,7 @@
                 <div className="space-y-6 relative">
                     {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} />}
-                    {showAdvancedAuditModal && <AdvancedAuditModal staffList={staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={false} />}
+                    {showAdvancedAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={false} />}
 
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1545,7 +1591,7 @@
             );
         };
 
-        const PromotionTab = ({ staffList, showAlert, onOpenModal }) => {
+        const PromotionTab = ({ staffList, allStaffList, showAlert, onOpenModal }) => {
             const today = new Date();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const [startMonth, setStartMonth] = useState(defaultMonth);
@@ -1679,7 +1725,7 @@
                             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div><h2 className="text-2xl font-bold">통보서 압축 파일(ZIP) 생성 중...</h2><p className="mt-2 text-blue-200">대상자가 많을 경우 다소 시간이 소요될 수 있습니다.</p>
                         </div>
                     )}
-                    {showAuditModal && <AdvancedAuditModal staffList={staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={true} />}
+                    {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={true} />}
 
                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div><h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 관리</h3><p className="text-xs md:text-sm text-slate-500">촉진 대상자 검색, 계획서 제출 여부 체크 및 통보서를 출력합니다.</p></div>
@@ -2244,10 +2290,10 @@
                                 </div>
                             )}
 
-                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
-                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'staff' && <StaffTab staffList={staffList} showConfirm={showConfirm} showAlert={showAlert} />}
-                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} showAlert={showAlert} onOpenModal={handleOpenModal} />}
+                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} onOpenModal={handleOpenModal} />}
                             {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'settings' && <SettingsTab showAlert={showAlert} showConfirm={showConfirm} />}
                         </main>
