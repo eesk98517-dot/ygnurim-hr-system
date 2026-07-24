@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.9.1-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.9.2-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.9.1-stable";
+        const SYSTEM_VERSION = "6.9.2-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.9.2-stable", date: "2026-07-24", details: ["🔧 [퇴사자 탭] 해당 탭에서 엑셀 대조 시 재직자 명부를 전달받지 못하던 배선 누락 수정", "👀 [직원 페이지] '수정·취소는 관리자 문의' 안내를 독립 배너로 분리하고 글자 크기·색상을 키워 잘 보이도록 개선", "🧹 [정리] StaffPortal 미선언 prop 정리 및 전체 코드 무결성 재검증"] },
             { version: "6.9.1-stable", date: "2026-07-24", details: ["🎂 [생년월일] 1941년생이 2041년(미래)으로 저장되던 두 자리 연도 해석 오류 수정 — 1913~2012년생 정확 처리", "🔀 [용도 분리] 입사일·퇴사일은 최근 연도로 해석하도록 파서를 분리 (입사일 '20'을 1920년으로 읽던 부작용 차단)", "🩺 [데이터 관리] 미래 날짜로 잘못 저장된 생년월일을 찾아 목록 확인 후 일괄 수정하는 점검 도구 신설"] },
             { version: "6.9.0-stable", date: "2026-07-24", details: ["🛡️ [연차 대조] 재직자 한정 대조 완성 — 대조 모달이 퇴사자 명부를 못 받아 필터가 무력화되던 데이터 전달 결함 수정", "🎯 [정밀 매칭] 재직자 안에서 이름 완전일치로 먼저 찾고, 동명이인은 생년월일·연락처로 특정하도록 강화", "🙈 [퇴사자 처리] 퇴사자는 오차 목록에 올리지 않고 조용히 제외 (제외 건수만 표시)", "👥 [진단] 동명이인이라 특정하지 못한 인원을 결과 화면에 별도 안내"] },
             { version: "6.8.2-stable", date: "2026-07-24", details: ["🎯 [엑셀 대조] 2단 헤더 양식(1행 큰제목 + 2행 항목명) 완벽 인식 — '근로지원인명'이 미등록 직원으로 뜨던 문제 해결", "🧠 [헤더 판정] 후보 행마다 인식 품질 점수를 매겨 가장 정확한 헤더 행을 선택하도록 개선", "🚫 [행 필터] 합계·소계·헤더 잔재 등 사람 이름이 아닌 행을 대조 대상에서 자동 제외"] },
@@ -1623,7 +1624,7 @@
                             <button onClick={() => resignedFileInputRef.current.click()} className="bg-orange-500 text-white px-4 py-3 md:py-2 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-orange-600 transition shadow-lg shadow-orange-200"><Icons.Upload /> 퇴사자 명부 업로드</button>
                         </div>
                     </div>
-                    <LeaveManagementTab staffList={resignedList} onOpenModal={() => showAlert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} isResignedTab={true} onNameClick={onNameClick} adminName="System" showConfirm={showConfirm} showAlert={showAlert} />
+                    <LeaveManagementTab staffList={resignedList} allStaffList={staffList} onOpenModal={() => showAlert("퇴사자는 신규 연차 등록이 불가능합니다.")} onEditClick={onEditClick} isPastMode={isPastMode} isResignedTab={true} onNameClick={onNameClick} adminName="System" showConfirm={showConfirm} showAlert={showAlert} />
                 </div>
             );
         };
@@ -2017,7 +2018,7 @@
             );
         };
 
-        const StaffPortal = ({ user, onLogout, showAlert }) => {
+        const StaffPortal = ({ user, onLogout, showAlert, showConfirm }) => {
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
             const [showGuide, setShowGuide] = useState(false); // [v6.7.0] 사용 가이드
@@ -2191,7 +2192,15 @@
                                 </form>
                             </div>
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full" data-tour="history">
-                                <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.History /> 나의 휴가 내역</h3><span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">※ 수정/취소는 관리자 문의</span></div>
+                                <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.History /> 나의 휴가 내역</h3></div>
+                                {/* [v6.9.2] 관리자 문의 안내 — 눈에 잘 띄도록 독립 배너로 분리하고 글자 크기·색상을 키웠습니다 */}
+                                <div className="mb-4 flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                                    <span className="text-amber-500 flex-shrink-0 mt-0.5"><Icons.Alert /></span>
+                                    <p className="text-[13px] font-bold text-amber-800 leading-relaxed">
+                                        등록된 연차의 <b className="text-amber-900">수정 · 취소는 관리자에게 문의</b>해 주세요.<br/>
+                                        <span className="text-[12px] font-medium text-amber-700">잘못 등록하셨다면 담당자에게 알려주시면 바로 처리해 드립니다.</span>
+                                    </p>
+                                </div>
                                 <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar pr-2 space-y-2">
                                     {leaveStats.displayHistory.length > 0 ? leaveStats.displayHistory.map(rec => (
                                         <div key={rec.id} className="flex items-center justify-between p-3 rounded-xl border bg-slate-50 border-slate-100 transition"><div className="flex items-center gap-3"><div className="bg-white p-2 rounded-lg shadow-sm border text-blue-600"><Icons.Calendar /></div><div><p className="font-bold text-slate-700 text-sm">{rec.date}</p><p className="text-[11px] text-slate-500 mt-0.5">{rec.type} <span className="mx-1">|</span> {rec.reason || '사유 없음'}</p></div></div></div>
