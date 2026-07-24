@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.9.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.9.1-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.9.0-stable";
+        const SYSTEM_VERSION = "6.9.1-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.9.1-stable", date: "2026-07-24", details: ["🎂 [생년월일] 1941년생이 2041년(미래)으로 저장되던 두 자리 연도 해석 오류 수정 — 1913~2012년생 정확 처리", "🔀 [용도 분리] 입사일·퇴사일은 최근 연도로 해석하도록 파서를 분리 (입사일 '20'을 1920년으로 읽던 부작용 차단)", "🩺 [데이터 관리] 미래 날짜로 잘못 저장된 생년월일을 찾아 목록 확인 후 일괄 수정하는 점검 도구 신설"] },
             { version: "6.9.0-stable", date: "2026-07-24", details: ["🛡️ [연차 대조] 재직자 한정 대조 완성 — 대조 모달이 퇴사자 명부를 못 받아 필터가 무력화되던 데이터 전달 결함 수정", "🎯 [정밀 매칭] 재직자 안에서 이름 완전일치로 먼저 찾고, 동명이인은 생년월일·연락처로 특정하도록 강화", "🙈 [퇴사자 처리] 퇴사자는 오차 목록에 올리지 않고 조용히 제외 (제외 건수만 표시)", "👥 [진단] 동명이인이라 특정하지 못한 인원을 결과 화면에 별도 안내"] },
             { version: "6.8.2-stable", date: "2026-07-24", details: ["🎯 [엑셀 대조] 2단 헤더 양식(1행 큰제목 + 2행 항목명) 완벽 인식 — '근로지원인명'이 미등록 직원으로 뜨던 문제 해결", "🧠 [헤더 판정] 후보 행마다 인식 품질 점수를 매겨 가장 정확한 헤더 행을 선택하도록 개선", "🚫 [행 필터] 합계·소계·헤더 잔재 등 사람 이름이 아닌 행을 대조 대상에서 자동 제외"] },
             { version: "6.8.1-stable", date: "2026-07-24", details: ["🐞 [긴급 수정] 엑셀 대조 시 사용시간이 전부 0으로 집계되던 문제 해결 — 헤더 탐색이 '근무시간' 등 엉뚱한 열을 먼저 잡던 우선순위 버그 수정", "🔧 [자동 복구] 시간 열을 못 찾으면 숫자 데이터를 직접 훑어 실제 시간 열을 자동 탐색", "🧾 [진단 표시] 엑셀에서 읽은 총 시간·자동복구·건너뛴 파일을 결과 화면에 즉시 안내", "📄 [제목행 대응] 첫 행이 '○○년 ○월 근로지원인 현황' 같은 제목이어도 진짜 헤더 행을 찾아냄"] },
@@ -128,14 +129,39 @@
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         };
 
+        // ===== [v6.9.1] 두 자리 연도(YY) → 네 자리 연도 변환 =====
+        // 기존에는 'YY가 50보다 크면 1900년대, 아니면 2000년대'로 판정했습니다.
+        // 그 결과 1941년생이 2041년(미래)으로 저장되는 문제가 있었습니다.
+        // 이제는 '2000+YY 가 현실적인 출생연도 상한을 넘으면 1900년대로 되돌립니다'.
+        // 상한 = 올해 - MIN_WORK_AGE (올해 태어난 사람이 직원일 수는 없으므로)
+        // 커버 범위: (올해-MIN_WORK_AGE-99) ~ (올해-MIN_WORK_AGE) → 2026년 기준 1913~2012년생
+        const MIN_WORK_AGE = 14;
+        // 기본(생년월일 등 '오래된 날짜'용) : 2000+YY 가 상한을 넘으면 1900년대로 되돌립니다.
+        const expandYear2 = (yy) => {
+            const n = parseInt(yy, 10);
+            if (isNaN(n)) return NaN;
+            const limit = new Date().getFullYear() - MIN_WORK_AGE;
+            const cand = 2000 + n;
+            return cand > limit ? 1900 + n : cand;
+        };
+        // 입사일·퇴사일용 : 생년월일과 규칙이 반대입니다. 입사일 '20'은 1920년이 아니라 2020년입니다.
+        // 미래가 아닌 한 2000년대로 보고, 올해를 넘어설 때만 1900년대로 되돌립니다.
+        const expandYear2Recent = (yy) => {
+            const n = parseInt(yy, 10);
+            if (isNaN(n)) return NaN;
+            const cand = 2000 + n;
+            return cand > new Date().getFullYear() ? 1900 + n : cand;
+        };
+
         // [최적화] 동일한 날짜 문자열을 반복 파싱하지 않도록 결과를 캐시에 보관합니다.
         const _dateCache = new Map();
-        const _safeDateRaw = (val) => {
+        const _safeDateRaw = (val, recent) => {
+            const expand = recent ? expandYear2Recent : expandYear2;
             if (!val) return ''; let str = String(val).trim().replace(/[\.\/]/g, '-');
-            if (str.length === 6 && !isNaN(str) && !str.includes('-')) { let y = parseInt(str.substring(0,2)); y = y > 50 ? 1900 + y : 2000 + y; return `${y}-${str.substring(2,4)}-${str.substring(4,6)}`; }
+            if (str.length === 6 && !isNaN(str) && !str.includes('-')) { const y = expand(str.substring(0,2)); return `${y}-${str.substring(2,4)}-${str.substring(4,6)}`; }
             if (str.length === 8 && !isNaN(str) && !str.includes('-')) return `${str.substring(0,4)}-${str.substring(4,6)}-${str.substring(6,8)}`;
             const parts = str.split('-');
-            if (parts.length === 3) { let y = parts[0]; if (y.length === 2) y = parseInt(y) > 50 ? '19' + y : '20' + y; const m = parts[1].padStart(2, '0'); const d = parts[2].padStart(2, '0'); if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return `${y}-${m}-${d}`; }
+            if (parts.length === 3) { let y = parts[0]; if (y.length === 2) y = String(expand(y)); const m = parts[1].padStart(2, '0'); const d = parts[2].padStart(2, '0'); if (!isNaN(y) && !isNaN(m) && !isNaN(d)) return `${y}-${m}-${d}`; }
             if (/^\d{5,6}$/.test(str)) { const n = parseInt(str); if (n > 20000 && n < 60000) { try { const date = new Date((n - 25569) * 86400 * 1000); date.setHours(date.getHours() + 9); return toLocalYMD(date); } catch(e) { return ''; } } }
             return /^\d{4}-\d{2}-\d{2}$/.test(str) ? str : '';
         };
@@ -143,9 +169,20 @@
             if (val === undefined || val === null || val === '') return '';
             const key = typeof val === 'object' ? String(val) : val;
             if (_dateCache.has(key)) return _dateCache.get(key);
-            const res = _safeDateRaw(val);
+            const res = _safeDateRaw(val, false);
             if (_dateCache.size > 5000) _dateCache.clear();
             _dateCache.set(key, res);
+            return res;
+        };
+        // 입사일·퇴사일 전용 파서 (두 자리 연도를 최근 연도로 해석)
+        const _dateCacheR = new Map();
+        const safeDateRecent = (val) => {
+            if (val === undefined || val === null || val === '') return '';
+            const key = typeof val === 'object' ? String(val) : val;
+            if (_dateCacheR.has(key)) return _dateCacheR.get(key);
+            const res = _safeDateRaw(val, true);
+            if (_dateCacheR.size > 5000) _dateCacheR.clear();
+            _dateCacheR.set(key, res);
             return res;
         };
 
@@ -583,19 +620,19 @@
                 e.preventDefault(); setMsg('저장 중...');
                 try {
                     const updates = { ...formData };
-                    updates.joinDate = safeDate(formData.joinDate); updates.birth = safeDate(formData.birth);
+                    updates.joinDate = safeDateRecent(formData.joinDate); updates.birth = safeDate(formData.birth);
                     if (!updates.offDays || !updates.offDays.length) updates.offDays = [0];
                     if (updates.joinDate !== staff.joinDate) {
                         const info = calculateAnnualLeave(updates.joinDate);
                         updates.annualLeaveTotal = info.total; updates.annualLeavePeriod = info.period;
                         updates.annualLeaveUsed = sumUsedHours(staff.leaveHistory, info.startDate, info.endDate);
                     }
-                    if (formData.resignDate && formData.resignDate.trim() !== "") { updates.resignDate = safeDate(formData.resignDate); updates.status = 'resigned'; }
+                    if (formData.resignDate && formData.resignDate.trim() !== "") { updates.resignDate = safeDateRecent(formData.resignDate); updates.status = 'resigned'; }
                     await db.collection('users').doc(staff.id).update(updates);
                     setMsg('✅ 수정 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 1000);
                 } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
             };
-            return (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative"><button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button><h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3><form onSubmit={handleSave} className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div><div className="grid grid-cols-2 gap-2"><div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div></div><div><label className="block text-xs font-bold text-slate-500 mb-2">고정 휴무일 (다중 선택 가능)</label><div className="flex gap-2 flex-wrap justify-between">{WEEK_LABELS.map((label, value) => (<label key={value} className={`flex-1 text-center py-2 rounded-lg border text-sm cursor-pointer transition select-none ${(formData.offDays || [0]).includes(value) ? 'bg-red-50 border-red-200 text-red-600 font-bold shadow-inner' : 'bg-white text-slate-400 hover:bg-slate-50'}`}><input type="checkbox" className="hidden" checked={(formData.offDays || [0]).includes(value)} onChange={() => handleOffDayChange(value)} />{label}</label>))}</div></div><div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={safeDate(formData.joinDate) || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="YYYY-MM-DD" /></div><div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={safeDate(formData.resignDate) || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div><button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 mt-2">수정 내용 저장</button>{msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}</form></div></div>);
+            return (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative"><button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button><h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3><form onSubmit={handleSave} className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div><div className="grid grid-cols-2 gap-2"><div><label className="block text-xs font-bold text-slate-500 mb-1">일일 근무시간</label><input type="text" name="workHours" value={formData.workHours || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div></div><div><label className="block text-xs font-bold text-slate-500 mb-2">고정 휴무일 (다중 선택 가능)</label><div className="flex gap-2 flex-wrap justify-between">{WEEK_LABELS.map((label, value) => (<label key={value} className={`flex-1 text-center py-2 rounded-lg border text-sm cursor-pointer transition select-none ${(formData.offDays || [0]).includes(value) ? 'bg-red-50 border-red-200 text-red-600 font-bold shadow-inner' : 'bg-white text-slate-400 hover:bg-slate-50'}`}><input type="checkbox" className="hidden" checked={(formData.offDays || [0]).includes(value)} onChange={() => handleOffDayChange(value)} />{label}</label>))}</div></div><div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={safeDateRecent(formData.joinDate) || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="YYYY-MM-DD" /></div><div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={safeDateRecent(formData.resignDate) || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div><button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 mt-2">수정 내용 저장</button>{msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}</form></div></div>);
         };
 
         const MonthlyReportModal = ({ staffList, onClose, showAlert }) => {
@@ -1376,7 +1413,7 @@
                             const docRef = db.collection('users').doc(dbStaff.id);
                             if (idx !== -1) {
                                 matchedIdx.add(idx); const es = excelStaffs[idx];
-                                const joinDate = safeDate(es.joinRaw) || dbStaff.joinDate;
+                                const joinDate = safeDateRecent(es.joinRaw) || dbStaff.joinDate;
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 batch.update(docRef, { birth: safeDate(es.birthRaw) || dbStaff.birth || '', phone: es.phoneRaw || dbStaff.phone || '', workHours: es.workRaw || dbStaff.workHours || '', joinDate, annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0, annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-' });
                                 updateCount++;
@@ -1385,7 +1422,7 @@
 
                         excelStaffs.forEach((es, idx) => {
                             if (matchedIdx.has(idx)) return;
-                            const joinDate = safeDate(es.joinRaw);
+                            const joinDate = safeDateRecent(es.joinRaw);
                             const leaveInfo = calculateAnnualLeave(joinDate);
                             const phoneStr = String(es.phoneRaw || '').replace(/[^0-9]/g, '').trim();
                             const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
@@ -1565,10 +1602,10 @@
                             const row = jsonData[i]; if (!row || !row.length) continue;
                             const name = String(row[c.name] || '').trim(); if (!name) continue;
                             const phoneRaw = row[c.phone] || '';
-                            const joinDate = safeDate(row[c.join]);
+                            const joinDate = safeDateRecent(row[c.join]);
                             const leaveInfo = calculateAnnualLeave(joinDate);
                             const email = `${name}_${String(phoneRaw).trim().slice(-4)}@ygnurim.com`;
-                            batch.set(db.collection('users').doc(email), { name, birth: safeDate(row[c.birth]), phone: phoneRaw, workHours: row[c.work] || '', joinDate, role: 'staff', tempPw: '123456', annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-', status: 'resigned', resignDate: safeDate(row[c.resign]) || '', offDays: [0] }, { merge: true });
+                            batch.set(db.collection('users').doc(email), { name, birth: safeDate(row[c.birth]), phone: phoneRaw, workHours: row[c.work] || '', joinDate, role: 'staff', tempPw: '123456', annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-', status: 'resigned', resignDate: safeDateRecent(row[c.resign]) || '', offDays: [0] }, { merge: true });
                             count++;
                         }
                         await batch.commit(); showAlert(`✅ 퇴사자 ${count}명 명부 등록 완료!`);
@@ -1809,7 +1846,53 @@
 
         const SettingsTab = ({ showAlert, showConfirm }) => {
             const [isProcessing, setIsProcessing] = useState(false);
+            const [birthIssues, setBirthIssues] = useState(null); // [v6.9.1] 생년월일 점검 결과
             const fileRef = useRef(null);
+
+            // ===== [v6.9.1] 생년월일 오류 일괄 점검·수정 =====
+            // 과거 버전의 2자리 연도 처리 오류로 1941년생이 2041년으로 저장된 사례를 찾아 바로잡습니다.
+            const scanBirthIssues = async () => {
+                setIsProcessing(true);
+                try {
+                    const snapshot = await db.collection('users').get();
+                    const limit = new Date().getFullYear() - MIN_WORK_AGE;
+                    const found = [];
+                    snapshot.docs.forEach(doc => {
+                        const d = doc.data();
+                        if (d.role !== 'staff') return;
+                        const cur = safeDate(d.birth);
+                        if (!cur || cur.length < 10) return;
+                        const y = parseInt(cur.substring(0, 4), 10);
+                        if (isNaN(y) || y <= limit) return;              // 정상 범위
+                        const fixedY = y - 100;                           // 2041 → 1941
+                        if (fixedY < 1900) return;
+                        found.push({ id: doc.id, name: d.name || '(이름없음)', before: cur, after: `${fixedY}${cur.substring(4)}` });
+                    });
+                    found.sort((a, b) => a.name.localeCompare(b.name));
+                    setBirthIssues(found);
+                    if (!found.length) showAlert("✅ 점검 완료: 생년월일이 미래로 저장된 직원이 없습니다.");
+                } catch (e) { showAlert("❌ 점검 실패: " + e.message); }
+                setIsProcessing(false);
+            };
+
+            const applyBirthFix = () => {
+                if (!birthIssues || !birthIssues.length) return;
+                showConfirm(`${birthIssues.length}명의 생년월일을 100년 앞당겨 수정합니다.\n\n예) 2041-03-15 → 1941-03-15\n\n진행하시겠습니까?`, async () => {
+                    setIsProcessing(true);
+                    try {
+                        let batch = db.batch(); let cnt = 0;
+                        for (const it of birthIssues) {
+                            batch.update(db.collection('users').doc(it.id), { birth: it.after });
+                            cnt++;
+                            if (cnt % 400 === 0) { await batch.commit(); batch = db.batch(); }
+                        }
+                        if (cnt % 400 !== 0) await batch.commit();
+                        showAlert(`✅ ${birthIssues.length}명의 생년월일을 수정했습니다.`);
+                        setBirthIssues(null);
+                    } catch (e) { showAlert("❌ 수정 실패: " + e.message); }
+                    setIsProcessing(false);
+                });
+            };
 
             const handleBackup = async () => {
                 setIsProcessing(true);
@@ -1875,6 +1958,36 @@
                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-2">
                         <h3 className="font-bold text-lg text-slate-800 flex items-center gap-2"><Icons.Database /> 시스템 데이터 및 코드 관리</h3>
                         <p className="text-sm text-slate-500">클라우드 데이터베이스(DB) 및 현재 시스템의 원본 소스코드를 PC에 백업하고 복원할 수 있습니다.</p>
+                    </div>
+
+                    {/* [v6.9.1] 생년월일 오류 일괄 점검 */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-amber-200">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
+                            <div className="flex items-start gap-3">
+                                <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center flex-shrink-0"><Icons.Alert /></div>
+                                <div>
+                                    <h4 className="font-bold text-slate-800 mb-1">생년월일 오류 점검 및 수정</h4>
+                                    <p className="text-xs text-slate-500 leading-relaxed">과거 버전에서 두 자리 연도를 잘못 해석해 <b className="text-amber-700">1941년생이 2041년(미래)</b>으로 저장된 경우가 있습니다.<br/>미래 날짜로 저장된 직원을 찾아 100년 앞당겨 바로잡습니다.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 w-full md:w-auto">
+                                <button onClick={scanBirthIssues} disabled={isProcessing} className="flex-1 md:flex-none bg-amber-500 text-white px-5 py-3 rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-200 flex justify-center items-center gap-2 text-sm"><Icons.Search /> 오류 점검 시작</button>
+                                {birthIssues && birthIssues.length > 0 && (<button onClick={applyBirthFix} disabled={isProcessing} className="flex-1 md:flex-none bg-blue-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex justify-center items-center gap-2 text-sm"><Icons.CheckCircle /> {birthIssues.length}명 일괄 수정</button>)}
+                            </div>
+                        </div>
+                        {birthIssues && birthIssues.length > 0 && (
+                            <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden">
+                                <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 border-b border-slate-200"><tr><th className="p-3">이름</th><th className="p-3 text-center text-red-500">현재 (잘못됨)</th><th className="p-3 text-center">→</th><th className="p-3 text-center text-green-600">수정 후</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {birthIssues.map(it => (<tr key={it.id} className="hover:bg-slate-50"><td className="p-3 font-bold text-slate-800">{it.name}</td><td className="p-3 text-center font-bold text-red-500">{it.before}</td><td className="p-3 text-center text-slate-300">→</td><td className="p-3 text-center font-bold text-green-600">{it.after}</td></tr>))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                        {birthIssues && birthIssues.length === 0 && (<p className="mt-3 text-sm font-bold text-green-600 bg-green-50 px-4 py-3 rounded-xl border border-green-100">✅ 미래 날짜로 저장된 생년월일이 없습니다.</p>)}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
