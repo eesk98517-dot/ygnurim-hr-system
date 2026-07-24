@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.8.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.8.1-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.8.0-stable";
+        const SYSTEM_VERSION = "6.8.1-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.8.1-stable", date: "2026-07-24", details: ["🐞 [긴급 수정] 엑셀 대조 시 사용시간이 전부 0으로 집계되던 문제 해결 — 헤더 탐색이 '근무시간' 등 엉뚱한 열을 먼저 잡던 우선순위 버그 수정", "🔧 [자동 복구] 시간 열을 못 찾으면 숫자 데이터를 직접 훑어 실제 시간 열을 자동 탐색", "🧾 [진단 표시] 엑셀에서 읽은 총 시간·자동복구·건너뛴 파일을 결과 화면에 즉시 안내", "📄 [제목행 대응] 첫 행이 '○○년 ○월 근로지원인 현황' 같은 제목이어도 진짜 헤더 행을 찾아냄"] },
             { version: "6.8.0-stable", date: "2026-07-24", details: ["🔦 [직원 페이지] 실제 화면 요소를 밝게 뚫어주는 '스포트라이트 오버레이 투어' 신설 (5단계)", "🤝 [가이드 병행] 개요 설명은 4단계 모달, 위치 안내는 오버레이 투어로 이원화 · 모달 마지막에서 바로 연결", "🛟 [안전 착지] 요소 미탐지 시 자동 건너뜀, 좁은 화면·화면 이탈 시 하단 고정 카드로 자동 전환"] },
             { version: "6.7.0-stable", date: "2026-07-24", details: ["🛡️ [연차 대조] 재직 중인 직원만 대조되도록 필터링 강화 (퇴사자 오탐 완전 차단)", "⚡ [전체 최적화] 날짜 연산 캐싱 / 엑셀 헤더 탐색·연차 재계산 로직 공통화로 속도 및 가독성 개선", "🧭 [직원 페이지] 최초 접속 시 사용법 안내 가이드 팝업 및 상단 '사용법' 버튼 신설"] },
             { version: "6.6.0-stable", date: "2026-07-15", details: ["🚀 [데이터 관리 탭] 시스템 소스코드 원클릭 백업(.html) 탑재", "✨ [연차관리] 단일 대조를 다중 엑셀 정밀 대조(Advanced Audit) 엔진으로 전면 교체 (재직자 필터 완비)", "💡 [대시보드] 월별 소진율 막대 차트 렌더링 변수 및 CSS 완벽 수리"] },
@@ -196,21 +197,37 @@
         };
 
         // [공통화] 엑셀 헤더 자동 탐색 (직원명부 / 퇴사자명부 / 대조 엔진 공용)
+        // needs 의 각 키는 키워드 배열이며, 배열의 '앞쪽 키워드일수록 우선순위가 높습니다'.
+        // 예: hour 목록이 ['휴가','사용시간','연차','시간'] 이면, '휴가'가 들어간 컬럼이 '시간'만 들어간 컬럼을 이깁니다.
+        // (v6.8.1 수정) 기존에는 먼저 걸린 컬럼을 그대로 확정해 '근무시간' 같은 엉뚱한 열을 잡는 문제가 있었습니다.
         const findColumns = (jsonData, needs, scanRows = 10) => {
-            const cols = {}; let startRow = 1;
+            const cols = {}; const score = {}; let startRow = 1;
             for (let i = 0; i < Math.min(scanRows, jsonData.length); i++) {
                 const row = jsonData[i]; if (!row) continue;
-                let foundName = -1;
+                const rowCols = {}; const rowScore = {}; let foundName = -1;
                 for (let j = 0; j < row.length; j++) {
                     const val = String(row[j] || '').replace(/\s/g, '');
                     if (!val) continue;
                     for (const key in needs) {
-                        if (needs[key].some(k => val.includes(k))) {
-                            if (key === 'name') foundName = j; else if (cols[key] === undefined) cols[key] = j;
-                        }
+                        const list = needs[key];
+                        const hit = list.findIndex(k => val.includes(k));
+                        if (hit === -1) continue;
+                        // 우선순위 점수: 앞쪽 키워드일수록 높은 점수
+                        const sc = list.length - hit;
+                        if (key === 'name') { if (rowScore.name === undefined || sc > rowScore.name) { foundName = j; rowScore.name = sc; } }
+                        else if (rowScore[key] === undefined || sc > rowScore[key]) { rowCols[key] = j; rowScore[key] = sc; }
                     }
                 }
-                if (foundName !== -1) { cols.name = foundName; startRow = i + 1; break; }
+                // 제목 행 오인식 방지: 이름 열만 덜렁 걸린 1칸짜리 행(예: "2026년 5월 근로지원인 현황")은
+                // 진짜 헤더가 아닐 가능성이 높으므로, 아래에 더 나은 헤더 행이 있는지 계속 살펴봅니다.
+                const filledCells = row.filter(v => String(v || '').trim() !== '').length;
+                const isLikelyTitle = foundName !== -1 && Object.keys(rowCols).length === 0 && filledCells <= 1;
+                if (foundName !== -1 && !isLikelyTitle) {
+                    Object.assign(cols, rowCols); Object.assign(score, rowScore);
+                    cols.name = foundName; startRow = i + 1; break;
+                }
+                // 후보로만 기억해 두고 계속 탐색 (더 나은 행을 못 찾으면 이 값을 씁니다)
+                if (foundName !== -1 && cols.name === undefined) { cols.name = foundName; startRow = i + 1; }
             }
             return { cols, startRow };
         };
@@ -639,6 +656,7 @@
             const [mappings, setMappings] = useState([]);
             const [results, setResults] = useState(null);
             const [skippedCount, setSkippedCount] = useState(0);
+            const [diag, setDiag] = useState(null); // [v6.8.1] 대조 진단 정보
             const [isProcessing, setIsProcessing] = useState(false);
             const [isPromoFilterEnabled, setIsPromoFilterEnabled] = useState(defaultPromoFilter);
             const [filterPromoMonth, setFilterPromoMonth] = useState(defaultMonth);
@@ -677,10 +695,12 @@
                     }
 
                     const excelDataMap = {}; const unmatchedExcelData = []; let skipped = 0;
+                    const autoFixedFiles = []; const failedFiles = [];
+                    // 우선순위 순서 (앞쪽일수록 강함) — '근무시간' 같은 열에 오인식되지 않도록 구체적 키워드를 앞에 둡니다
                     const NEEDS = {
-                        name: ['이름', '성명', '근로지원인'],
-                        hour: ['휴가', '사용시간', '시간', '연차'],
-                        info: ['생년월일', '연락처', '전화', '휴대폰']
+                        name: ['근로지원인', '성명', '이름'],
+                        hour: ['휴가사용시간', '연차사용시간', '사용시간', '휴가시간', '연차시간', '사용연차', '휴가', '연차', '시간'],
+                        info: ['생년월일', '휴대폰', '연락처', '전화']
                     };
 
                     for (const mapItem of mappings) {
@@ -693,8 +713,31 @@
                         const jsonData = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1 });
                         const { cols, startRow } = findColumns(jsonData, NEEDS, 10);
                         const nameCol = cols.name !== undefined ? cols.name : 1;
-                        const hourCol = cols.hour !== undefined ? cols.hour : 5;
+                        let hourCol = cols.hour !== undefined ? cols.hour : -1;
                         const infoCol = cols.info !== undefined ? cols.info : -1;
+
+                        // [v6.8.1 안전망] 헤더로 찾은 시간 컬럼에 유효한 숫자가 하나도 없으면,
+                        // 데이터를 직접 훑어 '양수 합계가 가장 큰 숫자 컬럼'을 시간 컬럼으로 자동 채택합니다.
+                        const colSum = (c) => {
+                            if (c < 0) return 0;
+                            let sum = 0;
+                            for (let i = startRow; i < jsonData.length; i++) {
+                                const row = jsonData[i]; if (!row) continue;
+                                const v = safeParseFloat(row[c]); if (v > 0) sum += v;
+                            }
+                            return sum;
+                        };
+                        if (colSum(hourCol) <= 0) {
+                            let bestCol = -1, bestSum = 0, maxLen = 0;
+                            for (let i = startRow; i < jsonData.length; i++) { if (jsonData[i]) maxLen = Math.max(maxLen, jsonData[i].length); }
+                            for (let c = 0; c < maxLen; c++) {
+                                if (c === nameCol || c === infoCol) continue;
+                                const sum = colSum(c);
+                                if (sum > bestSum) { bestSum = sum; bestCol = c; }
+                            }
+                            if (bestCol !== -1) { hourCol = bestCol; autoFixedFiles.push(mapItem.file.name); }
+                        }
+                        if (hourCol < 0) { failedFiles.push(mapItem.file.name); continue; }
 
                         for (let i = startRow; i < jsonData.length; i++) {
                             const row = jsonData[i]; if (!row || !row.length) continue;
@@ -750,6 +793,9 @@
                     }
 
                     auditRes.sort((a, b) => a.month.localeCompare(b.month) || a.name.localeCompare(b.name));
+                    const totalExcelHours = Object.values(excelDataMap).reduce((a, b) => a + b, 0)
+                        + unmatchedExcelData.reduce((a, u) => a + u.hours, 0);
+                    setDiag({ autoFixed: autoFixedFiles, failed: failedFiles, totalExcelHours });
                     setResults(auditRes); setSkippedCount(skipped); setStep(3);
                 } catch (e) { showAlert("대조 중 오류 발생: " + e.message); }
                 setIsProcessing(false);
@@ -784,7 +830,15 @@
                         </div>
                     )}
                     {step === 3 && (
-                        <div className="flex flex-col flex-1 overflow-hidden"><div className="flex justify-between items-center mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200"><div><span className="font-black text-slate-800 text-lg">오차 검출: <span className="text-red-600">{results.length}</span>건</span><p className="text-xs font-bold text-slate-500 mt-1">재직자 {activeStaffs.length}명 기준 대조 완료{skippedCount > 0 && <span className="text-orange-600"> · 퇴사자 {skippedCount}건 자동 제외됨</span>}</p></div><div className="flex gap-2"><button onClick={handleDownloadResults} className="bg-green-50 text-green-700 border border-green-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-100 transition shadow-sm flex items-center gap-2"><Icons.Download /> 결과 엑셀</button><button onClick={() => { setStep(1); setMappings([]); setResults(null); setSkippedCount(0); }} className="bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-700 transition shadow-sm">초기화</button></div></div>
+                        <div className="flex flex-col flex-1 overflow-hidden"><div className="flex justify-between items-center mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200"><div><span className="font-black text-slate-800 text-lg">오차 검출: <span className="text-red-600">{results.length}</span>건</span><p className="text-xs font-bold text-slate-500 mt-1">재직자 {activeStaffs.length}명 기준 대조 완료{skippedCount > 0 && <span className="text-orange-600"> · 퇴사자 {skippedCount}건 자동 제외됨</span>}{diag && <span className="text-indigo-600"> · 엑셀에서 읽은 총 {fmt(diag.totalExcelHours)}h</span>}</p></div><div className="flex gap-2"><button onClick={handleDownloadResults} className="bg-green-50 text-green-700 border border-green-200 px-4 py-2 rounded-xl font-bold text-sm hover:bg-green-100 transition shadow-sm flex items-center gap-2"><Icons.Download /> 결과 엑셀</button><button onClick={() => { setStep(1); setMappings([]); setResults(null); setSkippedCount(0); setDiag(null); }} className="bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-700 transition shadow-sm">초기화</button></div></div>
+                            {diag && (diag.failed.length > 0 || diag.autoFixed.length > 0 || diag.totalExcelHours <= 0) && (
+                                <div className={`mb-3 p-3 rounded-xl border text-xs font-bold ${diag.totalExcelHours <= 0 ? 'bg-red-50 border-red-200 text-red-700' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+                                    {diag.totalExcelHours <= 0 && (<p className="mb-1">⚠️ 엑셀에서 읽어들인 사용시간 합계가 0입니다. 시간이 적힌 열을 찾지 못했을 수 있습니다.</p>)}
+                                    {diag.autoFixed.length > 0 && (<p className="mb-1">🔧 헤더 인식 실패로 숫자 열을 자동 탐색했습니다: {diag.autoFixed.join(', ')}</p>)}
+                                    {diag.failed.length > 0 && (<p>❌ 시간 열을 찾지 못해 건너뛴 파일: {diag.failed.join(', ')}</p>)}
+                                    <p className="mt-1 font-medium opacity-80">엑셀 첫 행의 열 제목에 '휴가' 또는 '사용시간' 이 포함되어 있는지 확인해주세요.</p>
+                                </div>
+                            )}
                             <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl custom-scrollbar relative">
                                 {results.length > 0 ? (
                                     <table className="w-full text-sm text-left whitespace-nowrap"><thead className="bg-slate-100 text-slate-600 font-bold sticky top-0 z-10 shadow-sm border-b border-slate-200"><tr><th className="p-3">이름</th><th className="p-3 text-center">발생 월</th><th className="p-3 text-center text-slate-500 border-l border-slate-200">엑셀 기록</th><th className="p-3 text-center text-slate-500">DB(시스템)</th><th className="p-3 text-center text-red-500">오차 시간</th><th className="p-3 text-center w-32">즉시 보완</th></tr></thead>
@@ -1183,13 +1237,14 @@
         };
 
         // 직원 명부 엑셀 헤더 정의 (직원/퇴사자 공용)
+        // 우선순위 순서 (앞쪽일수록 강함)
         const STAFF_NEEDS = {
-            name: ['이름', '성명', '근로지원인'],
+            name: ['근로지원인', '성명', '이름'],
             birth: ['생년월일', '생일'],
-            phone: ['연락처', '휴대폰', '전화'],
-            join: ['입사'],
-            work: ['근무', '시간'],
-            resign: ['퇴사']
+            phone: ['휴대폰', '연락처', '전화'],
+            join: ['입사일', '입사'],
+            work: ['일일근무시간', '근무시간', '근무', '시간'],
+            resign: ['퇴사일', '퇴사']
         };
 
         const StaffTab = ({ staffList, showConfirm, showAlert }) => {
