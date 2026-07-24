@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.8.1-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.8.2-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.8.1-stable";
+        const SYSTEM_VERSION = "6.8.2-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.8.2-stable", date: "2026-07-24", details: ["🎯 [엑셀 대조] 2단 헤더 양식(1행 큰제목 + 2행 항목명) 완벽 인식 — '근로지원인명'이 미등록 직원으로 뜨던 문제 해결", "🧠 [헤더 판정] 후보 행마다 인식 품질 점수를 매겨 가장 정확한 헤더 행을 선택하도록 개선", "🚫 [행 필터] 합계·소계·헤더 잔재 등 사람 이름이 아닌 행을 대조 대상에서 자동 제외"] },
             { version: "6.8.1-stable", date: "2026-07-24", details: ["🐞 [긴급 수정] 엑셀 대조 시 사용시간이 전부 0으로 집계되던 문제 해결 — 헤더 탐색이 '근무시간' 등 엉뚱한 열을 먼저 잡던 우선순위 버그 수정", "🔧 [자동 복구] 시간 열을 못 찾으면 숫자 데이터를 직접 훑어 실제 시간 열을 자동 탐색", "🧾 [진단 표시] 엑셀에서 읽은 총 시간·자동복구·건너뛴 파일을 결과 화면에 즉시 안내", "📄 [제목행 대응] 첫 행이 '○○년 ○월 근로지원인 현황' 같은 제목이어도 진짜 헤더 행을 찾아냄"] },
             { version: "6.8.0-stable", date: "2026-07-24", details: ["🔦 [직원 페이지] 실제 화면 요소를 밝게 뚫어주는 '스포트라이트 오버레이 투어' 신설 (5단계)", "🤝 [가이드 병행] 개요 설명은 4단계 모달, 위치 안내는 오버레이 투어로 이원화 · 모달 마지막에서 바로 연결", "🛟 [안전 착지] 요소 미탐지 시 자동 건너뜀, 좁은 화면·화면 이탈 시 하단 고정 카드로 자동 전환"] },
             { version: "6.7.0-stable", date: "2026-07-24", details: ["🛡️ [연차 대조] 재직 중인 직원만 대조되도록 필터링 강화 (퇴사자 오탐 완전 차단)", "⚡ [전체 최적화] 날짜 연산 캐싱 / 엑셀 헤더 탐색·연차 재계산 로직 공통화로 속도 및 가독성 개선", "🧭 [직원 페이지] 최초 접속 시 사용법 안내 가이드 팝업 및 상단 '사용법' 버튼 신설"] },
@@ -107,6 +108,12 @@
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
         const normalizeString = (str) => String(str || '').replace(/[\s\-\.\/]/g, '').trim();
         const cleanName = (str) => String(str || '').replace(/[\d\-\(\)\s_]/g, '').trim();
+        // [v6.8.2] 사람 이름이 아닌 행(헤더 잔재·합계·소계 등)을 걸러내기 위한 단어 목록
+        // 포함되면 제외할 단어 (예: '근로지원인명')
+        const NON_NAME_WORDS = ['근로지원인', '성명', '합계', '총계', '소계', '평균', '비고', '구분', '순번', '번호', '명단', '현황', '내역', '이름'];
+        // 정확히 일치할 때만 제외할 단어 ('계'는 '김계순' 같은 실제 이름을 오탐할 수 있어 완전 일치로만 판정)
+        const NON_NAME_EXACT = ['계', '합', '총', '소계', '전체'];
+        const isNotPersonName = (n) => !n || n.length < 2 || n.length > 6 || NON_NAME_EXACT.includes(n) || NON_NAME_WORDS.some(w => n.includes(w));
         const WEEK_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
         const compareVersions = (v1, v2) => {
@@ -199,37 +206,38 @@
         // [공통화] 엑셀 헤더 자동 탐색 (직원명부 / 퇴사자명부 / 대조 엔진 공용)
         // needs 의 각 키는 키워드 배열이며, 배열의 '앞쪽 키워드일수록 우선순위가 높습니다'.
         // 예: hour 목록이 ['휴가','사용시간','연차','시간'] 이면, '휴가'가 들어간 컬럼이 '시간'만 들어간 컬럼을 이깁니다.
-        // (v6.8.1 수정) 기존에는 먼저 걸린 컬럼을 그대로 확정해 '근무시간' 같은 엉뚱한 열을 잡는 문제가 있었습니다.
+        //
+        // (v6.8.2) 2단 헤더 대응 — 아래처럼 1행이 큰 제목, 2행이 실제 항목명인 양식이 많습니다.
+        //   1행: [No.] [근로지원인]
+        //   2행: [   ] [근로지원인명] [생년월일] [휴가]   ← 진짜 헤더
+        // 예전에는 1행에서 '근로지원인'을 발견하고 즉시 확정해 2행을 데이터로 오인,
+        // '근로지원인명'이 미등록 직원으로 뜨고 시간 열도 못 찾는 문제가 있었습니다.
+        // 이제 후보 행마다 '이름 외에 몇 개 항목을 더 인식했는지(품질 점수)'를 매겨 가장 좋은 행을 헤더로 삼습니다.
         const findColumns = (jsonData, needs, scanRows = 10) => {
-            const cols = {}; const score = {}; let startRow = 1;
+            let best = null;
             for (let i = 0; i < Math.min(scanRows, jsonData.length); i++) {
                 const row = jsonData[i]; if (!row) continue;
                 const rowCols = {}; const rowScore = {}; let foundName = -1;
                 for (let j = 0; j < row.length; j++) {
-                    const val = String(row[j] || '').replace(/\s/g, '');
+                    const val = String(row[j] === null || row[j] === undefined ? '' : row[j]).replace(/\s/g, '');
                     if (!val) continue;
                     for (const key in needs) {
                         const list = needs[key];
                         const hit = list.findIndex(k => val.includes(k));
                         if (hit === -1) continue;
-                        // 우선순위 점수: 앞쪽 키워드일수록 높은 점수
-                        const sc = list.length - hit;
+                        const sc = list.length - hit; // 앞쪽 키워드일수록 높은 점수
                         if (key === 'name') { if (rowScore.name === undefined || sc > rowScore.name) { foundName = j; rowScore.name = sc; } }
                         else if (rowScore[key] === undefined || sc > rowScore[key]) { rowCols[key] = j; rowScore[key] = sc; }
                     }
                 }
-                // 제목 행 오인식 방지: 이름 열만 덜렁 걸린 1칸짜리 행(예: "2026년 5월 근로지원인 현황")은
-                // 진짜 헤더가 아닐 가능성이 높으므로, 아래에 더 나은 헤더 행이 있는지 계속 살펴봅니다.
-                const filledCells = row.filter(v => String(v || '').trim() !== '').length;
-                const isLikelyTitle = foundName !== -1 && Object.keys(rowCols).length === 0 && filledCells <= 1;
-                if (foundName !== -1 && !isLikelyTitle) {
-                    Object.assign(cols, rowCols); Object.assign(score, rowScore);
-                    cols.name = foundName; startRow = i + 1; break;
+                if (foundName === -1) continue;
+                const quality = Object.keys(rowCols).length; // 이름 외 인식 항목 수
+                if (!best || quality > best.quality) {
+                    best = { quality, cols: Object.assign({}, rowCols, { name: foundName }), startRow: i + 1 };
                 }
-                // 후보로만 기억해 두고 계속 탐색 (더 나은 행을 못 찾으면 이 값을 씁니다)
-                if (foundName !== -1 && cols.name === undefined) { cols.name = foundName; startRow = i + 1; }
+                if (quality >= 2) break; // 충분히 좋은 헤더면 즉시 확정
             }
-            return { cols, startRow };
+            return best ? { cols: best.cols, startRow: best.startRow } : { cols: {}, startRow: 1 };
         };
 
         // [공통화] 달력 주(week) 배열 생성
@@ -746,6 +754,8 @@
                             if (!rawName || hours <= 0) continue;
 
                             const exName = cleanName(rawName);
+                            // [v6.8.2] 헤더/합계/소계 같은 '사람이 아닌 행'은 이름으로 취급하지 않습니다
+                            if (isNotPersonName(exName)) continue;
 
                             // ▼▼ [핵심] 퇴사자 명부와 일치하면 대조 대상에서 완전히 제외 ▼▼
                             if (resignedNameSet.has(exName)) { skipped++; continue; }
