@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.11.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.11.1-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.11.0-stable";
+        const SYSTEM_VERSION = "6.11.1-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.11.1-stable", date: "2026-07-27", details: ["🧹 [직원 페이지] '휴가 내역 직접 수정·삭제 안내' 파란색 박스를 제거해 화면을 더 깔끔하게 정리 (수정·삭제 버튼 기능은 그대로 유지)", "🆘 [비밀번호 초기화] 직원이 이미 비번을 바꾼 계정은 브라우저에서 초기화가 불가능(구글 보안 정책) — 이 경우 Firebase 콘솔에서 처리하는 방법을 계정 아이디와 함께 단계별로 상세히 안내하도록 오류 메시지 개선", "💬 [안내창] 여러 줄 안내가 잘 읽히도록 알림창 폭을 넓히고 왼쪽 정렬로 표시"] },
             { version: "6.11.0-stable", date: "2026-07-27", details: ["🔄 [직원 명부] 엑셀 재업로드 시, 명부에 다시 나타난 퇴사자를 '재직 중'으로 자동 복구 (연차 이력 그대로 유지) — 매달 명부를 올려도 재직자 상태가 정확히 유지됩니다", "🟢 [직원 명부] 개별 '재직 복구' 버튼 추가 + '퇴사자 포함 보기' 체크로 퇴사 처리된 직원을 목록에서 직접 되살리기 가능", "🧷 [안정화] 엑셀 매칭 기준을 전체 명부(재직+퇴사)로 확대해, 이미 있는 직원이 신규로 중복 생성되던 여지를 차단", "🧾 [결과 표시] 업로드 결과에 '복구' 인원 수를 함께 안내 (신규/유지/복구/퇴사)"] },
             { version: "6.10.0-stable", date: "2026-07-27", details: ["✏️ [직원 페이지] 본인이 등록한 휴가 내역을 직접 '수정·삭제'할 수 있도록 기능 추가 (관리자와 동일하게 즉시 반영) — 기존 '관리자 문의' 배너는 '본인 수정 안내'로 변경", "🔐 [보안] 초기 비밀번호(123456)로 로그인 시 서비스 이용 전 반드시 비밀번호를 변경하도록 강제하는 화면 신설 (Firebase Auth 실제 변경 + tempPw 해제)", "🛠️ [직원 명부] 관리자가 직원 비밀번호를 분실 시 초기 비밀번호(123456)로 되돌리는 '비밀번호 초기화' 버튼 추가 (개별 관리 영역)"] },
             { version: "6.9.2-stable", date: "2026-07-24", details: ["🔧 [퇴사자 탭] 해당 탭에서 엑셀 대조 시 재직자 명부를 전달받지 못하던 배선 누락 수정", "👀 [직원 페이지] '수정·취소는 관리자 문의' 안내를 독립 배너로 분리하고 글자 크기·색상을 키워 잘 보이도록 개선", "🧹 [정리] StaffPortal 미선언 prop 정리 및 전체 코드 무결성 재검증"] },
@@ -375,7 +376,7 @@
         };
 
         // ------------------ 단순 모달 컴포넌트 ------------------
-        const CustomAlertModal = ({ msg, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-sm text-center"><div className="text-blue-500 mb-4 flex justify-center"><Icons.Info /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap">{msg}</p><button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">확인</button></div></div>);
+        const CustomAlertModal = ({ msg, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-lg text-center"><div className="text-blue-500 mb-4 flex justify-center"><Icons.Info /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap text-left leading-relaxed text-sm">{msg}</p><button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">확인</button></div></div>);
         const CustomConfirmModal = ({ msg, onConfirm, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-sm text-center"><div className="text-orange-500 mb-4 flex justify-center scale-125"><Icons.Alert /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap leading-relaxed">{msg}</p><div className="flex gap-3"><button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">취소</button><button onClick={() => { onConfirm(); onClose(); }} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition">확인</button></div></div></div>);
         const AdminNameModal = ({ onSave }) => { const [name, setName] = useState(''); return (<div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[300] animate-fade-in backdrop-blur-sm px-4"><div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative text-center border-4 border-blue-500"><div className="text-blue-500 mb-4 flex justify-center scale-125"><Icons.User /></div><h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">관리자 식별</h3><p className="text-slate-500 font-bold mb-6 text-sm leading-relaxed">공용 관리자 계정을 사용 중입니다.<br/>작업 이력에 남길 성함을 입력해주세요.</p><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-center mb-4 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" placeholder="예: 홍길동 대리" /><button onClick={() => name.trim() && onSave(name.trim())} className={`w-full py-4 rounded-2xl font-black transition shadow-lg text-sm ${name.trim() ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>설정 완료</button></div></div>); };
         const VersionAlertModal = ({ onClose }) => (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500"><div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div><h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 시스템 업데이트</h3><p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 배포 완료</p><div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium"><p className="text-blue-600 font-bold">🌟 <b>핵심 업데이트 내역</b></p>{UPDATE_LOGS[0].details.map((d, i) => <p key={i}>{d}</p>)}</div><button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button></div></div>);
@@ -1618,8 +1619,21 @@
                             await secondaryApp.auth().createUserWithEmailAndPassword(email, '123456');
                         } catch (createErr) {
                             if (createErr.code === 'auth/email-already-in-use') {
-                                // 이미 계정이 존재하나 비번을 모르는 상태 → 클라이언트에서 강제 삭제 불가
-                                throw new Error('이 계정은 브라우저에서 자동 초기화할 수 없습니다.\nFirebase 콘솔 > Authentication 에서 해당 계정 비밀번호를 재설정해주세요.');
+                                // 직원이 초기 비번(123456)을 이미 자기 비번으로 바꾼 상태.
+                                // 구글 보안 정책상 '남의 현재 비번을 모르는 채' 브라우저에서 그 계정을 삭제·변경하는 것은 불가능합니다.
+                                // → 관리자가 Firebase 콘솔에서 직접 처리하도록, 계정 아이디와 단계를 구체적으로 안내합니다.
+                                throw new Error(
+                                    `[${staff.name}] 직원은 초기 비밀번호를 이미 본인 것으로 변경한 상태라,\n` +
+                                    `보안 정책상 이 화면(브라우저)에서는 초기화할 수 없습니다.\n\n` +
+                                    `아래 순서로 Firebase 콘솔에서 처리해주세요.\n` +
+                                    `① console.firebase.google.com 접속 → 우리 프로젝트 선택\n` +
+                                    `② 왼쪽 메뉴 [Authentication] → [Users] 탭\n` +
+                                    `③ 아래 계정을 찾아 오른쪽 ⋮(점 3개) → '사용자 삭제'\n` +
+                                    `    계정 : ${email}\n` +
+                                    `④ 삭제 후, 이 화면 [직원 명부]에서 해당 직원의 '개별 발급' 버튼을 다시 누르면\n` +
+                                    `    초기 비밀번호(123456)로 계정이 재생성됩니다.\n\n` +
+                                    `※ 연차·인사 정보는 삭제되지 않고 그대로 유지되니 안심하세요.`
+                                );
                             }
                             throw createErr;
                         }
@@ -2408,14 +2422,6 @@
                             </div>
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full" data-tour="history">
                                 <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.History /> 나의 휴가 내역</h3></div>
-                                {/* [v6.10.0] 본인 수정·삭제 안내 — 직접 수정/삭제가 가능하도록 기능이 열렸습니다 */}
-                                <div className="mb-4 flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
-                                    <span className="text-blue-500 flex-shrink-0 mt-0.5"><Icons.Info /></span>
-                                    <p className="text-[13px] font-bold text-blue-800 leading-relaxed">
-                                        등록한 연차는 <b className="text-blue-900">직접 수정 · 삭제</b>할 수 있습니다.<br/>
-                                        <span className="text-[12px] font-medium text-blue-700">각 내역 오른쪽의 <b>연필(수정)</b>·<b>휴지통(삭제)</b> 버튼을 눌러주세요. 변경 즉시 반영됩니다.</span>
-                                    </p>
-                                </div>
                                 <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar pr-2 space-y-2">
                                     {leaveStats.displayHistory.length > 0 ? leaveStats.displayHistory.map(rec => (
                                         <div key={rec.id} className="flex items-center justify-between p-3 rounded-xl border bg-slate-50 border-slate-100 transition hover:bg-white hover:border-blue-200 hover:shadow-sm group">
