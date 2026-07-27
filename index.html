@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.10.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.11.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.10.0-stable";
+        const SYSTEM_VERSION = "6.11.0-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.11.0-stable", date: "2026-07-27", details: ["🔄 [직원 명부] 엑셀 재업로드 시, 명부에 다시 나타난 퇴사자를 '재직 중'으로 자동 복구 (연차 이력 그대로 유지) — 매달 명부를 올려도 재직자 상태가 정확히 유지됩니다", "🟢 [직원 명부] 개별 '재직 복구' 버튼 추가 + '퇴사자 포함 보기' 체크로 퇴사 처리된 직원을 목록에서 직접 되살리기 가능", "🧷 [안정화] 엑셀 매칭 기준을 전체 명부(재직+퇴사)로 확대해, 이미 있는 직원이 신규로 중복 생성되던 여지를 차단", "🧾 [결과 표시] 업로드 결과에 '복구' 인원 수를 함께 안내 (신규/유지/복구/퇴사)"] },
             { version: "6.10.0-stable", date: "2026-07-27", details: ["✏️ [직원 페이지] 본인이 등록한 휴가 내역을 직접 '수정·삭제'할 수 있도록 기능 추가 (관리자와 동일하게 즉시 반영) — 기존 '관리자 문의' 배너는 '본인 수정 안내'로 변경", "🔐 [보안] 초기 비밀번호(123456)로 로그인 시 서비스 이용 전 반드시 비밀번호를 변경하도록 강제하는 화면 신설 (Firebase Auth 실제 변경 + tempPw 해제)", "🛠️ [직원 명부] 관리자가 직원 비밀번호를 분실 시 초기 비밀번호(123456)로 되돌리는 '비밀번호 초기화' 버튼 추가 (개별 관리 영역)"] },
             { version: "6.9.2-stable", date: "2026-07-24", details: ["🔧 [퇴사자 탭] 해당 탭에서 엑셀 대조 시 재직자 명부를 전달받지 못하던 배선 누락 수정", "👀 [직원 페이지] '수정·취소는 관리자 문의' 안내를 독립 배너로 분리하고 글자 크기·색상을 키워 잘 보이도록 개선", "🧹 [정리] StaffPortal 미선언 prop 정리 및 전체 코드 무결성 재검증"] },
             { version: "6.9.1-stable", date: "2026-07-24", details: ["🎂 [생년월일] 1941년생이 2041년(미래)으로 저장되던 두 자리 연도 해석 오류 수정 — 1913~2012년생 정확 처리", "🔀 [용도 분리] 입사일·퇴사일은 최근 연도로 해석하도록 파서를 분리 (입사일 '20'을 1920년으로 읽던 부작용 차단)", "🩺 [데이터 관리] 미래 날짜로 잘못 저장된 생년월일을 찾아 목록 확인 후 일괄 수정하는 점검 도구 신설"] },
@@ -1413,11 +1414,12 @@
             const [searchTerm, setSearchTerm] = useState('');
             const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
             const [showUnregisteredOnly, setShowUnregisteredOnly] = useState(false);
+            const [showResignedToo, setShowResignedToo] = useState(false); // [v6.11.0] 퇴사자 포함 보기
 
             const activeStaffList = useMemo(() => staffList.filter(s => s.status !== 'resigned'), [staffList]);
 
             const processedStaffList = useMemo(() => {
-                let data = activeStaffList;
+                let data = showResignedToo ? staffList : activeStaffList;
                 if (searchTerm) { const t = searchTerm.toLowerCase(); data = data.filter(s => (s.name && s.name.toLowerCase().includes(t)) || (s.phone && s.phone.includes(t))); }
                 if (showUnregisteredOnly) data = data.filter(s => s.authStatus !== 'success');
 
@@ -1442,7 +1444,7 @@
                     });
                 }
                 return data;
-            }, [activeStaffList, searchTerm, sortConfig, showUnregisteredOnly]);
+            }, [activeStaffList, staffList, showResignedToo, searchTerm, sortConfig, showUnregisteredOnly]);
 
             const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
 
@@ -1467,21 +1469,31 @@
                         }
 
                         const batch = db.batch();
-                        let newCount = 0, updateCount = 0, resignCount = 0;
+                        let newCount = 0, updateCount = 0, resignCount = 0, restoreCount = 0;
                         const matchedIdx = new Set();
                         const todayStr = toLocalYMD(new Date());
 
-                        activeStaffList.forEach(dbStaff => {
+                        // [v6.11.0] 전체 명부(재직+퇴사)를 기준으로 매칭합니다.
+                        //  - 엑셀에 이름이 있으면: 재직 유지 + (퇴사자였다면) 자동 재직 복구
+                        //  - 엑셀에 이름이 없으면: (재직자였다면) 자동 퇴사 처리
+                        //  - 아예 처음 보는 이름이면: 신규 계정 생성
+                        staffList.forEach(dbStaff => {
                             const normDbName = normalizeString(dbStaff.name);
                             const idx = excelStaffs.findIndex((es, i) => !matchedIdx.has(i) && es.normName === normDbName);
                             const docRef = db.collection('users').doc(dbStaff.id);
+                            const wasResigned = dbStaff.status === 'resigned' || !!(dbStaff.resignDate && String(dbStaff.resignDate).trim());
                             if (idx !== -1) {
                                 matchedIdx.add(idx); const es = excelStaffs[idx];
                                 const joinDate = safeDateRecent(es.joinRaw) || dbStaff.joinDate;
                                 const leaveInfo = calculateAnnualLeave(joinDate);
-                                batch.update(docRef, { birth: safeDate(es.birthRaw) || dbStaff.birth || '', phone: es.phoneRaw || dbStaff.phone || '', workHours: es.workRaw || dbStaff.workHours || '', joinDate, annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0, annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-' });
-                                updateCount++;
-                            } else { batch.update(docRef, { status: 'resigned', resignDate: todayStr }); resignCount++; }
+                                const upd = { birth: safeDate(es.birthRaw) || dbStaff.birth || '', phone: es.phoneRaw || dbStaff.phone || '', workHours: es.workRaw || dbStaff.workHours || '', joinDate, annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0, annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-' };
+                                if (wasResigned) { upd.status = 'active'; upd.resignDate = ''; restoreCount++; } // 명부에 다시 나타남 → 재직 복구
+                                else updateCount++;
+                                batch.update(docRef, upd);
+                            } else if (!wasResigned) {
+                                // 엑셀에 없고, 지금 재직 중인 사람만 퇴사 처리 (이미 퇴사자는 그대로 둠)
+                                batch.update(docRef, { status: 'resigned', resignDate: todayStr }); resignCount++;
+                            }
                         });
 
                         excelStaffs.forEach((es, idx) => {
@@ -1497,13 +1509,21 @@
                         });
 
                         await batch.commit();
-                        setUploadMsg(`✅ 신규:${newCount}명 / 유지:${updateCount}명 / 퇴사:${resignCount}명`);
+                        setUploadMsg(`✅ 신규:${newCount}명 / 유지:${updateCount}명 / 복구:${restoreCount}명 / 퇴사:${resignCount}명`);
                         setTimeout(() => setUploadMsg(''), 6000); e.target.value = '';
                     } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
                 };
             };
 
             const handleDeleteOne = (staff) => showConfirm(`정말 [${staff.name}] 직원의 정보를 완전히 삭제하시겠습니까?`, async () => { try { await db.collection('users').doc(staff.id).delete(); showAlert('삭제 완료되었습니다.'); } catch (err) { showAlert('삭제 실패: ' + err.message); } });
+
+            // [v6.11.0] 재직 복구 — 퇴사 처리된 직원을 다시 재직 상태로 되돌립니다. (연차 이력은 그대로 유지)
+            const handleReactivate = (staff) => showConfirm(`[${staff.name}] 직원을 다시 '재직 중' 상태로 복구하시겠습니까?\n\n· 연차·인사 정보는 그대로 유지됩니다.\n· 퇴사일 기록은 지워집니다.`, async () => {
+                try {
+                    await db.collection('users').doc(staff.id).update({ status: 'active', resignDate: '' });
+                    showAlert(`✅ [${staff.name}] 재직 복구 완료!`);
+                } catch (err) { showAlert('복구 실패: ' + err.message); }
+            });
             const handleSelectAll = (e) => setSelectedIds(e.target.checked ? new Set(processedStaffList.map(s => s.id)) : new Set());
             const handleSelectOne = (id) => { const s = new Set(selectedIds); s.has(id) ? s.delete(id) : s.add(id); setSelectedIds(s); };
             const handleBulkDelete = () => {
@@ -1637,13 +1657,14 @@
                     {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} showAlert={showAlert} />}
                     {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex items-center gap-4 w-full md:w-auto justify-between"><div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 (퇴사자 제외)</p></div></div>
+                        <div className="flex items-center gap-4 w-full md:w-auto justify-between"><div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 ({showResignedToo ? '퇴사자 포함' : '퇴사자 제외'})</p></div></div>
                         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                             <div className="relative flex items-center w-full md:w-auto gap-1">
                                 <div className="relative group flex-1 md:flex-none"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-48 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" /></div>
                                 <button onClick={handleResetFilters} className="p-2.5 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="초기화"><Icons.Refresh /></button>
                             </div>
                             <label className="flex items-center justify-center gap-2 cursor-pointer bg-red-50 px-3 py-2 rounded-xl border border-red-100 hover:bg-red-100 transition shadow-sm"><input type="checkbox" checked={showUnregisteredOnly} onChange={(e) => setShowUnregisteredOnly(e.target.checked)} /><span className="text-xs font-bold text-red-600 whitespace-nowrap">미발급 직원만</span></label>
+                            <label className="flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 transition shadow-sm" title="퇴사 처리된 직원을 목록에 함께 표시하여 '재직 복구'할 수 있습니다."><input type="checkbox" checked={showResignedToo} onChange={(e) => setShowResignedToo(e.target.checked)} /><span className="text-xs font-bold text-slate-600 whitespace-nowrap">퇴사자 포함 보기</span></label>
                             {selectedIds.size > 0 && (<button onClick={handleBulkDelete} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition flex justify-center items-center gap-2 animate-fade-in shadow-lg shadow-red-200"><Icons.Trash /> 선택 삭제 ({selectedIds.size})</button>)}
                             {uploadMsg && <span className="w-full md:w-auto text-sm font-bold text-blue-600 animate-pulse text-center bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200">{uploadMsg}</span>}
                             <button onClick={handleBatchCreateAuth} className="flex-1 md:flex-none bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2" title="선택된 항목과 무관하게 모든 직원에게 계정을 발급합니다"><Icons.Users /> 일괄 계정 발급</button>
@@ -1666,10 +1687,11 @@
                             <tbody className="divide-y divide-slate-100">
                                 {processedStaffList.map((staff) => {
                                     const isDateError = !staff.joinDate || staff.joinDate.length < 8;
+                                    const isRes = staff.status === 'resigned' || !!(staff.resignDate && String(staff.resignDate).trim());
                                     return (
-                                        <tr key={staff.id} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''}`}>
+                                        <tr key={staff.id} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''} ${isRes ? 'bg-slate-50/60' : ''}`}>
                                             <td className="p-4 text-center"><input type="checkbox" checked={selectedIds.has(staff.id)} onChange={() => handleSelectOne(staff.id)} /></td>
-                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>{staff.name} <span className="text-slate-400 text-xs font-normal ml-1">click</span></td>
+                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>{staff.name} {isRes ? <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-bold ml-1">퇴사</span> : <span className="text-slate-400 text-xs font-normal ml-1">click</span>}</td>
                                             <td className="p-4 text-center font-bold text-blue-600">{isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></>}</td>
                                             <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
@@ -1678,7 +1700,7 @@
                                                     <div className="flex flex-col items-center gap-1.5"><span className="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold animate-pulse border border-red-100 shadow-sm">미발급</span><button onClick={() => handleCreateSingleAuth(staff)} className="text-[11px] bg-slate-700 text-white px-2 py-1 rounded-md hover:bg-slate-800 transition w-full max-w-[70px] shadow-sm active:scale-95">개별 발급</button></div>
                                                 )}
                                             </td>
-                                            <td className="p-4 text-center"><div className="flex justify-center gap-2"><button onClick={() => setEditingStaff(staff)} title="정보 수정" className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleResetPassword(staff)} title="비밀번호 초기화 (123456)" className="p-2 bg-white border text-amber-500 hover:bg-amber-100 rounded-lg transition"><Icons.Key /></button><button onClick={() => handleDeleteOne(staff)} title="직원 삭제" className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
+                                            <td className="p-4 text-center"><div className="flex justify-center gap-2">{isRes && <button onClick={() => handleReactivate(staff)} title="재직 복구" className="p-2 bg-white border text-green-500 hover:bg-green-100 rounded-lg transition"><Icons.Refresh /></button>}<button onClick={() => setEditingStaff(staff)} title="정보 수정" className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleResetPassword(staff)} title="비밀번호 초기화 (123456)" className="p-2 bg-white border text-amber-500 hover:bg-amber-100 rounded-lg transition"><Icons.Key /></button><button onClick={() => handleDeleteOne(staff)} title="직원 삭제" className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
                                         </tr>
                                     );
                                 })}
