@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.11.1-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.11.2-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -57,10 +57,11 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.11.1-stable";
+        const SYSTEM_VERSION = "6.11.2-stable";
         const GUIDE_KEY = "ygnurim_guide_seen_v1";
         const TOUR_KEY = "ygnurim_tour_seen_v1";
         const UPDATE_LOGS = [
+            { version: "6.11.2-stable", date: "2026-07-27", details: ["✍️ [직원 가이드] 화면 투어 마지막(5/5) 안내 문구를 실제 기능에 맞게 수정 — '수정·취소는 관리자 문의' → '연필·휴지통 버튼으로 직접 수정·삭제' 안내"] },
             { version: "6.11.1-stable", date: "2026-07-27", details: ["🧹 [직원 페이지] '휴가 내역 직접 수정·삭제 안내' 파란색 박스를 제거해 화면을 더 깔끔하게 정리 (수정·삭제 버튼 기능은 그대로 유지)", "🆘 [비밀번호 초기화] 직원이 이미 비번을 바꾼 계정은 브라우저에서 초기화가 불가능(구글 보안 정책) — 이 경우 Firebase 콘솔에서 처리하는 방법을 계정 아이디와 함께 단계별로 상세히 안내하도록 오류 메시지 개선", "💬 [안내창] 여러 줄 안내가 잘 읽히도록 알림창 폭을 넓히고 왼쪽 정렬로 표시"] },
             { version: "6.11.0-stable", date: "2026-07-27", details: ["🔄 [직원 명부] 엑셀 재업로드 시, 명부에 다시 나타난 퇴사자를 '재직 중'으로 자동 복구 (연차 이력 그대로 유지) — 매달 명부를 올려도 재직자 상태가 정확히 유지됩니다", "🟢 [직원 명부] 개별 '재직 복구' 버튼 추가 + '퇴사자 포함 보기' 체크로 퇴사 처리된 직원을 목록에서 직접 되살리기 가능", "🧷 [안정화] 엑셀 매칭 기준을 전체 명부(재직+퇴사)로 확대해, 이미 있는 직원이 신규로 중복 생성되던 여지를 차단", "🧾 [결과 표시] 업로드 결과에 '복구' 인원 수를 함께 안내 (신규/유지/복구/퇴사)"] },
             { version: "6.10.0-stable", date: "2026-07-27", details: ["✏️ [직원 페이지] 본인이 등록한 휴가 내역을 직접 '수정·삭제'할 수 있도록 기능 추가 (관리자와 동일하게 즉시 반영) — 기존 '관리자 문의' 배너는 '본인 수정 안내'로 변경", "🔐 [보안] 초기 비밀번호(123456)로 로그인 시 서비스 이용 전 반드시 비밀번호를 변경하도록 강제하는 화면 신설 (Firebase Auth 실제 변경 + tempPw 해제)", "🛠️ [직원 명부] 관리자가 직원 비밀번호를 분실 시 초기 비밀번호(123456)로 되돌리는 '비밀번호 초기화' 버튼 추가 (개별 관리 영역)"] },
@@ -478,7 +479,7 @@
             { key: 'unit',    badge: '②', title: '1단계 · 등록 단위 선택', body: '먼저 연차(1일) 인지 반차(0.5일) 인지, 아니면 시간 단위인지를 선택합니다.' },
             { key: 'datemode',badge: '③', title: '2단계 · 날짜 방식 선택', body: '하루만 쓸 땐 [단일 날짜], 연달아 쓸 땐 [기간 설정], 흩어진 날짜는 [지정일 선택]을 누르세요.' },
             { key: 'submit',  badge: '④', title: '3단계 · 등록하기', body: '사유를 적고 이 버튼을 누르면 등록이 완료됩니다. 사유는 선택 사항입니다.' },
-            { key: 'history', badge: '⑤', title: '등록 결과 확인', body: '등록한 연차는 이곳에 바로 쌓입니다. 수정이나 취소가 필요하면 관리자에게 문의해주세요.' }
+            { key: 'history', badge: '⑤', title: '등록 결과 확인', body: '등록한 연차는 이곳에 바로 쌓입니다. 각 내역의 연필(수정)·휴지통(삭제) 버튼으로 직접 고치거나 지울 수 있어요.' }
         ];
 
         const TIP_W = 320, TIP_H_EST = 210, GAP = 14, EDGE = 12;
