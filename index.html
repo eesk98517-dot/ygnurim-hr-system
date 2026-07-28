@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
+<html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.11.2-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -45,7 +45,7 @@
         @keyframes tipUp { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .tour-dim { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.72); z-index: 700; }
     </style>
-</head>
+<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.inset-y-0{top:0px;bottom:0px}.-top-8{top:-2rem}.left-0{left:0px}.left-1\/2{left:50%}.right-4{right:1rem}.top-0{top:0px}.top-4{top:1rem}.z-10{z-index:10}.z-30{z-index:30}.z-40{z-index:40}.z-50{z-index:50}.z-\[9999\]{z-index:9999}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mb-3{margin-bottom:0.75rem}.mb-6{margin-bottom:1.5rem}.ml-1{margin-left:0.25rem}.mt-1{margin-top:0.25rem}.mt-3{margin-top:0.75rem}.mt-4{margin-top:1rem}.mt-8{margin-top:2rem}.ml-0\.5{margin-left:0.125rem}.block{display:block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-12{height:3rem}.h-screen{height:100vh}.h-16{height:4rem}.h-10{height:2.5rem}.h-14{height:3.5rem}.h-48{height:12rem}.h-6{height:1.5rem}.h-8{height:2rem}.h-\[80px\]{height:80px}.h-full{height:100%}.min-h-\[400px\]{min-height:400px}.min-h-\[4px\]{min-height:4px}.min-h-\[90px\]{min-height:90px}.w-12{width:3rem}.w-full{width:100%}.w-14{width:3.5rem}.w-6{width:1.5rem}.w-64{width:16rem}.w-8{width:2rem}.min-w-0{min-width:0px}.min-w-\[500px\]{min-width:500px}.max-w-md{max-width:28rem}.max-w-\[120px\]{max-width:120px}.max-w-\[40px\]{max-width:40px}.flex-1{flex:1 1 0%}.flex-shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-x-full{--tw-translate-x:-100%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-7{grid-template-columns:repeat(7, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-4{gap:1rem}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-px{gap:1px}.gap-6{gap:1.5rem}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.overflow-visible{overflow:visible}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whitespace-nowrap{white-space:nowrap}.rounded-full{border-radius:9999px}.rounded{border-radius:0.25rem}.rounded-2xl{border-radius:1rem}.rounded-xl{border-radius:0.75rem}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.rounded-t-lg{border-top-left-radius:0.5rem;border-top-right-radius:0.5rem}.rounded-t-md{border-top-left-radius:0.375rem;border-top-right-radius:0.375rem}.border-4{border-width:4px}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-blue-500{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.border-blue-100{--tw-border-opacity:1;border-color:rgb(219 234 254 / var(--tw-border-opacity, 1))}.border-slate-100{--tw-border-opacity:1;border-color:rgb(241 245 249 / var(--tw-border-opacity, 1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240 / var(--tw-border-opacity, 1))}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.border-slate-800{--tw-border-opacity:1;border-color:rgb(30 41 59 / var(--tw-border-opacity, 1))}.border-blue-200{--tw-border-opacity:1;border-color:rgb(191 219 254 / var(--tw-border-opacity, 1))}.border-amber-200{--tw-border-opacity:1;border-color:rgb(253 230 138 / var(--tw-border-opacity, 1))}.border-slate-500{--tw-border-opacity:1;border-color:rgb(100 116 139 / var(--tw-border-opacity, 1))}.border-t-transparent{border-top-color:transparent}.bg-\[\#F1F5F9\]{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.bg-red-50{--tw-bg-opacity:1;background-color:rgb(254 242 242 / var(--tw-bg-opacity, 1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240 / var(--tw-bg-opacity, 1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252 / var(--tw-bg-opacity, 1))}.bg-slate-50\/50{background-color:rgb(248 250 252 / 0.5)}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.bg-slate-900\/50{background-color:rgb(15 23 42 / 0.5)}.bg-teal-50{--tw-bg-opacity:1;background-color:rgb(240 253 250 / var(--tw-bg-opacity, 1))}.bg-amber-50{--tw-bg-opacity:1;background-color:rgb(255 251 235 / var(--tw-bg-opacity, 1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11 / var(--tw-bg-opacity, 1))}.bg-orange-50{--tw-bg-opacity:1;background-color:rgb(255 247 237 / var(--tw-bg-opacity, 1))}.bg-orange-500{--tw-bg-opacity:1;background-color:rgb(249 115 22 / var(--tw-bg-opacity, 1))}.bg-slate-600{--tw-bg-opacity:1;background-color:rgb(71 85 105 / var(--tw-bg-opacity, 1))}.object-contain{object-fit:contain}.p-4{padding:1rem}.p-8{padding:2rem}.p-1{padding:0.25rem}.p-1\.5{padding:0.375rem}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.p-6{padding:1.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.px-1{padding-left:0.25rem;padding-right:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.px-1\.5{padding-left:0.375rem;padding-right:0.375rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.pb-2{padding-bottom:0.5rem}.pr-0\.5{padding-right:0.125rem}.pt-8{padding-top:2rem}.text-left{text-align:left}.text-center{text-align:center}.font-sans{font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"}.text-\[10px\]{font-size:10px}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-2xl{font-size:1.5rem;line-height:2rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-\[9px\]{font-size:9px}.text-lg{font-size:1.125rem;line-height:1.75rem}.font-bold{font-weight:700}.font-black{font-weight:900}.font-normal{font-weight:400}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-0.025em}.tracking-widest{letter-spacing:0.1em}.tracking-tighter{letter-spacing:-0.05em}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-teal-500{--tw-text-opacity:1;color:rgb(20 184 166 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-amber-600{--tw-text-opacity:1;color:rgb(217 119 6 / var(--tw-text-opacity, 1))}.text-amber-700{--tw-text-opacity:1;color:rgb(180 83 9 / var(--tw-text-opacity, 1))}.text-orange-600{--tw-text-opacity:1;color:rgb(234 88 12 / var(--tw-text-opacity, 1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.opacity-0{opacity:0}.opacity-30{opacity:0.3}.opacity-75{opacity:0.75}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-blue-900\/50{--tw-shadow-color:rgb(30 58 138 / 0.5);--tw-shadow:var(--tw-shadow-colored)}.shadow-amber-200{--tw-shadow-color:#fde68a;--tw-shadow:var(--tw-shadow-colored)}.shadow-blue-200{--tw-shadow-color:#bfdbfe;--tw-shadow:var(--tw-shadow-colored)}.shadow-orange-200{--tw-shadow-color:#fed7aa;--tw-shadow:var(--tw-shadow-colored)}.outline-none{outline:2px solid transparent;outline-offset:2px}.brightness-0{--tw-brightness:brightness(0);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.invert{--tw-invert:invert(100%);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-1000{transition-duration:1000ms}.duration-300{transition-duration:300ms}.hover\:border-red-300:hover{--tw-border-opacity:1;border-color:rgb(252 165 165 / var(--tw-border-opacity, 1))}.hover\:border-teal-300:hover{--tw-border-opacity:1;border-color:rgb(94 234 212 / var(--tw-border-opacity, 1))}.hover\:border-blue-300:hover{--tw-border-opacity:1;border-color:rgb(147 197 253 / var(--tw-border-opacity, 1))}.hover\:border-orange-300:hover{--tw-border-opacity:1;border-color:rgb(253 186 116 / var(--tw-border-opacity, 1))}.hover\:border-slate-500:hover{--tw-border-opacity:1;border-color:rgb(100 116 139 / var(--tw-border-opacity, 1))}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-50:hover{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-100:hover{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-50\/50:hover{background-color:rgb(248 250 252 / 0.5)}.hover\:bg-slate-800:hover{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.hover\:bg-white:hover{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.hover\:bg-amber-600:hover{--tw-bg-opacity:1;background-color:rgb(217 119 6 / var(--tw-bg-opacity, 1))}.hover\:bg-orange-600:hover{--tw-bg-opacity:1;background-color:rgb(234 88 12 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-500:hover{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity, 1))}.hover\:text-red-400:hover{--tw-text-opacity:1;color:rgb(248 113 113 / var(--tw-text-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.hover\:opacity-80:hover{opacity:0.8}.focus\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.disabled\:opacity-50:disabled{opacity:0.5}.group:hover .group-hover\:bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.group:hover .group-hover\:opacity-100{opacity:1}@media (min-width: 640px){.sm\:inline-block{display:inline-block}}@media (min-width: 768px){.md\:static{position:static}.md\:mx-0{margin-left:0px;margin-right:0px}.md\:ml-2{margin-left:0.5rem}.md\:hidden{display:none}.md\:h-64{height:16rem}.md\:h-full{height:100%}.md\:w-auto{width:auto}.md\:flex-none{flex:none}.md\:translate-x-0{--tw-translate-x:0px;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}.md\:gap-2{gap:0.5rem}.md\:gap-4{gap:1rem}.md\:gap-6{gap:1.5rem}.md\:p-6{padding:1.5rem}.md\:p-8{padding:2rem}.md\:px-2{padding-left:0.5rem;padding-right:0.5rem}.md\:px-3{padding-left:0.75rem;padding-right:0.75rem}.md\:px-8{padding-left:2rem;padding-right:2rem}.md\:text-base{font-size:1rem;line-height:1.5rem}.md\:text-sm{font-size:0.875rem;line-height:1.25rem}.md\:text-xs{font-size:0.75rem;line-height:1rem}.md\:text-\[10px\]{font-size:10px}.md\:text-\[11px\]{font-size:11px}}</style></head>
 <body class="bg-[#F1F5F9]">
     <div id="root">
         <div class="flex h-screen items-center justify-center flex-col gap-4 text-slate-400">
@@ -54,13 +54,22 @@
         </div>
     </div>
     <script type="text/babel">
+
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.11.2-stable";
-        const GUIDE_KEY = "ygnurim_guide_seen_v1";
-        const TOUR_KEY = "ygnurim_tour_seen_v1";
+        const SYSTEM_VERSION = "6.12.0-beta1";
+        // [v6.12.0] 가이드/투어 안내 UI가 전면 개편되어 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
+        const GUIDE_KEY = "ygnurim_guide_seen_v2";
+        const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.12.0-beta1", date: "2026-07-28", details: [
+                "⏱️ [직원 휴가신청 전면 개편] '연차/반차/시간' 구분을 없애고 오직 '시간(Hour)' 단위로 통합 — 연차 시작·종료 시각과 휴게 시작·종료 시각을 입력하면 (근무시간 − 휴게시간)이 실시간으로 자동 계산되어 차감됩니다",
+                "🗓️ [대화형 미니 캘린더] 기본 날짜 입력창을 없애고, 달력을 눌러 단일 날짜·기간·지정일(다중)을 모두 클릭만으로 선택하도록 교체",
+                "📅 [달력형 휴가 내역] 하단 '나의 휴가 내역'을 월별 달력으로 개편 — 하루 근무시간 대비 사용 비율에 따라 100%는 파랑, 그 미만은 주황으로 색을 구분하고, 블록을 누르면 상세(시간·사유)를 보고 바로 수정·삭제 가능",
+                "🧭 [가이드 동기화] 바뀐 화면에 맞춰 사용법 모달과 화면 투어의 단계·안내 문구를 새로 정리",
+                "🛡️ [호환] 관리자 페이지(직원 명부·엑셀 대조·월간 보고서 등)와 기존 데이터 구조는 그대로 유지 — days(차감시간)는 종전과 동일하게 집계되고, 시각 정보는 startTime·endTime·breakStart·breakEnd 필드로 함께 저장됩니다"
+            ] },
             { version: "6.11.2-stable", date: "2026-07-27", details: ["✍️ [직원 가이드] 화면 투어 마지막(5/5) 안내 문구를 실제 기능에 맞게 수정 — '수정·취소는 관리자 문의' → '연필·휴지통 버튼으로 직접 수정·삭제' 안내"] },
             { version: "6.11.1-stable", date: "2026-07-27", details: ["🧹 [직원 페이지] '휴가 내역 직접 수정·삭제 안내' 파란색 박스를 제거해 화면을 더 깔끔하게 정리 (수정·삭제 버튼 기능은 그대로 유지)", "🆘 [비밀번호 초기화] 직원이 이미 비번을 바꾼 계정은 브라우저에서 초기화가 불가능(구글 보안 정책) — 이 경우 Firebase 콘솔에서 처리하는 방법을 계정 아이디와 함께 단계별로 상세히 안내하도록 오류 메시지 개선", "💬 [안내창] 여러 줄 안내가 잘 읽히도록 알림창 폭을 넓히고 왼쪽 정렬로 표시"] },
             { version: "6.11.0-stable", date: "2026-07-27", details: ["🔄 [직원 명부] 엑셀 재업로드 시, 명부에 다시 나타난 퇴사자를 '재직 중'으로 자동 복구 (연차 이력 그대로 유지) — 매달 명부를 올려도 재직자 상태가 정확히 유지됩니다", "🟢 [직원 명부] 개별 '재직 복구' 버튼 추가 + '퇴사자 포함 보기' 체크로 퇴사 처리된 직원을 목록에서 직접 되살리기 가능", "🧷 [안정화] 엑셀 매칭 기준을 전체 명부(재직+퇴사)로 확대해, 이미 있는 직원이 신규로 중복 생성되던 여지를 차단", "🧾 [결과 표시] 업로드 결과에 '복구' 인원 수를 함께 안내 (신규/유지/복구/퇴사)"] },
@@ -340,6 +349,114 @@
             return dates;
         };
 
+        // ============ [v6.12.0] 시간(Hour) 단위 정밀 계산 유틸 ============
+        // "HH:MM" 문자열을 분(minute)으로 변환. 잘못된 값이면 null.
+        const timeToMinutes = (t) => {
+            if (!t || typeof t !== 'string' || !/^\d{1,2}:\d{2}$/.test(t)) return null;
+            const [h, m] = t.split(':').map(Number);
+            if (isNaN(h) || isNaN(m)) return null;
+            return h * 60 + m;
+        };
+        // (연차종료 - 연차시작) - (휴게종료 - 휴게시작) = 실제 차감 시간(시간 단위, 소수 둘째 자리 반올림)
+        // 반환: { hours, error } — error가 있으면 hours는 0.
+        const calcLeaveHours = (startT, endT, breakStartT, breakEndT) => {
+            const s = timeToMinutes(startT), e = timeToMinutes(endT);
+            if (s === null || e === null) return { hours: 0, error: '연차 시작·종료 시각을 입력하세요.' };
+            if (e <= s) return { hours: 0, error: '연차 종료 시각은 시작 시각보다 뒤여야 합니다.' };
+            let workMin = e - s;
+            const bs = timeToMinutes(breakStartT), be = timeToMinutes(breakEndT);
+            // 휴게시간은 필수 입력. 둘 다 있어야 유효한 것으로 처리.
+            if (bs === null || be === null) return { hours: 0, error: '휴게 시작·종료 시각을 입력하세요.' };
+            if (be < bs) return { hours: 0, error: '휴게 종료 시각은 시작 시각보다 뒤여야 합니다.' };
+            const breakMin = be - bs;
+            const net = workMin - breakMin;
+            if (net <= 0) return { hours: 0, error: '휴게시간을 빼면 실제 차감 시간이 0 이하입니다.' };
+            return { hours: Math.round((net / 60) * 100) / 100, error: '' };
+        };
+        // 시간 값을 사람이 읽기 좋은 라벨로 (예: 8 → '8시간', 4.5 → '4.5시간')
+        const hourLabel = (h) => `${fmt(h)}시간`;
+
+        // ============ [v6.12.0] 대화형 미니 캘린더 (기본 date input 대체) ============
+        // mode: 'single' | 'range' | 'multi'
+        //  - single: 클릭한 날짜 하나 (value: 'YYYY-MM-DD')
+        //  - range : 첫 클릭=시작, 둘째 클릭=종료 (value: {start, end})
+        //  - multi : 클릭할 때마다 토글되는 날짜 배열 (value: ['YYYY-MM-DD', ...])
+        // offDays: 기간 모드에서 시각적으로 흐리게 표시할 휴무 요일(선택 자체는 상위에서 근무일만 계산)
+        const MiniCalendar = ({ mode, value, onChange, offDays }) => {
+            const [viewDate, setViewDate] = useState(() => {
+                let base = new Date();
+                if (mode === 'single' && value) base = new Date(value);
+                else if (mode === 'range' && value?.start) base = new Date(value.start);
+                else if (mode === 'multi' && Array.isArray(value) && value.length) base = new Date(value[value.length - 1]);
+                return isNaN(base.getTime()) ? new Date() : base;
+            });
+            const year = viewDate.getFullYear(); const month = viewDate.getMonth();
+            const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
+            const todayStr = toLocalYMD(new Date());
+            const off = offDays && offDays.length ? offDays : [0];
+
+            const isSelected = (dateStr) => {
+                if (mode === 'single') return value === dateStr;
+                if (mode === 'multi') return Array.isArray(value) && value.includes(dateStr);
+                if (mode === 'range') {
+                    if (!value?.start) return false;
+                    if (!value?.end) return value.start === dateStr;
+                    return dateStr >= value.start && dateStr <= value.end;
+                }
+                return false;
+            };
+            const isRangeEdge = (dateStr) => mode === 'range' && value && (value.start === dateStr || value.end === dateStr);
+
+            const handleClick = (dateStr) => {
+                if (mode === 'single') { onChange(dateStr); return; }
+                if (mode === 'multi') {
+                    const arr = Array.isArray(value) ? value : [];
+                    onChange(arr.includes(dateStr) ? arr.filter(d => d !== dateStr) : [...arr, dateStr].sort());
+                    return;
+                }
+                if (mode === 'range') {
+                    if (!value?.start || (value.start && value.end)) { onChange({ start: dateStr, end: '' }); }
+                    else { onChange(dateStr < value.start ? { start: dateStr, end: value.start } : { start: value.start, end: dateStr }); }
+                }
+            };
+
+            return (
+                <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-sm select-none">
+                    <div className="flex items-center justify-between mb-2">
+                        <button type="button" onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronLeft /></button>
+                        <div className="flex items-center gap-2">
+                            <span className="font-black text-slate-800 text-sm">{year}년 {month + 1}월</span>
+                            <button type="button" onClick={() => setViewDate(new Date())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">오늘</button>
+                        </div>
+                        <button type="button" onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronRight /></button>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                        {WEEK_LABELS.map((d, i) => (<div key={d} className={`text-center text-[10px] font-bold py-1 ${i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-slate-400'}`}>{d}</div>))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                        {weeks.flat().map((d, idx) => {
+                            if (!d) return <div key={idx} />;
+                            const dateStr = `${prefix}-${String(d).padStart(2, '0')}`;
+                            const sel = isSelected(dateStr);
+                            const edge = isRangeEdge(dateStr);
+                            const isToday = dateStr === todayStr;
+                            const dow = idx % 7;
+                            const isOff = off.includes(dow);
+                            let cls = 'text-slate-700';
+                            if (sel) cls = edge ? 'bg-blue-600 text-white font-black shadow-md' : 'bg-blue-100 text-blue-700 font-bold';
+                            else if (isToday) cls = 'ring-2 ring-blue-400 text-blue-600 font-bold';
+                            else if (dow === 0) cls = 'text-red-400';
+                            else if (dow === 6) cls = 'text-blue-400';
+                            return (
+                                <button key={idx} type="button" onClick={() => handleClick(dateStr)} className={`h-9 rounded-lg text-xs transition flex items-center justify-center hover:bg-slate-100 ${cls} ${isOff && !sel ? 'opacity-40' : ''}`}>{d}</button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
         // ------------------ 아이콘 세트 ------------------
         const Icons = {
             Menu: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
@@ -448,25 +565,31 @@
                 icon: '👋', color: 'blue',
                 title: '양지누림 연차 시스템에 오신 것을 환영합니다',
                 desc: '이 시스템은 내 연차 현황을 실시간으로 확인하고, 사용한 휴가를 직접 등록하는 공간입니다.',
-                points: ['총 발생 / 사용 / 잔여 연차를 한눈에 확인', '휴가 사용 후 직접 등록 가능', '모바일에서도 동일하게 이용 가능']
+                points: ['총 발생 / 사용 / 잔여 연차를 한눈에 확인', '휴가 사용 후 직접 등록 가능', '모든 휴가는 이제 시간(Hour) 단위로 관리됩니다', '모바일에서도 동일하게 이용 가능']
             },
             {
                 icon: '📊', color: 'teal',
                 title: '① 상단 카드에서 내 연차를 확인하세요',
                 desc: '화면 맨 위 3개의 카드가 나의 연차 현황입니다.',
-                points: ['파란색 = 올해 발생한 총 연차 일수', '빨간색 = 지금까지 사용한 연차 일수', '초록색 = 앞으로 쓸 수 있는 잔여 연차', '괄호 안 기간은 나의 연차 산정 기간(입사일 기준 1년)입니다']
+                points: ['파란색 = 올해 발생한 총 연차(시간)', '빨간색 = 지금까지 사용한 시간', '초록색 = 앞으로 쓸 수 있는 잔여 시간', '괄호 안 (일) 수치는 하루 근무시간으로 환산한 참고값입니다']
             },
             {
-                icon: '✍️', color: 'purple',
-                title: '② 휴가 신청하기 사용 방법',
-                desc: '왼쪽 "휴가 신청하기"에서 등록합니다. 순서대로 선택만 하면 됩니다.',
-                points: ['1단계 : 일 단위(연차/반차) 또는 시간 단위 선택', '2단계 : 단일 날짜 / 기간 설정 / 지정일 선택 중 택 1', '지정일 선택은 "4.1, 5.21" 처럼 쉼표로 여러 날을 한 번에 입력', '기간 설정 시 나의 고정 휴무일은 자동으로 제외됩니다']
+                icon: '⏱️', color: 'purple',
+                title: '② 시간으로 정확하게 신청하기',
+                desc: '왼쪽 "휴가 신청하기"에서 시각을 입력하면 실제 차감 시간이 자동 계산됩니다.',
+                points: ['연차 시작·종료 시각을 입력합니다', '휴게 시작·종료 시각도 반드시 입력합니다', '(연차 종료−시작) − (휴게 종료−시작) = 실제 차감 시간', '입력하는 즉시 아래에 차감 시간이 미리 표시됩니다']
             },
             {
-                icon: '🔒', color: 'orange',
-                title: '③ 등록 후 수정·취소는 관리자에게',
-                desc: '기록의 정확성을 위해 등록된 연차의 수정과 삭제는 관리자만 가능합니다.',
-                points: ['잘못 등록했다면 담당 관리자에게 문의해주세요', '오른쪽 "나의 휴가 내역"에서 등록 결과를 바로 확인', '비밀번호는 최초 123456이며 변경은 관리자에게 요청', '이 안내는 상단 [사용법] 버튼으로 언제든 다시 볼 수 있습니다']
+                icon: '🗓️', color: 'blue',
+                title: '③ 달력을 눌러 날짜를 선택하세요',
+                desc: '날짜 입력창 대신 달력을 클릭하는 방식으로 바뀌었습니다.',
+                points: ['단일 : 달력에서 하루를 클릭', '기간 : 시작일과 종료일 두 번 클릭 (휴무일 자동 제외)', '지정일 : 흩어진 날짜를 여러 번 클릭해 모으기', '같은 시각·사유가 선택한 모든 날짜에 함께 등록됩니다']
+            },
+            {
+                icon: '📅', color: 'orange',
+                title: '④ 달력에서 내역 확인·수정·삭제',
+                desc: '오른쪽 "나의 휴가 내역"이 월별 달력으로 바뀌었습니다.',
+                points: ['하루를 다 쓰면 파랑, 일부만 쓰면 주황으로 표시', '휴가 블록을 누르면 시간·사유 상세가 열립니다', '상세 창에서 바로 수정하거나 삭제할 수 있습니다', '이 안내는 상단 [사용법] 버튼으로 언제든 다시 볼 수 있습니다']
             }
         ];
 
@@ -475,11 +598,12 @@
         // 실제 화면 요소를 밝게 뚫어 보여주며 위치를 안내합니다.
         // data-tour="키" 속성이 달린 요소를 찾아 좌표를 계산합니다.
         const TOUR_STEPS = [
-            { key: 'stats',   badge: '①', title: '내 연차 현황', body: '총 발생 · 사용 · 잔여 연차가 이 3개의 카드에 표시됩니다. 초록색 잔여 연차가 앞으로 쓸 수 있는 일수입니다.' },
-            { key: 'unit',    badge: '②', title: '1단계 · 등록 단위 선택', body: '먼저 연차(1일) 인지 반차(0.5일) 인지, 아니면 시간 단위인지를 선택합니다.' },
-            { key: 'datemode',badge: '③', title: '2단계 · 날짜 방식 선택', body: '하루만 쓸 땐 [단일 날짜], 연달아 쓸 땐 [기간 설정], 흩어진 날짜는 [지정일 선택]을 누르세요.' },
-            { key: 'submit',  badge: '④', title: '3단계 · 등록하기', body: '사유를 적고 이 버튼을 누르면 등록이 완료됩니다. 사유는 선택 사항입니다.' },
-            { key: 'history', badge: '⑤', title: '등록 결과 확인', body: '등록한 연차는 이곳에 바로 쌓입니다. 각 내역의 연필(수정)·휴지통(삭제) 버튼으로 직접 고치거나 지울 수 있어요.' }
+            { key: 'stats',   badge: '①', title: '내 연차 현황', body: '총 발생 · 사용 · 잔여가 이 3개의 카드에 시간(Hour) 단위로 표시됩니다. 초록색 잔여가 앞으로 쓸 수 있는 시간입니다.' },
+            { key: 'time',    badge: '②', title: '1단계 · 시각 입력', body: '연차 시작·종료 시각과 휴게 시작·종료 시각을 입력하면, 실제 차감 시간이 바로 아래에 자동으로 계산됩니다.' },
+            { key: 'datemode',badge: '③', title: '2단계 · 날짜 방식 선택', body: '하루만 쓸 땐 [단일], 연달아 쓸 땐 [기간], 흩어진 날짜는 [지정일]을 고른 뒤 아래 달력을 클릭하세요.' },
+            { key: 'calendar',badge: '④', title: '3단계 · 달력에서 날짜 클릭', body: '달력에서 날짜를 눌러 선택합니다. 기간은 두 번(시작·종료), 지정일은 여러 번 클릭해 모을 수 있어요.' },
+            { key: 'submit',  badge: '⑤', title: '4단계 · 등록하기', body: '사유를 적고 이 버튼을 누르면 등록이 완료됩니다. 사유는 선택 사항입니다.' },
+            { key: 'history', badge: '⑥', title: '달력에서 내역 확인', body: '등록한 휴가가 오른쪽 달력에 표시됩니다. 블록을 누르면 상세가 열리고, 거기서 바로 수정·삭제할 수 있어요.' }
         ];
 
         const TIP_W = 320, TIP_H_EST = 210, GAP = 14, EDGE = 12;
@@ -2165,48 +2289,74 @@
 
         // ------------------ [신규 v6.10.0] 직원 본인 휴가 수정 모달 ------------------
         // 관리자용 EditStaffModal 과 별개로, 직원이 자신의 '개별 휴가 1건'을 고칠 수 있는 가벼운 모달입니다.
-        const StaffLeaveEditModal = ({ rec, dailyHours, onClose, onSave }) => {
+        // [v6.12.0] 휴가 상세 팝업 — 시간(Hour) 단위 정밀 수정 + 삭제
+        // 기존 rec에 시각 정보(startTime 등)가 있으면 불러오고, 없으면(옛 데이터) 시각 필드는 비운 채
+        // '직접 시간 입력' 모드로 열어 기존 days 값을 그대로 보존할 수 있게 합니다.
+        const StaffLeaveDetailModal = ({ rec, dailyHours, onClose, onSave, onDelete }) => {
+            const hasTimes = !!(rec.startTime && rec.endTime);
+            // 편집 모드: 'time'(시각으로 계산) | 'manual'(시간 값 직접 입력)
+            const [editMode, setEditMode] = useState(hasTimes ? 'time' : 'manual');
             const [date, setDate] = useState(rec.date);
+            const [startTime, setStartTime] = useState(rec.startTime || '09:00');
+            const [endTime, setEndTime] = useState(rec.endTime || '18:00');
+            const [breakStart, setBreakStart] = useState(rec.breakStart || '12:00');
+            const [breakEnd, setBreakEnd] = useState(rec.breakEnd || '13:00');
+            const [manualHours, setManualHours] = useState(String(safeParseFloat(rec.days) || ''));
             const [reason, setReason] = useState(rec.reason || '');
-            // 기존 타입을 단위/종류로 역해석 (연차/반차/N시간)
-            const initIsHour = /시간/.test(rec.type || '');
-            const [inputType, setInputType] = useState(initIsHour ? 'hour' : 'day');
-            const [dayType, setDayType] = useState(safeParseFloat(rec.days) === dailyHours / 2 ? '0.5' : '1');
-            const [hourValue, setHourValue] = useState(initIsHour ? String(safeParseFloat(rec.days)) : String(dailyHours));
             const [msg, setMsg] = useState('');
 
+            const calc = useMemo(() => calcLeaveHours(startTime, endTime, breakStart, breakEnd), [startTime, endTime, breakStart, breakEnd]);
+            const dh = dailyHours || 8;
+            const previewHours = editMode === 'time' ? calc.hours : safeParseFloat(manualHours);
+            const ratio = dh > 0 ? Math.min(1, previewHours / dh) : 0;
+
             const handleSave = () => {
-                let days, type;
-                if (inputType === 'day') { days = dayType === '1' ? dailyHours : dailyHours / 2; type = dayType === '1' ? '연차' : '반차'; }
-                else { days = safeParseFloat(hourValue); type = `${days}시간`; }
                 if (!date) { setMsg('❌ 날짜를 선택하세요.'); return; }
-                if (days <= 0) { setMsg('❌ 시간을 올바르게 입력하세요.'); return; }
-                onSave({ id: rec.id, date, days, type, reason });
+                let payload;
+                if (editMode === 'time') {
+                    if (calc.error) { setMsg('❌ ' + calc.error); return; }
+                    payload = { id: rec.id, date, days: calc.hours, type: hourLabel(calc.hours), reason,
+                        startTime, endTime, breakStart, breakEnd };
+                } else {
+                    const h = safeParseFloat(manualHours);
+                    if (h <= 0) { setMsg('❌ 시간을 올바르게 입력하세요.'); return; }
+                    // 직접 입력 시엔 시각 정보를 지워 데이터 혼선을 막습니다.
+                    payload = { id: rec.id, date, days: h, type: hourLabel(h), reason,
+                        startTime: '', endTime: '', breakStart: '', breakEnd: '' };
+                }
+                onSave(payload);
             };
 
             return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4">
-                    <div className="bg-white p-6 md:p-7 rounded-3xl shadow-2xl w-full max-w-md relative">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4 overflow-y-auto">
+                    <div className="bg-white p-6 md:p-7 rounded-3xl shadow-2xl w-full max-w-md relative my-auto">
                         <button type="button" onClick={onClose} className="absolute top-5 right-5 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                        <h3 className="text-lg font-black text-slate-800 mb-1 flex items-center gap-2"><Icons.Edit /> 휴가 내역 수정</h3>
-                        <p className="text-xs text-slate-500 font-bold mb-5">등록한 휴가의 날짜·종류·사유를 변경합니다.</p>
+                        <h3 className="text-lg font-black text-slate-800 mb-1 flex items-center gap-2"><Icons.Calendar /> 휴가 상세 · 수정</h3>
+                        <p className="text-xs text-slate-500 font-bold mb-5">시각을 조정하면 차감 시간이 자동으로 다시 계산됩니다.</p>
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-600 mb-1.5">날짜</label>
                                 <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border-2 border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition" />
                             </div>
-                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <label className="block text-xs font-bold text-slate-700 mb-2">등록 단위</label>
-                                <div className="flex gap-2 mb-2">
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer transition ${inputType === 'day' ? 'bg-blue-50 border-blue-200 text-blue-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden" />일 단위</label>
-                                    <label className={`flex-1 border rounded-xl p-2 text-sm text-center cursor-pointer transition ${inputType === 'hour' ? 'bg-blue-50 border-blue-200 text-blue-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden" />시간 단위</label>
-                                </div>
-                                {inputType === 'day' ? (
-                                    <div className="flex gap-2">
-                                        <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${dayType === '1' ? 'bg-blue-50 border-blue-200 text-blue-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" checked={dayType === '1'} onChange={() => setDayType('1')} className="hidden" />연차 (1일)</label>
-                                        <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${dayType === '0.5' ? 'bg-orange-50 border-orange-200 text-orange-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" checked={dayType === '0.5'} onChange={() => setDayType('0.5')} className="hidden" />반차 (0.5일)</label>
+                            <div className="flex bg-slate-100 p-1 rounded-xl">
+                                {[['time', '시각으로 계산'], ['manual', '시간 직접 입력']].map(([k, label]) => (
+                                    <button key={k} type="button" onClick={() => setEditMode(k)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${editMode === k ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>{label}</button>
+                                ))}
+                            </div>
+                            {editMode === 'time' ? (
+                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-blue-500" /></div>
+                                        <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-blue-500" /></div>
+                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작</label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full border border-orange-200 rounded-lg p-2 text-sm outline-none focus:border-orange-500" /></div>
+                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료</label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full border border-orange-200 rounded-lg p-2 text-sm outline-none focus:border-orange-500" /></div>
                                     </div>
-                                ) : (<div className="flex items-center gap-2"><input type="number" value={hourValue} onChange={e => setHourValue(e.target.value)} className="w-full border rounded-xl p-2.5 text-sm outline-none font-bold text-center bg-white" placeholder="시간 입력" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div>)}
+                                </div>
+                            ) : (
+                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><label className="block text-xs font-bold text-slate-700 mb-2">차감 시간 직접 입력</label><div className="flex items-center gap-2"><input type="number" value={manualHours} onChange={e => setManualHours(e.target.value)} className="w-full border rounded-xl p-2.5 text-sm outline-none font-bold text-center bg-white" placeholder="예: 4" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div></div>
+                            )}
+                            <div className={`p-3 rounded-xl border text-center font-bold ${editMode === 'time' && calc.error ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
+                                {editMode === 'time' && calc.error ? <span className="text-xs">{calc.error}</span> : <>실제 차감 시간 <span className="text-lg font-black">{fmt(previewHours)}시간</span> <span className="text-xs font-normal opacity-70">(하루 {dh}h 중 {Math.round(ratio * 100)}%)</span></>}
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-600 mb-1.5">사유 (선택)</label>
@@ -2215,9 +2365,67 @@
                         </div>
                         {msg && <p className="text-red-500 text-xs font-bold text-center mt-4">{msg}</p>}
                         <div className="flex gap-3 mt-6">
-                            <button type="button" onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition text-sm">취소</button>
+                            <button type="button" onClick={() => onDelete(rec)} className="px-4 bg-red-50 text-red-500 py-3 rounded-xl font-bold hover:bg-red-100 transition text-sm flex items-center justify-center gap-1.5 border border-red-100"><Icons.Trash /> 삭제</button>
                             <button type="button" onClick={handleSave} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 text-sm flex items-center justify-center gap-2"><Icons.Save /> 저장하기</button>
                         </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // [v6.12.0] 직원 본인 달력형 휴가 내역 — 하루 사용 비율에 따라 색 구분(100% 파랑 / 그 미만 주황)
+        // 블록 클릭 시 onSelect(rec) 로 상세 팝업을 엽니다.
+        const StaffLeaveCalendar = ({ history, dailyHours, onSelect }) => {
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+            const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const dh = dailyHours || 8;
+
+            const leaveMap = useMemo(() => {
+                const map = {};
+                (history || []).forEach(leave => {
+                    if (leave.date && leave.date.startsWith(prefix)) (map[leave.date] = map[leave.date] || []).push(leave);
+                });
+                return map;
+            }, [history, prefix]);
+
+            const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
+            const todayStr = toLocalYMD(new Date());
+
+            return (
+                <div className="flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                        <button type="button" onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronLeft /></button>
+                        <div className="flex items-center gap-2">
+                            <span className="font-black text-slate-800 text-sm">{year}년 {month + 1}월</span>
+                            <button type="button" onClick={() => setCurrentDate(new Date())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">이번 달</button>
+                        </div>
+                        <button type="button" onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronRight /></button>
+                    </div>
+                    <div className="w-full overflow-hidden border border-slate-200 rounded-xl bg-slate-200 gap-px grid grid-cols-7 shadow-sm">
+                        {WEEK_LABELS.map((d, i) => (<div key={d} className={`bg-slate-50 py-1.5 text-center text-[11px] font-bold ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>{d}</div>))}
+                        {weeks.flat().map((d, idx) => {
+                            const dateStr = d ? `${prefix}-${String(d).padStart(2, '0')}` : '';
+                            const leaves = d ? (leaveMap[dateStr] || []) : [];
+                            const isToday = dateStr === todayStr;
+                            return (
+                                <div key={idx} className={`bg-white h-[74px] md:h-[84px] p-1 flex flex-col overflow-hidden transition-colors ${d ? '' : 'opacity-30 pointer-events-none'}`}>
+                                    <div className={`text-[10px] md:text-[11px] font-bold flex justify-center items-center w-5 h-5 rounded-full mx-auto ${isToday ? 'bg-blue-600 text-white shadow-md' : idx % 7 === 0 ? 'text-red-500' : idx % 7 === 6 ? 'text-blue-500' : 'text-slate-600'}`}>{d || ''}</div>
+                                    <div className="flex-1 overflow-y-auto space-y-0.5 mt-0.5 custom-scrollbar">
+                                        {leaves.map((l, i) => {
+                                            const h = safeParseFloat(l.days);
+                                            const isFull = dh > 0 && h >= dh;
+                                            return (
+                                                <div key={i} onClick={() => onSelect && onSelect(l)} title={`${l.type}${l.reason ? ' · ' + l.reason : ''} · 클릭하여 상세/수정`}
+                                                    className={`cursor-pointer hover:opacity-80 text-[9px] md:text-[10px] px-1 py-0.5 rounded text-center truncate font-bold shadow-sm text-white ${isFull ? 'bg-blue-500' : 'bg-orange-500'}`}>
+                                                    {fmt(h)}h
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             );
@@ -2230,17 +2438,21 @@
             const [showTour, setShowTour] = useState(false);   // [v6.8.0] 오버레이 투어
             const [showHelpMenu, setShowHelpMenu] = useState(false);
             const helpRef = useRef(null);
-            const [dateMode, setDateMode] = useState('single');
-            const [leaveDate, setLeaveDate] = useState(toLocalYMD(new Date()));
-            const [endDate, setEndDate] = useState(toLocalYMD(new Date()));
-            const [customDates, setCustomDates] = useState([]);
-            const [customDateInput, setCustomDateInput] = useState('');
-            const [customYear, setCustomYear] = useState(new Date().getFullYear());
-            const [inputType, setInputType] = useState('day');
-            const [leaveDayType, setLeaveDayType] = useState('1');
-            const [leaveHourValue, setLeaveHourValue] = useState('');
+
+            // [v6.12.0] 날짜 선택 모드 + 커스텀 캘린더 값
+            const [dateMode, setDateMode] = useState('single'); // single | range | multi
+            const [singleDate, setSingleDate] = useState(toLocalYMD(new Date()));
+            const [rangeVal, setRangeVal] = useState({ start: '', end: '' });
+            const [multiDates, setMultiDates] = useState([]);
+
+            // [v6.12.0] 시간 정밀 입력기 (시각 기반)
+            const [startTime, setStartTime] = useState('09:00');
+            const [endTime, setEndTime] = useState('18:00');
+            const [breakStart, setBreakStart] = useState('12:00');
+            const [breakEnd, setBreakEnd] = useState('13:00');
+
             const [reason, setReason] = useState('');
-            const [editingRec, setEditingRec] = useState(null); // [v6.10.0] 본인 휴가 수정 대상
+            const [detailRec, setDetailRec] = useState(null); // [v6.12.0] 상세/수정 대상
 
             useEffect(() => {
                 const unsub = db.collection('users').doc(user.email).onSnapshot(doc => {
@@ -2265,10 +2477,11 @@
                 return () => document.removeEventListener('mousedown', h);
             }, []);
 
+            const dailyHours = safeParseFloat(userData?.workHours) || 8;
+
             const leaveStats = useMemo(() => {
                 if (!userData || !userData.joinDate) return null;
                 const leaveInfo = calculateAnnualLeave(userData.joinDate);
-                const dailyHours = safeParseFloat(userData.workHours) || 8;
                 const totalDays = leaveInfo.total || 0;
                 const totalHours = totalDays * dailyHours;
                 const activeHistory = (userData.leaveHistory || []).filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
@@ -2278,72 +2491,74 @@
                     usedDays: dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0,
                     remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0,
                     displayHistory: [...activeHistory].sort((a, b) => b.date.localeCompare(a.date)) };
-            }, [userData]);
+            }, [userData, dailyHours]);
 
-            useEffect(() => { if (dateMode === 'multi') { setInputType('day'); setLeaveDayType('1'); } }, [dateMode]);
+            // [v6.12.0] 실시간 차감 시간 계산
+            const calc = useMemo(() => calcLeaveHours(startTime, endTime, breakStart, breakEnd), [startTime, endTime, breakStart, breakEnd]);
+            const deductHours = calc.hours;
+            const ratio = dailyHours > 0 ? Math.min(1, deductHours / dailyHours) : 0;
 
+            // [v6.12.0] 선택된 실제 등록 날짜 목록 (휴무일 제외)
             const validDates = useMemo(() => {
-                if (dateMode === 'single') return [leaveDate];
-                if (dateMode === 'custom') return customDates.map(c => c.date);
-                return listWorkingDates(leaveDate, endDate, userData?.offDays);
-            }, [leaveDate, endDate, customDates, dateMode, userData]);
-
-            const calcDeductHours = () => {
-                const dailyHours = safeParseFloat(userData?.workHours) || 8;
-                return inputType === 'day' ? (leaveDayType === '1' ? dailyHours : dailyHours / 2) : safeParseFloat(leaveHourValue);
-            };
-            const typeTextOf = (hours) => inputType === 'day' ? (leaveDayType === '1' ? '연차' : '반차') : `${hours}시간`;
-
-            const handleAddCustomDate = () => {
-                if (!customDateInput.trim()) return;
-                const deductHours = calcDeductHours();
-                if (deductHours <= 0) { showAlert('❌ 시간을 확인하세요.'); return; }
-                const tText = typeTextOf(deductHours);
-                const parsed = parseCustomDates(customDateInput, customYear).filter(d => !customDates.some(cd => cd.date === d));
-                if (parsed.length) { setCustomDates([...customDates, ...parsed.map(d => ({ date: d, type: tText, deductHours }))].sort((a, b) => a.date.localeCompare(b.date))); setCustomDateInput(''); }
-                else showAlert('❌ 올바른 날짜 형식을 입력하세요 (예: 4.1, 2026.5.21)');
-            };
+                if (dateMode === 'single') return singleDate ? [singleDate] : [];
+                if (dateMode === 'multi') return [...multiDates].sort();
+                if (dateMode === 'range') {
+                    if (!rangeVal.start || !rangeVal.end) return [];
+                    return listWorkingDates(rangeVal.start, rangeVal.end, userData?.offDays);
+                }
+                return [];
+            }, [dateMode, singleDate, multiDates, rangeVal, userData]);
 
             const handleSubmit = async (e) => {
                 e.preventDefault(); if (!userData) return;
-                const deductHours = calcDeductHours();
-                if (dateMode !== 'custom' && deductHours <= 0) { showAlert('❌ 시간을 입력하세요.'); return; }
-                if (!validDates.length) { showAlert('❌ 선택된 날짜가 없습니다. (휴무일과 겹치는지 확인해주세요)'); return; }
+                if (calc.error) { showAlert('❌ ' + calc.error); return; }
+                if (deductHours <= 0) { showAlert('❌ 실제 차감 시간이 0입니다. 시각을 확인해주세요.'); return; }
+                if (!validDates.length) { showAlert('❌ 선택된 날짜가 없습니다. 달력에서 날짜를 선택해주세요. (휴무일은 자동 제외됩니다)'); return; }
                 try {
                     const newHistory = [...(userData.leaveHistory || [])];
-                    const tText = typeTextOf(deductHours);
-                    if (dateMode === 'custom') customDates.forEach((item, idx) => newHistory.push({ id: Date.now().toString() + idx, date: safeDate(item.date), days: item.deductHours, type: item.type, reason, addedBy: '본인(직원)', createdAt: new Date().toISOString() }));
-                    else validDates.forEach((d, idx) => newHistory.push({ id: Date.now().toString() + idx, date: safeDate(d), days: deductHours, type: tText, reason, addedBy: '본인(직원)', createdAt: new Date().toISOString() }));
+                    const tText = hourLabel(deductHours);
+                    validDates.forEach((d, idx) => newHistory.push({
+                        id: Date.now().toString() + idx,
+                        date: safeDate(d),
+                        days: deductHours,          // 기존 집계와 100% 호환되는 최종 차감 시간
+                        type: tText,                // 예: '4.5시간'
+                        reason,
+                        // [v6.12.0] 상세 시각 정보 (추가 필드 — 기존 로직 미영향)
+                        startTime, endTime, breakStart, breakEnd,
+                        addedBy: '본인(직원)',
+                        createdAt: new Date().toISOString()
+                    }));
                     await recalcAndSave(userData.id, userData.joinDate, newHistory);
-                    showAlert('✅ 연차 등록 완료!'); setCustomDates([]); setReason('');
+                    showAlert('✅ 휴가 등록 완료! (' + validDates.length + '일 · 각 ' + fmt(deductHours) + '시간)');
+                    setReason(''); setMultiDates([]); setRangeVal({ start: '', end: '' });
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
 
-            // [v6.10.0] 본인 휴가 내역 삭제 — 관리자와 동일하게 Firestore에 즉시 반영
+            // [v6.12.0] 본인 휴가 삭제 — Firestore 즉시 반영
             const handleDeleteOwnLeave = (rec) => {
                 showConfirm(`${rec.date} (${rec.type}) 휴가 내역을 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
                     try {
                         const newHistory = (userData.leaveHistory || []).filter(h => h.id !== rec.id);
                         await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                        setDetailRec(null);
                         showAlert('🗑️ 삭제 완료! 잔여 연차가 복구되었습니다.');
                     } catch (err) { showAlert('❌ 오류: ' + err.message); }
                 });
             };
 
-            // [v6.10.0] 본인 휴가 내역 수정 저장
+            // [v6.12.0] 본인 휴가 수정 저장
             const handleSaveEditOwnLeave = async (updated) => {
                 try {
                     const newHistory = (userData.leaveHistory || []).map(h => h.id === updated.id
-                        ? { ...h, date: safeDate(updated.date), days: updated.days, type: updated.type, reason: updated.reason, addedBy: '본인(직원)', updatedAt: new Date().toISOString() }
+                        ? { ...h, date: safeDate(updated.date), days: updated.days, type: updated.type, reason: updated.reason,
+                            startTime: updated.startTime, endTime: updated.endTime, breakStart: updated.breakStart, breakEnd: updated.breakEnd,
+                            addedBy: '본인(직원)', updatedAt: new Date().toISOString() }
                         : h);
                     await recalcAndSave(userData.id, userData.joinDate, newHistory);
-                    setEditingRec(null);
+                    setDetailRec(null);
                     showAlert('✅ 수정 완료!');
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
-
-            const currentYearNum = new Date().getFullYear();
-            const yearOptions = [currentYearNum + 1, currentYearNum, currentYearNum - 1, currentYearNum - 2, currentYearNum - 3, currentYearNum - 4];
 
             if (loading) return <div className="flex h-screen items-center justify-center bg-slate-50"><div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
             if (!userData || !userData.joinDate) return (<div className="flex h-screen items-center justify-center bg-slate-50 flex-col gap-4"><p className="text-slate-600 font-bold">인사 정보가 등록되지 않았습니다. 관리자에게 문의하세요.</p><button type="button" onClick={onLogout} className="bg-slate-800 text-white px-6 py-2 rounded-xl text-sm">로그아웃</button></div>);
@@ -2352,7 +2567,7 @@
                 <div className="min-h-screen bg-[#F1F5F9] font-sans relative">
                     {showGuide && <StaffGuideModal onClose={() => setShowGuide(false)} onStartTour={() => setShowTour(true)} />}
                     {showTour && <StaffTourOverlay onClose={() => setShowTour(false)} />}
-                    {editingRec && <StaffLeaveEditModal rec={editingRec} dailyHours={safeParseFloat(userData.workHours) || 8} onClose={() => setEditingRec(null)} onSave={handleSaveEditOwnLeave} />}
+                    {detailRec && <StaffLeaveDetailModal rec={detailRec} dailyHours={dailyHours} onClose={() => setDetailRec(null)} onSave={handleSaveEditOwnLeave} onDelete={handleDeleteOwnLeave} />}
                     <nav className="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-3"><img src="logo.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} /><h1 className="text-2xl font-black text-blue-600 tracking-tighter md:hidden">양지누림</h1><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase hidden sm:block">Employee Portal</span></div>
                         <div className="flex items-center gap-2 md:gap-4">
@@ -2363,7 +2578,7 @@
                                     <div className="absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-40 animate-fade-in">
                                         <button type="button" onClick={() => { setShowHelpMenu(false); setShowGuide(true); }} className="w-full text-left px-4 py-3.5 hover:bg-blue-50 transition border-b border-slate-100">
                                             <p className="font-black text-sm text-slate-800">📖 전체 안내 보기</p>
-                                            <p className="text-[11px] text-slate-500 font-bold mt-0.5">시스템 개요를 4단계로 설명</p>
+                                            <p className="text-[11px] text-slate-500 font-bold mt-0.5">시스템 개요를 단계별로 설명</p>
                                         </button>
                                         <button type="button" onClick={() => { setShowHelpMenu(false); setShowTour(true); }} className="w-full text-left px-4 py-3.5 hover:bg-blue-50 transition">
                                             <p className="font-black text-sm text-slate-800">🔦 화면 보며 따라하기</p>
@@ -2378,61 +2593,53 @@
                     <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 animate-fade-in">
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-normal text-slate-400">({leaveStats.period})</span></h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-tour="stats">
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500"><div><p className="text-xs font-bold text-slate-400 mb-1">총 발생 연차</p><span className="text-2xl font-black text-slate-800">{leaveStats.totalDays}</span><span className="text-sm font-bold text-slate-400 ml-1">일</span></div></div>
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-red-500"><div><p className="text-xs font-bold text-slate-400 mb-1">사용 연차</p><span className="text-2xl font-black text-red-500">{leaveStats.usedDays}</span><span className="text-sm font-bold text-slate-400 ml-1">일</span></div></div>
-                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-green-500"><div><p className="text-xs font-bold text-slate-400 mb-1">잔여 연차</p><span className="text-2xl font-black text-green-600">{leaveStats.remainingDays}</span><span className="text-sm font-bold text-slate-400 ml-1">일</span></div></div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500"><div><p className="text-xs font-bold text-slate-400 mb-1">총 발생 연차</p><span className="text-2xl font-black text-slate-800">{fmt(leaveStats.totalHours)}</span><span className="text-sm font-bold text-slate-400 ml-1">시간</span><span className="text-[11px] text-slate-400 ml-1">({leaveStats.totalDays}일)</span></div></div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-red-500"><div><p className="text-xs font-bold text-slate-400 mb-1">사용 연차</p><span className="text-2xl font-black text-red-500">{fmt(leaveStats.usedHours)}</span><span className="text-sm font-bold text-slate-400 ml-1">시간</span><span className="text-[11px] text-slate-400 ml-1">({leaveStats.usedDays}일)</span></div></div>
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-green-500"><div><p className="text-xs font-bold text-slate-400 mb-1">잔여 연차</p><span className="text-2xl font-black text-green-600">{fmt(leaveStats.remainingHours)}</span><span className="text-sm font-bold text-slate-400 ml-1">시간</span><span className="text-[11px] text-slate-400 ml-1">({leaveStats.remainingDays}일)</span></div></div>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Plus /> 휴가 신청하기</h3>
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100" data-tour="unit">
-                                        <label className="block text-xs font-bold text-slate-700 mb-2">등록 단위 선택</label>
-                                        <div className={`flex gap-2 mb-2 ${dateMode === 'multi' ? 'opacity-50 pointer-events-none' : ''}`}>
-                                            <label className="flex-1 border bg-white rounded-xl p-2 text-sm text-center cursor-pointer transition hover:bg-slate-100"><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label>
-                                            <label className="flex-1 border bg-white rounded-xl p-2 text-sm text-center cursor-pointer transition hover:bg-slate-100"><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label>
+                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100" data-tour="time">
+                                        <label className="block text-xs font-bold text-slate-700 mb-2">① 시각 입력 (시간 단위 자동 계산)</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-blue-500 bg-white" required /></div>
+                                            <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-blue-500 bg-white" required /></div>
+                                            <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작</label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full border border-orange-200 rounded-lg p-2 text-sm outline-none focus:border-orange-500 bg-white" required /></div>
+                                            <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료</label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full border border-orange-200 rounded-lg p-2 text-sm outline-none focus:border-orange-500 bg-white" required /></div>
                                         </div>
-                                        {inputType === 'day' ? (
-                                            <div className="flex gap-2">
-                                                <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveDayType === '1' ? 'bg-blue-50 border-blue-200 text-blue-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" name="dtype" value="1" checked={leaveDayType === '1'} onChange={() => setLeaveDayType('1')} className="hidden"/>연차 (1일)</label>
-                                                <label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveDayType === '0.5' ? 'bg-orange-50 border-orange-200 text-orange-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label>
-                                            </div>
-                                        ) : (<div className="flex items-center gap-2"><input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-2.5 text-sm outline-none font-bold text-center bg-white" placeholder="시간 입력" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div>)}
+                                        <div className={`mt-3 p-2.5 rounded-lg border text-center font-bold ${calc.error ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
+                                            {calc.error ? <span className="text-xs">{calc.error}</span> : <span className="text-sm">실제 차감 <span className="text-lg font-black">{fmt(deductHours)}시간</span> <span className="text-[11px] font-normal opacity-70">(하루 {dailyHours}h 중 {Math.round(ratio * 100)}%)</span></span>}
+                                        </div>
                                     </div>
                                     <div>
                                         <div className="flex bg-slate-100 p-1 rounded-xl mb-3" data-tour="datemode">
-                                            {[['single','단일 날짜'],['multi','기간 설정'],['custom','지정일 선택']].map(([k, label]) => (
+                                            {[['single','단일'],['range','기간'],['multi','지정일']].map(([k, label]) => (
                                                 <button key={k} type="button" onClick={() => setDateMode(k)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === k ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>{label}</button>
                                             ))}
                                         </div>
-                                    </div>
-                                    {dateMode === 'single' && (<div><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100" required /></div>)}
-                                    {dateMode === 'multi' && (
-                                        <div className="bg-blue-50 p-4 rounded-xl border border-blue-100"><div className="flex items-center gap-2"><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required /><span className="text-slate-400 font-bold">~</span><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required /></div><p className="text-[11px] text-blue-500 font-bold mt-2 text-center bg-white py-1 rounded border border-blue-100">나의 휴무일 제외 · 등록 예정일 {validDates.length}일</p></div>
-                                    )}
-                                    {dateMode === 'custom' && (
-                                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                                            <div className="flex items-center gap-2 mb-3"><select value={customYear} onChange={e => setCustomYear(parseInt(e.target.value))} className="border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200 bg-white font-bold text-purple-700">{yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}</select><input type="text" placeholder="예: 4.1, 5.21" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" /><button type="button" onClick={handleAddCustomDate} className="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition">추가</button></div>
-                                            <div className="flex flex-wrap gap-2">{customDates.map(d => (<span key={d.date} className="bg-white border border-purple-200 text-purple-700 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-sm">{d.date} <span className="text-[10px] bg-purple-100 px-1 rounded">{d.type}</span><button type="button" onClick={() => setCustomDates(customDates.filter(cd => cd.date !== d.date))} className="text-purple-400 hover:text-purple-600 p-0.5 rounded-full hover:bg-purple-50">✕</button></span>))}</div>
-                                            <p className="text-xs text-purple-500 font-bold mt-3 text-center bg-white py-1 rounded border border-purple-100">총 {customDates.length}일 등록 예정</p>
+                                        <div data-tour="calendar">
+                                            {dateMode === 'single' && <MiniCalendar mode="single" value={singleDate} onChange={setSingleDate} offDays={userData.offDays} />}
+                                            {dateMode === 'range' && <MiniCalendar mode="range" value={rangeVal} onChange={setRangeVal} offDays={userData.offDays} />}
+                                            {dateMode === 'multi' && <MiniCalendar mode="multi" value={multiDates} onChange={setMultiDates} offDays={userData.offDays} />}
                                         </div>
-                                    )}
+                                        <p className="text-[11px] text-slate-500 font-bold mt-2 text-center bg-slate-50 py-1.5 rounded-lg border border-slate-100">
+                                            {dateMode === 'single' && (singleDate ? `선택: ${singleDate}` : '달력에서 하루를 선택하세요')}
+                                            {dateMode === 'range' && (rangeVal.start && rangeVal.end ? `${rangeVal.start} ~ ${rangeVal.end} · 휴무일 제외 ${validDates.length}일` : rangeVal.start ? '종료일을 한 번 더 클릭하세요' : '시작일부터 클릭하세요')}
+                                            {dateMode === 'multi' && (multiDates.length ? `선택한 ${multiDates.length}일에 각각 등록됩니다` : '달력에서 원하는 날짜들을 클릭하세요')}
+                                        </p>
+                                    </div>
                                     <div><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100" placeholder="신청 사유 입력 (선택)" /></div>
-                                    <button type="submit" data-tour="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">내 연차 등록하기</button>
+                                    <button type="submit" data-tour="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">내 휴가 등록하기 {validDates.length > 0 && !calc.error ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}</button>
                                 </form>
                             </div>
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full" data-tour="history">
-                                <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.History /> 나의 휴가 내역</h3></div>
-                                <div className="flex-1 overflow-y-auto max-h-[350px] custom-scrollbar pr-2 space-y-2">
-                                    {leaveStats.displayHistory.length > 0 ? leaveStats.displayHistory.map(rec => (
-                                        <div key={rec.id} className="flex items-center justify-between p-3 rounded-xl border bg-slate-50 border-slate-100 transition hover:bg-white hover:border-blue-200 hover:shadow-sm group">
-                                            <div className="flex items-center gap-3 min-w-0"><div className="bg-white p-2 rounded-lg shadow-sm border text-blue-600 flex-shrink-0"><Icons.Calendar /></div><div className="min-w-0"><p className="font-bold text-slate-700 text-sm">{rec.date}</p><p className="text-[11px] text-slate-500 mt-0.5 truncate">{rec.type} <span className="mx-1">|</span> {rec.reason || '사유 없음'}</p></div></div>
-                                            <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                                                <button type="button" onClick={() => setEditingRec(rec)} className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition active:scale-95" title="이 내역 수정"><Icons.Edit /></button>
-                                                <button type="button" onClick={() => handleDeleteOwnLeave(rec)} className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition active:scale-95" title="이 내역 삭제"><Icons.Trash /></button>
-                                            </div>
-                                        </div>
-                                    )) : <div className="text-center py-10 text-slate-400 text-sm">등록된 연차 내역이 없습니다.</div>}
+                                <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.Calendar /> 나의 휴가 내역</h3></div>
+                                <StaffLeaveCalendar history={leaveStats.displayHistory} dailyHours={dailyHours} onSelect={setDetailRec} />
+                                <div className="flex items-center gap-4 mt-3 text-[11px] font-bold text-slate-500 justify-center">
+                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block"></span>하루 전체(100%)</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-500 inline-block"></span>일부 사용</span>
                                 </div>
                             </div>
                         </div>
@@ -2665,6 +2872,7 @@
 
         const root = createRoot(document.getElementById('root'));
         root.render(<ErrorBoundary><App /></ErrorBoundary>);
+    
     </script>
 </body>
 </html>
