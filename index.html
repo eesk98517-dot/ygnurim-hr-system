@@ -3,7 +3,7 @@
 <html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta8)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.13.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -58,45 +58,22 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.12.0-beta8";
-        // [v6.12.0] 가이드/투어 안내 UI가 전면 개편되어 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
+        const SYSTEM_VERSION = "6.13.0-stable";
+        // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
-            { version: "6.12.0-beta8", date: "2026-07-29", details: [
-                "🎨 [가독성 개선] 상단 연차 현황 카드의 라벨('총 발생/사용/잔여 연차')과 '시간·(N일)' 보조 텍스트가 너무 옅어 잘 안 보이던 문제를 개선 — 회색을 진하게(굵게) 조정해 한눈에 읽히도록 정리"
-            ] },
-            { version: "6.12.0-beta7", date: "2026-07-29", details: [
-                "🧺 [목록에 담아 한 번에 등록] 날짜마다 다른 휴가(예: 오늘 반차·내일 연차)를 각각 입력해 [목록에 담기]로 쌓은 뒤 [전체 등록]으로 한 번에 처리",
-                "📋 [담은 목록 표시] 담은 휴가를 날짜·시간·사유와 함께 목록으로 표시, 개별 삭제·전체 비우기 가능",
-                "⚡ [빠른 단일 등록 유지] 한 건만 쓸 때는 담지 않고 바로 [등록]해도 동작"
-            ] },
-            { version: "6.12.0-beta6", date: "2026-07-29", details: [
-                "🕐 [24시간제 시각 선택] 시각 입력을 '시(0~23) · 분' 드롭다운으로 바꿔, '오전 12:00'으로 보이던 자정을 언제나 '0시 0분'으로 정확히 표시 (분은 5분 단위)"
-            ] },
-            { version: "6.12.0-beta5", date: "2026-07-29", details: [
-                "☕ [휴게 없음 처리] 휴게 시각을 0:00~0:00으로 두면 '휴게 없음'으로 처리되도록 명확화 — 예: 저녁 17:00~18:00처럼 중간에 쉬는 시간이 없는 근무는 휴게칸을 0:00 그대로 두면 그 시간(1시간)이 온전히 반영됩니다",
-                "🏷️ [안내 문구] 휴게 시작·종료칸에 '(없으면 0:00)' 안내를 추가하고, 차감 결과에 '휴게 없음 / 휴게 겹침 없음'을 구분해 표시",
-                "🕛 [기본값 통일] 신청 폼과 상세 수정 팝업 모두 시각 기본값(비어있을 때)을 0:00으로 통일"
-            ] },
-            { version: "6.12.0-beta4", date: "2026-07-29", details: [
-                "🔀 [입력 순서 변경] 휴가 신청 시 '날짜 선택'을 먼저, '시각 입력'을 나중에",
-                "📆 [연속=온종일 자동] 연속된 기간을 고르면 온종일 휴가로 보고 시각 입력을 자동으로 잠급니다(하루 전체 차감). 단일·떨어진 날짜는 시각 입력 — 연속이어도 [시간으로 입력] 토글로 부분 사용 가능",
-                "🕛 [기본값 정리] 시각 입력칸 기본값을 0:00으로 변경",
-                "🗑️ [여러 건 한 번에 삭제] '나의 휴가 내역' 달력에 [여러 개 삭제] 모드 추가"
-            ] },
-            { version: "6.12.0-beta3", date: "2026-07-28", details: [
-                "🔁 [중복 등록 방지] 이미 휴가가 등록된 날은 달력에 주황 점으로 표시하고, 재등록 시 한 번 더 확인",
-                "📱 [모바일 화면 개선] 상단 카드·시각 입력칸·좌우 카드 여백을 좁은 화면에 맞게 조정"
-            ] },
-            { version: "6.12.0-beta2", date: "2026-07-28", details: [
-                "🧮 [차감 계산 정정] 연차와 휴게가 '실제로 겹치는 부분(교집합)'만 빼도록 수정",
-                "🗓️ [날짜 방식 통합] '단일·기간·지정일' 탭을 없애고 달력에서 눌러 여러 날 선택",
-                "🔎 [계산 투명화] '근무 N시간 − 휴게 겹침 M시간' 표시"
-            ] },
-            { version: "6.12.0-beta1", date: "2026-07-28", details: [
-                "⏱️ [직원 휴가신청 전면 개편] 오직 '시간(Hour)' 단위로 통합, 대화형 미니 캘린더, 달력형 휴가 내역",
-                "🛡️ [호환] 관리자 페이지·기존 데이터 구조 유지, 시각 정보는 별도 필드로 함께 저장"
+            { version: "6.13.0-stable", date: "2026-07-29", details: [
+                "⏱️ [시간(Hour) 단위 통합] 직원 휴가 신청에서 '연차/반차/시간' 구분을 없애고 모든 휴가를 시간 단위로 관리합니다. 연차·휴게 시각을 넣으면 실제 차감 시간이 자동 계산됩니다",
+                "🧮 [정확한 차감 계산] 연차 시간과 휴게 시간이 '실제로 겹치는 부분'만 빼도록 계산 — 휴게가 연차 시간대 밖이면 차감되지 않습니다. 휴게가 없으면 휴게칸을 '0시 0분'으로 두면 됩니다",
+                "🕐 [24시간제 시각 선택] 시각을 '시(0~23)·분' 드롭다운으로 선택해, 자정도 언제나 '0시 0분'으로 정확히 표시됩니다 (분은 5분 단위)",
+                "🗓️ [달력으로 날짜 선택] 날짜 입력창 대신 달력을 눌러 날짜를 고릅니다. 여러 날을 눌러 선택하거나 [기간 한 번에 선택]으로 연속 기간을 지정할 수 있고, 휴무일은 자동 제외됩니다",
+                "📆 [연속 기간은 온종일 자동] 연달아 이어지는 날짜를 고르면 온종일 휴가로 처리되어 시각 입력이 잠깁니다. 부분 시간이 필요하면 [시간으로 입력]을 켜세요",
+                "🧺 [여러 건 한 번에 등록] 날짜마다 다른 휴가(오늘 반차·내일 연차 등)를 [목록에 담기]로 쌓아 [전체 등록]으로 한 번에 처리할 수 있습니다. 한 건이면 담지 않고 바로 등록해도 됩니다",
+                "📅 [달력형 휴가 내역] '나의 휴가 내역'이 월별 달력으로 바뀌었습니다. 하루를 다 쓰면 파랑, 일부만 쓰면 주황으로 표시되고, 블록을 누르면 상세를 보고 수정·삭제할 수 있습니다. [여러 개 삭제]로 여러 건을 한 번에 지울 수도 있습니다",
+                "🔁 [중복 등록 방지] 이미 휴가가 있는 날은 달력에 주황 점으로 표시되고, 다시 등록하려 하면 한 번 더 확인합니다",
+                "📱 [모바일·가독성 개선] 좁은 화면에 맞게 여백과 입력칸을 조정하고, 연차 현황 카드의 글자 대비를 높여 더 또렷하게 보이도록 정리했습니다",
+                "🛡️ [호환] 관리자 페이지(직원 명부·엑셀 대조·월간 보고서 등)와 기존 데이터 구조는 그대로 유지됩니다. 차감 시간은 종전과 동일하게 집계되며, 시각 정보는 별도 필드로 함께 저장됩니다"
             ] },
             { version: "6.11.2-stable", date: "2026-07-27", details: ["✍️ [직원 가이드] 화면 투어 마지막(5/5) 안내 문구를 실제 기능에 맞게 수정"] },
             { version: "6.11.1-stable", date: "2026-07-27", details: ["🧹 [직원 페이지] '휴가 내역 직접 수정·삭제 안내' 파란색 박스를 제거해 화면을 더 깔끔하게 정리 (수정·삭제 버튼 기능은 그대로 유지)", "🆘 [비밀번호 초기화] 직원이 이미 비번을 바꾼 계정은 브라우저에서 초기화가 불가능(구글 보안 정책) — 이 경우 Firebase 콘솔에서 처리하는 방법을 계정 아이디와 함께 단계별로 상세히 안내하도록 오류 메시지 개선", "💬 [안내창] 여러 줄 안내가 잘 읽히도록 알림창 폭을 넓히고 왼쪽 정렬로 표시"] },
@@ -385,7 +362,7 @@
             if (isNaN(h) || isNaN(m)) return null;
             return h * 60 + m;
         };
-        // [v6.12.0-beta2] 실제 차감 시간 = 연차 구간에서 '휴게와 겹치는 부분만' 뺀 시간.
+        // [v6.13.0] 실제 차감 시간 = 연차 구간에서 '휴게와 겹치는 부분만' 뺀 시간.
         // 이전에는 (연차시간 − 휴게시간)을 무조건 빼서, 휴게가 연차 시간대 밖(예: 연차 9~12시, 휴게 12~13시)이어도
         // 차감되는 버그가 있었습니다. 이제 두 구간의 교집합(overlap)만 계산해 빼므로,
         //   · 연차 09:00~12:00 / 휴게 12:00~13:00 → 겹침 0분 → 3시간 (정상)
@@ -410,7 +387,7 @@
         // 시간 값을 사람이 읽기 좋은 라벨로 (예: 8 → '8시간', 4.5 → '4.5시간')
         const hourLabel = (h) => `${fmt(h)}시간`;
 
-        // ============ [v6.12.0-beta6] 24시간제 시각 선택기 (시·분 드롭다운) ============
+        // ============ [v6.13.0] 24시간제 시각 선택기 (시·분 드롭다운) ============
         // 브라우저 type="time"이 로케일에 따라 '오전 12:00'처럼 12시간제로 보이는 문제를 해결하기 위해,
         // 항상 24시간제(0시~23시)로 보이는 시·분 드롭다운으로 대체합니다.
         // value/onChange는 기존과 동일하게 "HH:MM" 문자열을 주고받아 계산 로직과 100% 호환됩니다.
@@ -434,7 +411,7 @@
             );
         };
 
-        // ============ [v6.12.0-beta2] 통합 미니 캘린더 (날짜방식 탭 제거) ============
+        // ============ [v6.13.0] 통합 미니 캘린더 (날짜방식 탭 제거) ============
         // 이제 모드 구분 없이 '클릭한 날짜들'을 모두 등록합니다. value는 항상 'YYYY-MM-DD' 배열.
         //  · 기본        : 날짜를 누를 때마다 선택/해제 토글
         //  · 범위 채우기 : 상단 토글을 켜고 두 날짜를 클릭하면 그 사이를 전부 선택(휴무일 자동 제외)
@@ -2534,20 +2511,20 @@
             const [showHelpMenu, setShowHelpMenu] = useState(false);
             const helpRef = useRef(null);
 
-            // [v6.12.0-beta2] 날짜방식 탭 제거 — 달력에서 클릭한 날짜들을 하나의 배열로 관리
+            // [v6.13.0] 날짜방식 탭 제거 — 달력에서 클릭한 날짜들을 하나의 배열로 관리
             const [selectedDates, setSelectedDates] = useState([]);
 
-            // [v6.12.0-beta4] 시간 정밀 입력기 (기본값 0:00 — 사용자가 직접 채우도록)
+            // [v6.13.0] 시간 정밀 입력기 (기본값 0:00 — 사용자가 직접 채우도록)
             const [startTime, setStartTime] = useState('00:00');
             const [endTime, setEndTime] = useState('00:00');
             const [breakStart, setBreakStart] = useState('00:00');
             const [breakEnd, setBreakEnd] = useState('00:00');
-            // [v6.12.0-beta4] 연속 기간이어도 사용자가 '시간으로 입력'을 강제할 수 있는 수동 토글
+            // [v6.13.0] 연속 기간이어도 사용자가 '시간으로 입력'을 강제할 수 있는 수동 토글
             const [forceTimeInput, setForceTimeInput] = useState(false);
 
             const [reason, setReason] = useState('');
             const [detailRec, setDetailRec] = useState(null); // [v6.12.0] 상세/수정 대상
-            // [v6.12.0-beta7] 서로 다른 조건의 휴가를 담아 한 번에 등록하는 장바구니
+            // [v6.13.0] 서로 다른 조건의 휴가를 담아 한 번에 등록하는 장바구니
             //  각 항목: { key, dates:[YYYY-MM-DD...], deductHours, useTimeInput, startTime, endTime, breakStart, breakEnd, reason }
             const [cart, setCart] = useState([]);
 
@@ -2590,13 +2567,13 @@
                     displayHistory: [...activeHistory].sort((a, b) => b.date.localeCompare(a.date)) };
             }, [userData, dailyHours]);
 
-            // [v6.12.0-beta4] 실시간 차감 시간 계산 (시각 기반)
+            // [v6.13.0] 실시간 차감 시간 계산 (시각 기반)
             const calc = useMemo(() => calcLeaveHours(startTime, endTime, breakStart, breakEnd), [startTime, endTime, breakStart, breakEnd]);
 
-            // [v6.12.0-beta2] 선택된 날짜 목록 (달력이 이미 근무일만 담아줌)
+            // [v6.13.0] 선택된 날짜 목록 (달력이 이미 근무일만 담아줌)
             const validDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
 
-            // [v6.12.0-beta4] 선택 날짜가 '연속된 기간'인지 판정
+            // [v6.13.0] 선택 날짜가 '연속된 기간'인지 판정
             //  · 2일 이상이고, 최소~최대 사이의 모든 근무일(휴무 제외)이 빠짐없이 선택돼 있으면 연속으로 봅니다.
             //  · 연속이면 '온종일 휴가'로 간주 → 시각 입력을 비활성화하고 하루 근무시간 전체를 차감.
             //  · 단, 사용자가 [시간으로 입력] 토글을 켜면 강제로 시각 입력을 사용합니다(예외 대응).
@@ -2617,13 +2594,13 @@
             // 시각 입력 모드에서만 계산 오류를 등록 차단 사유로 사용
             const blockingError = useTimeInput ? calc.error : '';
 
-            // [v6.12.0-beta3] 이미 휴가가 등록된 날짜 집합 (달력 점 표시 + 중복 경고용)
+            // [v6.13.0] 이미 휴가가 등록된 날짜 집합 (달력 점 표시 + 중복 경고용)
             const takenDates = useMemo(() => {
                 const s = new Set();
                 (userData?.leaveHistory || []).forEach(h => { if (h.date) s.add(h.date); });
                 return s;
             }, [userData]);
-            // [v6.12.0-beta7] 이미 장바구니에 담긴 날짜도 중복 대상에 포함
+            // [v6.13.0] 이미 장바구니에 담긴 날짜도 중복 대상에 포함
             const cartDates = useMemo(() => {
                 const s = new Set();
                 cart.forEach(item => item.dates.forEach(d => s.add(d)));
@@ -2635,7 +2612,7 @@
             // 달력 점 표시용: 이미 등록된 날 + 장바구니에 담긴 날
             const calendarTaken = useMemo(() => new Set([...takenDates, ...cartDates]), [takenDates, cartDates]);
 
-            // [v6.12.0-beta7] 현재 입력한 조건을 장바구니에 담기 (등록하지 않고 목록에만 추가)
+            // [v6.13.0] 현재 입력한 조건을 장바구니에 담기 (등록하지 않고 목록에만 추가)
             const addToCart = () => {
                 if (useTimeInput && blockingError) { showAlert('❌ ' + blockingError); return; }
                 if (deductHours <= 0) { showAlert('❌ 실제 차감 시간이 0입니다. 시각을 확인해주세요.'); return; }
@@ -2682,7 +2659,7 @@
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
 
-            // [v6.12.0-beta7] 등록 버튼: 장바구니에 미리 담아둔 게 있으면 그것들을,
+            // [v6.13.0] 등록 버튼: 장바구니에 미리 담아둔 게 있으면 그것들을,
             //  없으면 현재 입력한 한 건을 바로 등록합니다(빠른 단일 등록 유지).
             const handleSubmit = async (e) => {
                 e.preventDefault(); if (!userData) return;
@@ -2744,7 +2721,7 @@
                 });
             };
 
-            // [v6.12.0-beta4] 본인 휴가 여러 건 일괄 삭제
+            // [v6.13.0] 본인 휴가 여러 건 일괄 삭제
             const handleBulkDeleteOwnLeave = (recs, onDone) => {
                 if (!recs || !recs.length) return;
                 const preview = recs.slice(0, 8).map(r => `${r.date} (${r.type})`).join('\n');
