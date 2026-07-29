@@ -3,7 +3,7 @@
 <html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta4)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -58,28 +58,33 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.12.0-beta3";
+        const SYSTEM_VERSION = "6.12.0-beta4";
         // [v6.12.0] 가이드/투어 안내 UI가 전면 개편되어 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.12.0-beta4", date: "2026-07-29", details: [
+                "🔀 [입력 순서 변경] 휴가 신청 시 '날짜 선택'을 먼저, '시각 입력'을 나중에 하도록 순서를 바꿔 흐름을 자연스럽게 정리",
+                "📆 [연속=온종일 자동] 연속된 기간을 고르면 '온종일 휴가'로 보고 시각 입력을 자동으로 잠급니다(하루 전체 차감). 단일·떨어진 날짜는 종전처럼 시각을 입력해 부분 사용 — 연속이어도 부분 시간이 필요하면 [시간으로 입력] 토글로 전환 가능",
+                "🕛 [기본값 정리] 시각 입력칸 기본값을 0:00으로 바꿔, 실제 사용 시각을 직접 넣도록 개선",
+                "🗑️ [여러 건 한 번에 삭제] '나의 휴가 내역' 달력에 [여러 개 삭제] 모드 추가 — 여러 휴가를 골라 한 번에 삭제할 수 있습니다"
+            ] },
             { version: "6.12.0-beta3", date: "2026-07-28", details: [
-                "🔁 [중복 등록 방지] 이미 휴가가 등록된 날은 달력에 주황 점으로 표시하고, 그 날을 다시 선택해 등록하려 하면 '이미 등록된 날'임을 안내하고 한 번 더 확인받습니다",
-                "📱 [모바일 화면 개선] 상단 카드·시각 입력칸·좌우 카드 여백을 좁은 화면에 맞게 조정 — 시간 입력창이 잘리지 않고 터치하기 편하도록 크기 최적화"
+                "🔁 [중복 등록 방지] 이미 휴가가 등록된 날은 달력에 주황 점으로 표시하고, 그 날을 다시 등록하려 하면 한 번 더 확인받습니다",
+                "📱 [모바일 화면 개선] 상단 카드·시각 입력칸·좌우 카드 여백을 좁은 화면에 맞게 조정"
             ] },
             { version: "6.12.0-beta2", date: "2026-07-28", details: [
-                "🧮 [차감 계산 정정] 연차 시간과 휴게 시간이 '실제로 겹치는 부분(교집합)'만 빼도록 수정 — 예전에는 휴게가 연차 시간대 밖(연차 09~12시, 휴게 12~13시)이어도 무조건 차감돼 2시간으로 잘못 계산되던 것을, 이제 겹치지 않으면 그대로 3시간으로 계산합니다",
-                "🗓️ [날짜 방식 통합] '단일·기간·지정일' 3개 탭을 없애고, 달력에서 원하는 날짜를 눌러 여러 날을 한 번에 선택하도록 단순화 — 연속 기간은 [기간 한 번에 선택] 토글로 시작·끝만 클릭하면 사이가 자동으로 채워집니다(휴무일 제외)",
-                "🔎 [계산 투명화] 차감 결과 아래에 '근무 N시간 − 휴게 겹침 M시간'을 함께 표시해 왜 그 시간이 나왔는지 바로 확인",
-                "🧭 [가이드 동기화] 통합된 날짜 선택 방식에 맞춰 사용법·투어 문구 정리"
+                "🧮 [차감 계산 정정] 연차와 휴게가 '실제로 겹치는 부분(교집합)'만 빼도록 수정 — 휴게가 연차 시간대 밖이면 차감되지 않습니다",
+                "🗓️ [날짜 방식 통합] '단일·기간·지정일' 탭을 없애고 달력에서 눌러 여러 날을 선택하도록 단순화",
+                "🔎 [계산 투명화] '근무 N시간 − 휴게 겹침 M시간'을 함께 표시"
             ] },
             { version: "6.12.0-beta1", date: "2026-07-28", details: [
-                "⏱️ [직원 휴가신청 전면 개편] '연차/반차/시간' 구분을 없애고 오직 '시간(Hour)' 단위로 통합 — 연차·휴게 시각을 입력하면 실제 차감 시간이 자동 계산됩니다",
-                "🗓️ [대화형 미니 캘린더] 기본 날짜 입력창을 없애고, 달력을 눌러 날짜를 선택하도록 교체",
-                "📅 [달력형 휴가 내역] 하단 '나의 휴가 내역'을 월별 달력으로 개편 — 100%는 파랑, 그 미만은 주황으로 색을 구분하고, 블록을 누르면 상세(시간·사유)를 보고 바로 수정·삭제 가능",
-                "🛡️ [호환] 관리자 페이지와 기존 데이터 구조는 그대로 유지 — days(차감시간)는 종전과 동일하게 집계되고, 시각 정보는 startTime·endTime·breakStart·breakEnd 필드로 함께 저장됩니다"
+                "⏱️ [직원 휴가신청 전면 개편] '연차/반차/시간' 구분을 없애고 오직 '시간(Hour)' 단위로 통합",
+                "🗓️ [대화형 미니 캘린더] 달력을 눌러 날짜를 선택하도록 교체",
+                "📅 [달력형 휴가 내역] 하단 내역을 월별 달력으로 개편(100% 파랑/미만 주황, 블록 클릭 시 상세)",
+                "🛡️ [호환] 관리자 페이지·기존 데이터 구조 유지, 시각 정보는 별도 필드로 함께 저장"
             ] },
-            { version: "6.11.2-stable", date: "2026-07-27", details: ["✍️ [직원 가이드] 화면 투어 마지막(5/5) 안내 문구를 실제 기능에 맞게 수정 — '수정·취소는 관리자 문의' → '연필·휴지통 버튼으로 직접 수정·삭제' 안내"] },
+            { version: "6.11.2-stable", date: "2026-07-27", details: ["✍️ [직원 가이드] 화면 투어 마지막(5/5) 안내 문구를 실제 기능에 맞게 수정"] },
             { version: "6.11.1-stable", date: "2026-07-27", details: ["🧹 [직원 페이지] '휴가 내역 직접 수정·삭제 안내' 파란색 박스를 제거해 화면을 더 깔끔하게 정리 (수정·삭제 버튼 기능은 그대로 유지)", "🆘 [비밀번호 초기화] 직원이 이미 비번을 바꾼 계정은 브라우저에서 초기화가 불가능(구글 보안 정책) — 이 경우 Firebase 콘솔에서 처리하는 방법을 계정 아이디와 함께 단계별로 상세히 안내하도록 오류 메시지 개선", "💬 [안내창] 여러 줄 안내가 잘 읽히도록 알림창 폭을 넓히고 왼쪽 정렬로 표시"] },
             { version: "6.11.0-stable", date: "2026-07-27", details: ["🔄 [직원 명부] 엑셀 재업로드 시, 명부에 다시 나타난 퇴사자를 '재직 중'으로 자동 복구 (연차 이력 그대로 유지) — 매달 명부를 올려도 재직자 상태가 정확히 유지됩니다", "🟢 [직원 명부] 개별 '재직 복구' 버튼 추가 + '퇴사자 포함 보기' 체크로 퇴사 처리된 직원을 목록에서 직접 되살리기 가능", "🧷 [안정화] 엑셀 매칭 기준을 전체 명부(재직+퇴사)로 확대해, 이미 있는 직원이 신규로 중복 생성되던 여지를 차단", "🧾 [결과 표시] 업로드 결과에 '복구' 인원 수를 함께 안내 (신규/유지/복구/퇴사)"] },
             { version: "6.10.0-stable", date: "2026-07-27", details: ["✏️ [직원 페이지] 본인이 등록한 휴가 내역을 직접 '수정·삭제'할 수 있도록 기능 추가 (관리자와 동일하게 즉시 반영) — 기존 '관리자 문의' 배너는 '본인 수정 안내'로 변경", "🔐 [보안] 초기 비밀번호(123456)로 로그인 시 서비스 이용 전 반드시 비밀번호를 변경하도록 강제하는 화면 신설 (Firebase Auth 실제 변경 + tempPw 해제)", "🛠️ [직원 명부] 관리자가 직원 비밀번호를 분실 시 초기 비밀번호(123456)로 되돌리는 '비밀번호 초기화' 버튼 추가 (개별 관리 영역)"] },
@@ -595,22 +600,22 @@
                 points: ['파란색 = 올해 발생한 총 연차(시간)', '빨간색 = 지금까지 사용한 시간', '초록색 = 앞으로 쓸 수 있는 잔여 시간', '괄호 안 (일) 수치는 하루 근무시간으로 환산한 참고값입니다']
             },
             {
-                icon: '⏱️', color: 'purple',
-                title: '② 시간으로 정확하게 신청하기',
-                desc: '왼쪽 "휴가 신청하기"에서 시각을 입력하면 실제 차감 시간이 자동 계산됩니다.',
-                points: ['연차 시작·종료 시각을 입력합니다', '휴게 시작·종료 시각도 반드시 입력합니다', '연차 시간에서 휴게와 겹치는 부분만 빼서 계산합니다', '입력하는 즉시 아래에 차감 시간이 미리 표시됩니다']
-            },
-            {
                 icon: '🗓️', color: 'blue',
-                title: '③ 달력을 눌러 날짜를 선택하세요',
+                title: '② 먼저 달력에서 날짜를 선택하세요',
                 desc: '방식 구분 없이, 달력에서 원하는 날짜를 누르면 됩니다.',
                 points: ['하루만 쓸 땐 그 날짜 하나만 클릭', '흩어진 여러 날은 눌러서 자유롭게 추가·해제', '연속된 기간은 [기간 한 번에 선택]을 켜고 시작·끝 날 클릭', '휴무일은 흐리게 표시되고 기간 선택 시 자동 제외됩니다']
+            },
+            {
+                icon: '⏱️', color: 'purple',
+                title: '③ 시간으로 정확하게 신청하기',
+                desc: '날짜를 고른 뒤 시각을 입력하면 실제 차감 시간이 자동 계산됩니다.',
+                points: ['연차·휴게 시작/종료 시각을 입력합니다', '연차 시간에서 휴게와 겹치는 부분만 빼서 계산합니다', '연속된 기간을 고르면 "온종일 휴가"로 처리돼 시간 입력이 잠깁니다', '연속이어도 부분 시간으로 쓰려면 [시간으로 입력]을 켜세요']
             },
             {
                 icon: '📅', color: 'orange',
                 title: '④ 달력에서 내역 확인·수정·삭제',
                 desc: '오른쪽 "나의 휴가 내역"이 월별 달력으로 바뀌었습니다.',
-                points: ['하루를 다 쓰면 파랑, 일부만 쓰면 주황으로 표시', '휴가 블록을 누르면 시간·사유 상세가 열립니다', '상세 창에서 바로 수정하거나 삭제할 수 있습니다', '이 안내는 상단 [사용법] 버튼으로 언제든 다시 볼 수 있습니다']
+                points: ['하루를 다 쓰면 파랑, 일부만 쓰면 주황으로 표시', '휴가 블록을 누르면 시간·사유 상세가 열려 수정·삭제 가능', '[여러 개 삭제]를 누르면 여러 건을 골라 한 번에 삭제', '이 안내는 상단 [사용법] 버튼으로 언제든 다시 볼 수 있습니다']
             }
         ];
 
@@ -620,9 +625,9 @@
         // data-tour="키" 속성이 달린 요소를 찾아 좌표를 계산합니다.
         const TOUR_STEPS = [
             { key: 'stats',   badge: '①', title: '내 연차 현황', body: '총 발생 · 사용 · 잔여가 이 3개의 카드에 시간(Hour) 단위로 표시됩니다. 초록색 잔여가 앞으로 쓸 수 있는 시간입니다.' },
-            { key: 'time',    badge: '②', title: '1단계 · 시각 입력', body: '연차 시작·종료 시각과 휴게 시작·종료 시각을 입력하면, 실제 차감 시간이 바로 아래에 자동으로 계산됩니다.' },
-            { key: 'datemode',badge: '③', title: '2단계 · 날짜 선택 안내', body: '이제 방식 구분 없이, 아래 달력에서 원하는 날짜를 누르기만 하면 됩니다. 여러 날을 눌러 한 번에 등록할 수 있어요.' },
-            { key: 'calendar',badge: '④', title: '3단계 · 달력에서 클릭', body: '날짜를 누르면 선택/해제됩니다. 연속된 기간은 [기간 한 번에 선택]을 켜고 시작·끝 날을 클릭하면 사이가 모두 채워져요(휴무일 자동 제외).' },
+            { key: 'datemode',badge: '②', title: '1단계 · 날짜 선택 안내', body: '먼저 아래 달력에서 원하는 날짜를 누릅니다. 여러 날을 눌러 한 번에 등록할 수 있어요.' },
+            { key: 'calendar',badge: '③', title: '2단계 · 달력에서 클릭', body: '날짜를 누르면 선택/해제됩니다. 연속된 기간은 [기간 한 번에 선택]을 켜고 시작·끝 날을 클릭하면 사이가 모두 채워져요(휴무일 자동 제외).' },
+            { key: 'time',    badge: '④', title: '3단계 · 시각 입력', body: '연차·휴게 시각을 입력하면 실제 차감 시간이 자동 계산됩니다. 연속된 기간을 고르면 온종일 휴가로 처리돼 이 칸은 자동으로 잠깁니다.' },
             { key: 'submit',  badge: '⑤', title: '4단계 · 등록하기', body: '사유를 적고 이 버튼을 누르면 등록이 완료됩니다. 사유는 선택 사항입니다.' },
             { key: 'history', badge: '⑥', title: '달력에서 내역 확인', body: '등록한 휴가가 오른쪽 달력에 표시됩니다. 블록을 누르면 상세가 열리고, 거기서 바로 수정·삭제할 수 있어요.' }
         ];
@@ -2401,8 +2406,10 @@
 
         // [v6.12.0] 직원 본인 달력형 휴가 내역 — 하루 사용 비율에 따라 색 구분(100% 파랑 / 그 미만 주황)
         // 블록 클릭 시 onSelect(rec) 로 상세 팝업을 엽니다.
-        const StaffLeaveCalendar = ({ history, dailyHours, onSelect }) => {
+        const StaffLeaveCalendar = ({ history, dailyHours, onSelect, onBulkDelete }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
+            const [selectMode, setSelectMode] = useState(false);
+            const [checkedIds, setCheckedIds] = useState([]); // 선택된 휴가 record id 목록
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
             const dh = dailyHours || 8;
@@ -2418,6 +2425,16 @@
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
             const todayStr = toLocalYMD(new Date());
 
+            const toggleCheck = (id) => setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+            const exitSelectMode = () => { setSelectMode(false); setCheckedIds([]); };
+            const handleBlockClick = (l) => { if (selectMode) toggleCheck(l.id); else onSelect && onSelect(l); };
+            const handleBulk = () => {
+                if (!checkedIds.length) return;
+                // 선택된 id에 해당하는 record 배열을 상위로 전달
+                const recs = (history || []).filter(h => checkedIds.includes(h.id));
+                onBulkDelete && onBulkDelete(recs, exitSelectMode);
+            };
+
             return (
                 <div className="flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-2">
@@ -2427,6 +2444,12 @@
                             <button type="button" onClick={() => setCurrentDate(new Date())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">이번 달</button>
                         </div>
                         <button type="button" onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronRight /></button>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold text-slate-400">{selectMode ? '삭제할 휴가를 눌러 선택하세요' : '휴가 블록을 누르면 상세·수정'}</span>
+                        {selectMode
+                            ? <button type="button" onClick={exitSelectMode} className="text-[11px] font-bold py-1 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition">선택 취소</button>
+                            : <button type="button" onClick={() => setSelectMode(true)} className="text-[11px] font-bold py-1 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition flex items-center gap-1"><Icons.Trash /> 여러 개 삭제</button>}
                     </div>
                     <div className="w-full overflow-hidden border border-slate-200 rounded-xl bg-slate-200 gap-px grid grid-cols-7 shadow-sm">
                         {WEEK_LABELS.map((d, i) => (<div key={d} className={`bg-slate-50 py-1.5 text-center text-[11px] font-bold ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-slate-600'}`}>{d}</div>))}
@@ -2441,9 +2464,11 @@
                                         {leaves.map((l, i) => {
                                             const h = safeParseFloat(l.days);
                                             const isFull = dh > 0 && h >= dh;
+                                            const checked = selectMode && checkedIds.includes(l.id);
                                             return (
-                                                <div key={i} onClick={() => onSelect && onSelect(l)} title={`${l.type}${l.reason ? ' · ' + l.reason : ''} · 클릭하여 상세/수정`}
-                                                    className={`cursor-pointer hover:opacity-80 text-[9px] md:text-[10px] px-1 py-0.5 rounded text-center truncate font-bold shadow-sm text-white ${isFull ? 'bg-blue-500' : 'bg-orange-500'}`}>
+                                                <div key={i} onClick={() => handleBlockClick(l)} title={`${l.type}${l.reason ? ' · ' + l.reason : ''}${selectMode ? ' · 눌러서 선택' : ' · 클릭하여 상세/수정'}`}
+                                                    className={`cursor-pointer hover:opacity-80 text-[9px] md:text-[10px] px-1 py-0.5 rounded text-center truncate font-bold shadow-sm text-white relative ${isFull ? 'bg-blue-500' : 'bg-orange-500'} ${checked ? 'ring-2 ring-slate-800' : ''}`}>
+                                                    {selectMode && <span className="absolute left-0.5 top-1/2 -translate-y-1/2">{checked ? '☑' : '☐'}</span>}
                                                     {fmt(h)}h
                                                 </div>
                                             );
@@ -2453,6 +2478,12 @@
                             );
                         })}
                     </div>
+                    {selectMode && (
+                        <div className="mt-3 flex items-center justify-between bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span className="text-xs font-bold text-slate-600">선택됨 <span className="text-blue-600">{checkedIds.length}</span>건</span>
+                            <button type="button" onClick={handleBulk} disabled={!checkedIds.length} className={`text-xs font-bold py-2 px-4 rounded-lg transition flex items-center gap-1.5 ${checkedIds.length ? 'bg-red-500 text-white hover:bg-red-600 shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}><Icons.Trash /> 선택 삭제</button>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -2468,11 +2499,13 @@
             // [v6.12.0-beta2] 날짜방식 탭 제거 — 달력에서 클릭한 날짜들을 하나의 배열로 관리
             const [selectedDates, setSelectedDates] = useState([]);
 
-            // [v6.12.0] 시간 정밀 입력기 (시각 기반)
-            const [startTime, setStartTime] = useState('09:00');
-            const [endTime, setEndTime] = useState('18:00');
-            const [breakStart, setBreakStart] = useState('12:00');
-            const [breakEnd, setBreakEnd] = useState('13:00');
+            // [v6.12.0-beta4] 시간 정밀 입력기 (기본값 0:00 — 사용자가 직접 채우도록)
+            const [startTime, setStartTime] = useState('00:00');
+            const [endTime, setEndTime] = useState('00:00');
+            const [breakStart, setBreakStart] = useState('00:00');
+            const [breakEnd, setBreakEnd] = useState('00:00');
+            // [v6.12.0-beta4] 연속 기간이어도 사용자가 '시간으로 입력'을 강제할 수 있는 수동 토글
+            const [forceTimeInput, setForceTimeInput] = useState(false);
 
             const [reason, setReason] = useState('');
             const [detailRec, setDetailRec] = useState(null); // [v6.12.0] 상세/수정 대상
@@ -2516,13 +2549,32 @@
                     displayHistory: [...activeHistory].sort((a, b) => b.date.localeCompare(a.date)) };
             }, [userData, dailyHours]);
 
-            // [v6.12.0] 실시간 차감 시간 계산
+            // [v6.12.0-beta4] 실시간 차감 시간 계산 (시각 기반)
             const calc = useMemo(() => calcLeaveHours(startTime, endTime, breakStart, breakEnd), [startTime, endTime, breakStart, breakEnd]);
-            const deductHours = calc.hours;
-            const ratio = dailyHours > 0 ? Math.min(1, deductHours / dailyHours) : 0;
 
             // [v6.12.0-beta2] 선택된 날짜 목록 (달력이 이미 근무일만 담아줌)
             const validDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
+
+            // [v6.12.0-beta4] 선택 날짜가 '연속된 기간'인지 판정
+            //  · 2일 이상이고, 최소~최대 사이의 모든 근무일(휴무 제외)이 빠짐없이 선택돼 있으면 연속으로 봅니다.
+            //  · 연속이면 '온종일 휴가'로 간주 → 시각 입력을 비활성화하고 하루 근무시간 전체를 차감.
+            //  · 단, 사용자가 [시간으로 입력] 토글을 켜면 강제로 시각 입력을 사용합니다(예외 대응).
+            const isConsecutiveRange = useMemo(() => {
+                if (validDates.length < 2) return false;
+                const span = listWorkingDates(validDates[0], validDates[validDates.length - 1], userData?.offDays);
+                if (span.length !== validDates.length) return false;
+                return span.every((d, i) => d === validDates[i]);
+            }, [validDates, userData]);
+
+            // 실제로 시각 입력을 쓰는가? (연속이면 기본 꺼짐, 단 강제 토글이 켜지면 켜짐)
+            const useTimeInput = !isConsecutiveRange || forceTimeInput;
+            // 온종일(연속)일 때 하루 차감 시간
+            const fullDayHours = dailyHours;
+            // 실제 차감 시간: 시각 입력 모드면 calc.hours, 온종일 모드면 하루 전체
+            const deductHours = useTimeInput ? calc.hours : fullDayHours;
+            const ratio = dailyHours > 0 ? Math.min(1, deductHours / dailyHours) : 0;
+            // 시각 입력 모드에서만 계산 오류를 등록 차단 사유로 사용
+            const blockingError = useTimeInput ? calc.error : '';
 
             // [v6.12.0-beta3] 이미 휴가가 등록된 날짜 집합 (달력 점 표시 + 중복 경고용)
             const takenDates = useMemo(() => {
@@ -2537,26 +2589,30 @@
                 try {
                     const newHistory = [...(userData.leaveHistory || [])];
                     const tText = hourLabel(deductHours);
-                    validDates.forEach((d, idx) => newHistory.push({
-                        id: Date.now().toString() + idx,
-                        date: safeDate(d),
-                        days: deductHours,          // 기존 집계와 100% 호환되는 최종 차감 시간
-                        type: tText,                // 예: '4.5시간'
-                        reason,
-                        // [v6.12.0] 상세 시각 정보 (추가 필드 — 기존 로직 미영향)
-                        startTime, endTime, breakStart, breakEnd,
-                        addedBy: '본인(직원)',
-                        createdAt: new Date().toISOString()
-                    }));
+                    validDates.forEach((d, idx) => {
+                        const rec = {
+                            id: Date.now().toString() + idx,
+                            date: safeDate(d),
+                            days: deductHours,          // 기존 집계와 100% 호환되는 최종 차감 시간
+                            type: tText,                // 예: '4.5시간' / 온종일도 'N시간'
+                            reason,
+                            addedBy: '본인(직원)',
+                            createdAt: new Date().toISOString()
+                        };
+                        // 시각 입력 모드일 때만 상세 시각을 저장. 온종일(연속)은 시각 없이 하루 전체 차감.
+                        if (useTimeInput) { rec.startTime = startTime; rec.endTime = endTime; rec.breakStart = breakStart; rec.breakEnd = breakEnd; }
+                        else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; rec.fullDay = true; }
+                        newHistory.push(rec);
+                    });
                     await recalcAndSave(userData.id, userData.joinDate, newHistory);
                     showAlert('✅ 휴가 등록 완료! (' + validDates.length + '일 · 각 ' + fmt(deductHours) + '시간)');
-                    setReason(''); setSelectedDates([]);
+                    setReason(''); setSelectedDates([]); setForceTimeInput(false);
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
 
             const handleSubmit = async (e) => {
                 e.preventDefault(); if (!userData) return;
-                if (calc.error) { showAlert('❌ ' + calc.error); return; }
+                if (useTimeInput && blockingError) { showAlert('❌ ' + blockingError); return; }
                 if (deductHours <= 0) { showAlert('❌ 실제 차감 시간이 0입니다. 시각을 확인해주세요.'); return; }
                 if (!validDates.length) { showAlert('❌ 선택된 날짜가 없습니다. 달력에서 날짜를 선택해주세요. (휴무일은 자동 제외됩니다)'); return; }
                 // [v6.12.0-beta3] 이미 휴가가 있는 날이 포함되면 등록 전에 한 번 더 확인
@@ -2579,9 +2635,24 @@
                 });
             };
 
+            // [v6.12.0-beta4] 본인 휴가 여러 건 일괄 삭제
+            const handleBulkDeleteOwnLeave = (recs, onDone) => {
+                if (!recs || !recs.length) return;
+                const preview = recs.slice(0, 8).map(r => `${r.date} (${r.type})`).join('\n');
+                const more = recs.length > 8 ? `\n… 외 ${recs.length - 8}건` : '';
+                showConfirm(`선택한 ${recs.length}건의 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.\n\n${preview}${more}`, async () => {
+                    try {
+                        const ids = new Set(recs.map(r => r.id));
+                        const newHistory = (userData.leaveHistory || []).filter(h => !ids.has(h.id));
+                        await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                        if (onDone) onDone();
+                        showAlert(`🗑️ ${recs.length}건 삭제 완료! 잔여 연차가 복구되었습니다.`);
+                    } catch (err) { showAlert('❌ 오류: ' + err.message); }
+                });
+            };
+
             // [v6.12.0] 본인 휴가 수정 저장
-            const handleSaveEditOwnLeave = async (updated) => {
-                try {
+            const handleSaveEditOwnLeave = async (updated) => {                try {
                     const newHistory = (userData.leaveHistory || []).map(h => h.id === updated.id
                         ? { ...h, date: safeDate(updated.date), days: updated.days, type: updated.type, reason: updated.reason,
                             startTime: updated.startTime, endTime: updated.endTime, breakStart: updated.breakStart, breakEnd: updated.breakEnd,
@@ -2634,41 +2705,58 @@
                             <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
                                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Icons.Plus /> 휴가 신청하기</h3>
                                 <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100" data-tour="time">
-                                        <label className="block text-xs font-bold text-slate-700 mb-2">① 시각 입력 (시간 단위 자동 계산)</label>
-                                        <div className="grid grid-cols-2 gap-2 md:gap-3">
-                                            <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" required /></div>
-                                            <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" required /></div>
-                                            <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작</label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" required /></div>
-                                            <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료</label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" required /></div>
-                                        </div>
-                                        <div className={`mt-3 p-2.5 rounded-lg border text-center font-bold ${calc.error ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
-                                            {calc.error ? <span className="text-xs">{calc.error}</span> : (
-                                                <div>
-                                                    <div className="text-sm">실제 차감 <span className="text-lg font-black">{fmt(deductHours)}시간</span> <span className="text-[11px] font-normal opacity-70">(하루 {dailyHours}h 중 {Math.round(ratio * 100)}%)</span></div>
-                                                    <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-700 mb-2" data-tour="datemode">② 날짜 선택 <span className="font-normal text-slate-400">(달력에서 원하는 날을 눌러 여러 날 선택 가능)</span></label>
+                                        <label className="block text-xs font-bold text-slate-700 mb-2" data-tour="datemode">① 날짜 선택 <span className="font-normal text-slate-400">(달력에서 원하는 날을 눌러 여러 날 선택 가능)</span></label>
                                         <div data-tour="calendar">
                                             <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={userData.offDays} takenDates={takenDates} />
                                         </div>
                                         <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 휴가가 등록된 날</div>
                                         <p className="text-[11px] text-slate-500 font-bold mt-2 text-center bg-slate-50 py-1.5 rounded-lg border border-slate-100">
-                                            {selectedDates.length ? `선택한 ${validDates.length}일에 각각 ${!calc.error ? fmt(deductHours) + '시간씩' : ''} 등록됩니다` : '달력에서 날짜를 눌러주세요'}
+                                            {selectedDates.length ? `선택한 ${validDates.length}일에 각각 ${!blockingError ? fmt(deductHours) + '시간씩' : ''} 등록됩니다` : '달력에서 날짜를 눌러주세요'}
                                         </p>
                                         {dupDates.length > 0 && <p className="text-[11px] text-orange-600 font-bold mt-1.5 text-center bg-orange-50 py-1.5 rounded-lg border border-orange-200">⚠️ 선택한 날짜 중 {dupDates.length}일은 이미 휴가가 등록되어 있어요. 등록 시 안내됩니다.</p>}
                                     </div>
+                                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100" data-tour="time">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-xs font-bold text-slate-700">② 시각 입력 <span className="font-normal text-slate-400">(시간 단위 자동 계산)</span></label>
+                                            {isConsecutiveRange && (
+                                                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                                    <input type="checkbox" checked={forceTimeInput} onChange={e => setForceTimeInput(e.target.checked)} className="w-3.5 h-3.5" />
+                                                    <span className="text-[11px] font-bold text-slate-500">시간으로 입력</span>
+                                                </label>
+                                            )}
+                                        </div>
+                                        {!useTimeInput ? (
+                                            <div className="p-3 rounded-lg border border-blue-200 bg-blue-50 text-center">
+                                                <p className="text-sm font-black text-blue-700">📅 연속 기간 · 온종일 휴가</p>
+                                                <p className="text-[11px] font-bold text-blue-500 mt-1">연달아 선택한 {validDates.length}일은 하루 전체({fmt(fullDayHours)}시간)씩 차감됩니다. 부분 시간으로 쓰려면 위 [시간으로 입력]을 켜세요.</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-2 md:gap-3">
+                                                    <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작</label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료</label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
+                                                </div>
+                                                <div className={`mt-3 p-2.5 rounded-lg border text-center font-bold ${calc.error ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
+                                                    {calc.error ? <span className="text-xs">{calc.error}</span> : (
+                                                        <div>
+                                                            <div className="text-sm">실제 차감 <span className="text-lg font-black">{fmt(deductHours)}시간</span> <span className="text-[11px] font-normal opacity-70">(하루 {dailyHours}h 중 {Math.round(ratio * 100)}%)</span></div>
+                                                            <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                     <div><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100" placeholder="신청 사유 입력 (선택)" /></div>
-                                    <button type="submit" data-tour="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">내 휴가 등록하기 {validDates.length > 0 && !calc.error ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}</button>
+                                    <button type="submit" data-tour="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">내 휴가 등록하기 {validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}</button>
                                 </form>
                             </div>
                             <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-full" data-tour="history">
                                 <div className="flex justify-between items-center mb-3"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Icons.Calendar /> 나의 휴가 내역</h3></div>
-                                <StaffLeaveCalendar history={leaveStats.displayHistory} dailyHours={dailyHours} onSelect={setDetailRec} />
+                                <StaffLeaveCalendar history={leaveStats.displayHistory} dailyHours={dailyHours} onSelect={setDetailRec} onBulkDelete={handleBulkDeleteOwnLeave} />
                                 <div className="flex items-center gap-4 mt-3 text-[11px] font-bold text-slate-500 justify-center flex-wrap">
                                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block"></span>하루 전체(100%)</span>
                                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-500 inline-block"></span>일부 사용</span>
