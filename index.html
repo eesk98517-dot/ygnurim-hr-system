@@ -3,7 +3,7 @@
 <html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta5)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta6)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -58,11 +58,14 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.12.0-beta5";
+        const SYSTEM_VERSION = "6.12.0-beta6";
         // [v6.12.0] 가이드/투어 안내 UI가 전면 개편되어 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.12.0-beta6", date: "2026-07-29", details: [
+                "🕐 [24시간제 시각 선택] 시각 입력을 '시(0~23) · 분' 드롭다운으로 바꿔, 브라우저에 따라 '오전 12:00'으로 보이던 자정을 언제나 '0시 0분'으로 정확히 표시 — 오전/오후 헷갈림 없이 24시간제로 선택합니다 (분은 5분 단위)"
+            ] },
             { version: "6.12.0-beta5", date: "2026-07-29", details: [
                 "☕ [휴게 없음 처리] 휴게 시각을 0:00~0:00으로 두면 '휴게 없음'으로 처리되도록 명확화 — 예: 저녁 17:00~18:00처럼 중간에 쉬는 시간이 없는 근무는 휴게칸을 0:00 그대로 두면 그 시간(1시간)이 온전히 반영됩니다",
                 "🏷️ [안내 문구] 휴게 시작·종료칸에 '(없으면 0:00)' 안내를 추가하고, 차감 결과에 '휴게 없음 / 휴게 겹침 없음'을 구분해 표시",
@@ -398,6 +401,30 @@
         };
         // 시간 값을 사람이 읽기 좋은 라벨로 (예: 8 → '8시간', 4.5 → '4.5시간')
         const hourLabel = (h) => `${fmt(h)}시간`;
+
+        // ============ [v6.12.0-beta6] 24시간제 시각 선택기 (시·분 드롭다운) ============
+        // 브라우저 type="time"이 로케일에 따라 '오전 12:00'처럼 12시간제로 보이는 문제를 해결하기 위해,
+        // 항상 24시간제(0시~23시)로 보이는 시·분 드롭다운으로 대체합니다.
+        // value/onChange는 기존과 동일하게 "HH:MM" 문자열을 주고받아 계산 로직과 100% 호환됩니다.
+        // accent: 'blue'(연차) | 'orange'(휴게) — 포커스 테두리 색만 다릅니다.
+        const TimeSelect = ({ value, onChange, accent }) => {
+            const [hh, mm] = (value && /^\d{1,2}:\d{2}$/.test(value)) ? value.split(':').map(Number) : [0, 0];
+            const border = accent === 'orange' ? 'border-orange-200 focus:border-orange-500' : 'border-slate-200 focus:border-blue-500';
+            const setHour = (h) => onChange(`${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`);
+            const setMin = (m) => onChange(`${String(hh).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+            const minutes = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+            const minuteOpts = minutes.includes(mm) ? minutes : [...minutes, mm].sort((a, b) => a - b);
+            return (
+                <div className="flex items-center gap-1">
+                    <select value={hh} onChange={e => setHour(parseInt(e.target.value))} className={`flex-1 min-w-0 border ${border} rounded-lg p-2.5 md:p-2 text-sm outline-none bg-white font-bold text-center cursor-pointer`}>
+                        {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{h}시</option>)}
+                    </select>
+                    <select value={mm} onChange={e => setMin(parseInt(e.target.value))} className={`flex-1 min-w-0 border ${border} rounded-lg p-2.5 md:p-2 text-sm outline-none bg-white font-bold text-center cursor-pointer`}>
+                        {minuteOpts.map(m => <option key={m} value={m}>{String(m).padStart(2, '0')}분</option>)}
+                    </select>
+                </div>
+            );
+        };
 
         // ============ [v6.12.0-beta2] 통합 미니 캘린더 (날짜방식 탭 제거) ============
         // 이제 모드 구분 없이 '클릭한 날짜들'을 모두 등록합니다. value는 항상 'YYYY-MM-DD' 배열.
@@ -2375,10 +2402,10 @@
                             {editMode === 'time' ? (
                                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3">
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500" /></div>
-                                        <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500" /></div>
-                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500" /></div>
-                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500" /></div>
+                                        <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><TimeSelect value={startTime} onChange={setStartTime} accent="blue" /></div>
+                                        <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><TimeSelect value={endTime} onChange={setEndTime} accent="blue" /></div>
+                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0시 0분)</span></label><TimeSelect value={breakStart} onChange={setBreakStart} accent="orange" /></div>
+                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0시 0분)</span></label><TimeSelect value={breakEnd} onChange={setBreakEnd} accent="orange" /></div>
                                     </div>
                                 </div>
                             ) : (
@@ -2737,10 +2764,10 @@
                                         ) : (
                                             <>
                                                 <div className="grid grid-cols-2 gap-2 md:gap-3">
-                                                    <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" /></div>
-                                                    <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" /></div>
-                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
-                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><TimeSelect value={startTime} onChange={setStartTime} accent="blue" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><TimeSelect value={endTime} onChange={setEndTime} accent="blue" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0시 0분)</span></label><TimeSelect value={breakStart} onChange={setBreakStart} accent="orange" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0시 0분)</span></label><TimeSelect value={breakEnd} onChange={setBreakEnd} accent="orange" /></div>
                                                 </div>
                                                 <div className={`mt-3 p-2.5 rounded-lg border text-center font-bold ${calc.error ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
                                                     {calc.error ? <span className="text-xs">{calc.error}</span> : (
