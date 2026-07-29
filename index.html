@@ -3,7 +3,7 @@
 <html lang="ko"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta4)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.12.0-beta5)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -58,30 +58,33 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.12.0-beta4";
+        const SYSTEM_VERSION = "6.12.0-beta5";
         // [v6.12.0] 가이드/투어 안내 UI가 전면 개편되어 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.12.0-beta5", date: "2026-07-29", details: [
+                "☕ [휴게 없음 처리] 휴게 시각을 0:00~0:00으로 두면 '휴게 없음'으로 처리되도록 명확화 — 예: 저녁 17:00~18:00처럼 중간에 쉬는 시간이 없는 근무는 휴게칸을 0:00 그대로 두면 그 시간(1시간)이 온전히 반영됩니다",
+                "🏷️ [안내 문구] 휴게 시작·종료칸에 '(없으면 0:00)' 안내를 추가하고, 차감 결과에 '휴게 없음 / 휴게 겹침 없음'을 구분해 표시",
+                "🕛 [기본값 통일] 신청 폼과 상세 수정 팝업 모두 시각 기본값(비어있을 때)을 0:00으로 통일"
+            ] },
             { version: "6.12.0-beta4", date: "2026-07-29", details: [
-                "🔀 [입력 순서 변경] 휴가 신청 시 '날짜 선택'을 먼저, '시각 입력'을 나중에 하도록 순서를 바꿔 흐름을 자연스럽게 정리",
-                "📆 [연속=온종일 자동] 연속된 기간을 고르면 '온종일 휴가'로 보고 시각 입력을 자동으로 잠급니다(하루 전체 차감). 단일·떨어진 날짜는 종전처럼 시각을 입력해 부분 사용 — 연속이어도 부분 시간이 필요하면 [시간으로 입력] 토글로 전환 가능",
-                "🕛 [기본값 정리] 시각 입력칸 기본값을 0:00으로 바꿔, 실제 사용 시각을 직접 넣도록 개선",
-                "🗑️ [여러 건 한 번에 삭제] '나의 휴가 내역' 달력에 [여러 개 삭제] 모드 추가 — 여러 휴가를 골라 한 번에 삭제할 수 있습니다"
+                "🔀 [입력 순서 변경] 휴가 신청 시 '날짜 선택'을 먼저, '시각 입력'을 나중에",
+                "📆 [연속=온종일 자동] 연속된 기간을 고르면 온종일 휴가로 보고 시각 입력을 자동으로 잠급니다(하루 전체 차감). 단일·떨어진 날짜는 시각 입력 — 연속이어도 [시간으로 입력] 토글로 부분 사용 가능",
+                "🕛 [기본값 정리] 시각 입력칸 기본값을 0:00으로 변경",
+                "🗑️ [여러 건 한 번에 삭제] '나의 휴가 내역' 달력에 [여러 개 삭제] 모드 추가"
             ] },
             { version: "6.12.0-beta3", date: "2026-07-28", details: [
-                "🔁 [중복 등록 방지] 이미 휴가가 등록된 날은 달력에 주황 점으로 표시하고, 그 날을 다시 등록하려 하면 한 번 더 확인받습니다",
+                "🔁 [중복 등록 방지] 이미 휴가가 등록된 날은 달력에 주황 점으로 표시하고, 재등록 시 한 번 더 확인",
                 "📱 [모바일 화면 개선] 상단 카드·시각 입력칸·좌우 카드 여백을 좁은 화면에 맞게 조정"
             ] },
             { version: "6.12.0-beta2", date: "2026-07-28", details: [
-                "🧮 [차감 계산 정정] 연차와 휴게가 '실제로 겹치는 부분(교집합)'만 빼도록 수정 — 휴게가 연차 시간대 밖이면 차감되지 않습니다",
-                "🗓️ [날짜 방식 통합] '단일·기간·지정일' 탭을 없애고 달력에서 눌러 여러 날을 선택하도록 단순화",
-                "🔎 [계산 투명화] '근무 N시간 − 휴게 겹침 M시간'을 함께 표시"
+                "🧮 [차감 계산 정정] 연차와 휴게가 '실제로 겹치는 부분(교집합)'만 빼도록 수정",
+                "🗓️ [날짜 방식 통합] '단일·기간·지정일' 탭을 없애고 달력에서 눌러 여러 날 선택",
+                "🔎 [계산 투명화] '근무 N시간 − 휴게 겹침 M시간' 표시"
             ] },
             { version: "6.12.0-beta1", date: "2026-07-28", details: [
-                "⏱️ [직원 휴가신청 전면 개편] '연차/반차/시간' 구분을 없애고 오직 '시간(Hour)' 단위로 통합",
-                "🗓️ [대화형 미니 캘린더] 달력을 눌러 날짜를 선택하도록 교체",
-                "📅 [달력형 휴가 내역] 하단 내역을 월별 달력으로 개편(100% 파랑/미만 주황, 블록 클릭 시 상세)",
+                "⏱️ [직원 휴가신청 전면 개편] 오직 '시간(Hour)' 단위로 통합, 대화형 미니 캘린더, 달력형 휴가 내역",
                 "🛡️ [호환] 관리자 페이지·기존 데이터 구조 유지, 시각 정보는 별도 필드로 함께 저장"
             ] },
             { version: "6.11.2-stable", date: "2026-07-27", details: ["✍️ [직원 가이드] 화면 투어 마지막(5/5) 안내 문구를 실제 기능에 맞게 수정"] },
@@ -609,7 +612,7 @@
                 icon: '⏱️', color: 'purple',
                 title: '③ 시간으로 정확하게 신청하기',
                 desc: '날짜를 고른 뒤 시각을 입력하면 실제 차감 시간이 자동 계산됩니다.',
-                points: ['연차·휴게 시작/종료 시각을 입력합니다', '연차 시간에서 휴게와 겹치는 부분만 빼서 계산합니다', '연속된 기간을 고르면 "온종일 휴가"로 처리돼 시간 입력이 잠깁니다', '연속이어도 부분 시간으로 쓰려면 [시간으로 입력]을 켜세요']
+                points: ['연차 시작·종료 시각을 입력합니다', '휴게가 있으면 휴게 시각도 입력(없으면 0:00 그대로 두세요)', '연차 시간에서 휴게와 겹치는 부분만 빼서 계산합니다', '연속된 기간을 고르면 온종일 휴가로 처리돼 시간 입력이 잠깁니다']
             },
             {
                 icon: '📅', color: 'orange',
@@ -2323,10 +2326,10 @@
             // 편집 모드: 'time'(시각으로 계산) | 'manual'(시간 값 직접 입력)
             const [editMode, setEditMode] = useState(hasTimes ? 'time' : 'manual');
             const [date, setDate] = useState(rec.date);
-            const [startTime, setStartTime] = useState(rec.startTime || '09:00');
-            const [endTime, setEndTime] = useState(rec.endTime || '18:00');
-            const [breakStart, setBreakStart] = useState(rec.breakStart || '12:00');
-            const [breakEnd, setBreakEnd] = useState(rec.breakEnd || '13:00');
+            const [startTime, setStartTime] = useState(rec.startTime || '00:00');
+            const [endTime, setEndTime] = useState(rec.endTime || '00:00');
+            const [breakStart, setBreakStart] = useState(rec.breakStart || '00:00');
+            const [breakEnd, setBreakEnd] = useState(rec.breakEnd || '00:00');
             const [manualHours, setManualHours] = useState(String(safeParseFloat(rec.days) || ''));
             const [reason, setReason] = useState(rec.reason || '');
             const [msg, setMsg] = useState('');
@@ -2374,8 +2377,8 @@
                                     <div className="grid grid-cols-2 gap-3">
                                         <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500" /></div>
                                         <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500" /></div>
-                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작</label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500" /></div>
-                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료</label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500" /></div>
+                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500" /></div>
+                                        <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500" /></div>
                                     </div>
                                 </div>
                             ) : (
@@ -2385,7 +2388,7 @@
                                 {editMode === 'time' && calc.error ? <span className="text-xs">{calc.error}</span> : (
                                     <div>
                                         <div>실제 차감 시간 <span className="text-lg font-black">{fmt(previewHours)}시간</span> <span className="text-xs font-normal opacity-70">(하루 {dh}h 중 {Math.round(ratio * 100)}%)</span></div>
-                                        {editMode === 'time' && <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>}
+                                        {editMode === 'time' && <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {breakStart === breakEnd ? '· 휴게 없음' : calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>}
                                     </div>
                                 )}
                             </div>
@@ -2736,14 +2739,14 @@
                                                 <div className="grid grid-cols-2 gap-2 md:gap-3">
                                                     <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" /></div>
                                                     <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full min-w-0 border border-slate-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-blue-500 bg-white" /></div>
-                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작</label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
-                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료</label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakStart} onChange={e => setBreakStart(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
+                                                    <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0:00)</span></label><input type="time" value={breakEnd} onChange={e => setBreakEnd(e.target.value)} className="w-full min-w-0 border border-orange-200 rounded-lg p-2.5 md:p-2 text-sm outline-none focus:border-orange-500 bg-white" /></div>
                                                 </div>
                                                 <div className={`mt-3 p-2.5 rounded-lg border text-center font-bold ${calc.error ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
                                                     {calc.error ? <span className="text-xs">{calc.error}</span> : (
                                                         <div>
                                                             <div className="text-sm">실제 차감 <span className="text-lg font-black">{fmt(deductHours)}시간</span> <span className="text-[11px] font-normal opacity-70">(하루 {dailyHours}h 중 {Math.round(ratio * 100)}%)</span></div>
-                                                            <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>
+                                                            <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {breakStart === breakEnd ? '· 휴게 없음' : calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>
                                                         </div>
                                                     )}
                                                 </div>
