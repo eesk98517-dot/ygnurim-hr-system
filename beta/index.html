@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.15.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.16.0-beta)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -67,11 +67,18 @@
         //      - 오차 시간(r.diff)을 모달로 함께 전달 → '시간 직접 입력' 모드로 자동 세팅 + 값 미리 채움
         //   ※ 데이터 구조 / 탭 / 기존 기능은 전부 그대로 보존합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.15.0-stable";
+        const SYSTEM_VERSION = "6.16.0-beta";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.16.0-beta", date: "2026-07-30", details: [
+                "🗑️ [대시보드 캘린더 삭제] 대시보드 '전사 휴가 캘린더'에서 휴가를 바로 삭제할 수 있습니다. 각 휴가 블록에 마우스를 올리면 나타나는 작은 ✕ 버튼(모바일은 상시 표시)으로 한 건씩 삭제합니다",
+                "🧹 [여러 개 삭제] 캘린더 상단 [여러 개 삭제] 버튼을 누르면 선택 모드로 바뀝니다. 삭제할 휴가 블록들을 눌러 체크한 뒤 [선택 삭제]로 여러 건을 한 번에 지울 수 있습니다",
+                "🔄 [자동 복구] 삭제하면 해당 직원의 잔여 연차가 자동으로 다시 계산·복구됩니다. 여러 직원의 휴가를 한꺼번에 지워도 각자 정확히 반영됩니다",
+                "🛡️ [호환] 저장 데이터 구조·집계 방식은 종전과 100% 동일하며, 블록 클릭 시 수정 기능도 그대로 유지됩니다",
+                "🧪 [베타] 이번 버전은 베타입니다. 대시보드 캘린더 삭제 기능을 사용해 보시고 이상이 있으면 알려주세요"
+            ] },
             { version: "6.15.0-stable", date: "2026-07-30", details: [
                 "🗓️ [관리자 연차 등록 개편] 관리자용 연차 등록 창도 직원용처럼 '달력을 눌러 날짜를 고르는' 방식으로 바뀌었습니다. 단일/기간/지정일 구분 없이 원하는 날을 자유롭게 클릭·해제하면 됩니다 (연속 기간은 [기간 한 번에 선택])",
                 "🧺 [관리자 장바구니 등록] 직원마다·날짜마다 다른 휴가를 [목록에 담기]로 쌓은 뒤 [전체 등록하기]로 한 번에 저장할 수 있습니다. 한 건이면 담지 않고 바로 등록해도 됩니다",
@@ -1143,8 +1150,23 @@
             );
         };
 
-        const CalendarView = ({ staffList, onEditClick }) => {
+        // ============================================================================
+        //  [v6.16.0-beta] 대시보드 '전사 휴가 캘린더' — 삭제 기능 추가
+        //   ▷ 새 prop: showConfirm / showAlert  (App에서 함께 내려줍니다)
+        //   ▷ 두 가지 삭제 방식을 모두 제공합니다.
+        //     ① 개별 삭제 : 각 휴가 블록 위에 상시 표시되는 작은 X 버튼 → 그 1건만 삭제
+        //     ② 여러 개 삭제 : [여러 개 삭제] 버튼으로 '선택 모드'에 진입 → 블록을 눌러
+        //                       여러 건을 체크한 뒤 [선택 삭제]로 한 번에 삭제
+        //   ▷ 삭제는 기존 recalcAndSave(직원별로 leaveHistory에서 해당 id 제거 후 재계산)를
+        //     그대로 사용하므로 데이터 구조·집계 방식은 종전과 100% 동일합니다.
+        //   ▷ 전사 캘린더는 여러 직원의 휴가가 섞여 있으므로, 삭제 시 직원(staffId)별로
+        //     묶어서 각 직원 문서를 한 번씩만 갱신합니다.
+        // ============================================================================
+        const CalendarView = ({ staffList, onEditClick, showConfirm, showAlert }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
+            // [v6.16.0] 선택 모드 및 체크된 항목(id) 목록
+            const [selectMode, setSelectMode] = useState(false);
+            const [checkedIds, setCheckedIds] = useState([]);
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
 
@@ -1163,12 +1185,70 @@
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
             const todayStr = toLocalYMD(new Date());
 
+            // [v6.16.0] 이번 달 화면에 보이는 전체 휴가 건들을 평탄화 — 삭제 대상 조회용
+            const monthLeaves = useMemo(() => Object.values(leaveMap).flat(), [leaveMap]);
+
+            const toggleCheck = (id) => setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+            const exitSelectMode = () => { setSelectMode(false); setCheckedIds([]); };
+
+            // [v6.16.0] 공통 삭제 실행기 — 삭제할 record 배열을 받아 직원별로 묶어 일괄 반영
+            //  recs: [{ id, staffId, ... }]  (leaveMap이 만들어 준 name·staffId 포함 객체)
+            const deleteRecords = async (recs) => {
+                // 직원 id → 삭제할 휴가 id Set 으로 그룹화
+                const byStaff = {};
+                recs.forEach(r => { (byStaff[r.staffId] = byStaff[r.staffId] || new Set()).add(r.id); });
+                for (const staffId of Object.keys(byStaff)) {
+                    const staff = staffList.find(s => s.id === staffId);
+                    if (!staff) continue;
+                    const idSet = byStaff[staffId];
+                    const newHistory = (staff.leaveHistory || []).filter(h => !idSet.has(h.id));
+                    await recalcAndSave(staffId, staff.joinDate, newHistory);
+                }
+            };
+
+            // ① 개별 삭제 (X 버튼)
+            const handleDeleteOne = (l) => {
+                showConfirm(`${l.name} 직원의 ${l.date} (${l.type}) 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
+                    try { await deleteRecords([l]); }
+                    catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+
+            // ② 여러 개 삭제 (선택 모드)
+            const handleBulkDelete = () => {
+                if (!checkedIds.length) return;
+                const recs = monthLeaves.filter(l => checkedIds.includes(l.id));
+                if (!recs.length) return;
+                const preview = recs.slice(0, 8).map(r => `${r.date} ${r.name}(${r.type})`).join('\n');
+                const more = recs.length > 8 ? `\n… 외 ${recs.length - 8}건` : '';
+                showConfirm(`선택한 ${recs.length}건의 휴가를 삭제하시겠습니까?\n삭제 시 각 직원의 잔여 연차가 자동으로 복구됩니다.\n\n${preview}${more}`, async () => {
+                    try { await deleteRecords(recs); exitSelectMode(); showAlert(`🗑️ ${recs.length}건 삭제 완료!`); }
+                    catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+
+            // 블록 클릭 동작: 선택 모드면 체크 토글, 아니면 기존처럼 수정 모달 열기
+            const handleBlockClick = (l) => { if (selectMode) toggleCheck(l.id); else onEditClick && onEditClick(l.staffId, 0, l); };
+
             return (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 animate-fade-in overflow-hidden flex flex-col h-full min-h-[400px]">
-                    <div className="flex justify-between items-center mb-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
                         <h3 className="font-bold text-slate-700 flex items-center gap-2 text-sm md:text-base"><Icons.Calendar /> 전사 휴가 캘린더</h3>
-                        <CalendarNav year={year} month={month} setCurrentDate={setCurrentDate} />
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {/* [v6.16.0] 여러 개 삭제 / 선택 취소 토글 */}
+                            {selectMode
+                                ? <button type="button" onClick={exitSelectMode} className="text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition">선택 취소</button>
+                                : <button type="button" onClick={() => setSelectMode(true)} className="text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition flex items-center gap-1.5"><Icons.Trash /> 여러 개 삭제</button>}
+                            <CalendarNav year={year} month={month} setCurrentDate={setCurrentDate} />
+                        </div>
                     </div>
+                    {/* [v6.16.0] 선택 모드 안내 배너 */}
+                    {selectMode && (
+                        <div className="mb-3 flex items-center justify-between bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                            <span className="text-xs font-bold text-orange-700">삭제할 휴가 블록을 눌러 선택하세요 · 선택됨 <span className="text-red-600">{checkedIds.length}</span>건</span>
+                            <button type="button" onClick={handleBulkDelete} disabled={!checkedIds.length} className={`text-xs font-bold py-1.5 px-4 rounded-lg transition flex items-center gap-1.5 ${checkedIds.length ? 'bg-red-500 text-white hover:bg-red-600 shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}><Icons.Trash /> 선택 삭제</button>
+                        </div>
+                    )}
                     <div className="w-full overflow-x-auto no-scrollbar flex-1">
                         <div className="min-w-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-200 gap-px grid grid-cols-7 h-full">
                             {WEEK_LABELS.map((d, i) => (<div key={d} className={`bg-slate-50 py-2 text-center text-xs font-bold tracking-widest ${i===0?'text-red-500':i===6?'text-blue-500':'text-slate-600'}`}>{d}</div>))}
@@ -1180,7 +1260,23 @@
                                     <div key={idx} className={`bg-white h-[80px] md:h-full min-h-[90px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
                                         <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full mx-auto md:mx-0 ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>{d || ''}</div>
                                         <div className="flex-1 overflow-y-auto pr-0.5 space-y-1 mt-1 custom-scrollbar">
-                                            {leaves.map((l, i) => (<div key={i} onClick={(e) => { e.stopPropagation(); onEditClick && onEditClick(l.staffId, 0, l); }} className={`cursor-pointer hover:opacity-80 text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type.includes('반차') || l.type.includes('시간')?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'}`} title={`${l.name} (${l.type}) - 클릭하여 수정`}>{l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span></div>))}
+                                            {leaves.map((l, i) => {
+                                                const checked = selectMode && checkedIds.includes(l.id);
+                                                const isPartial = l.type.includes('반차') || l.type.includes('시간');
+                                                return (
+                                                    // [v6.16.0] group: 마우스 오버 시 X 버튼 노출(모바일은 상시 노출). 선택 모드에선 체크 표시.
+                                                    <div key={l.id || i} onClick={(e) => { e.stopPropagation(); handleBlockClick(l); }} className={`group relative cursor-pointer hover:opacity-90 text-[10px] md:text-[11px] pl-1.5 pr-5 py-0.5 rounded-md truncate font-bold shadow-sm ${isPartial?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'} ${checked ? 'ring-2 ring-slate-800' : ''}`} title={`${l.name} (${l.type}) - ${selectMode ? '눌러서 선택' : '클릭하여 수정'}`}>
+                                                        {selectMode && <span className="mr-0.5">{checked ? '☑' : '☐'}</span>}
+                                                        {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span>
+                                                        {/* 개별 삭제 X 버튼 (선택 모드가 아닐 때만 표시) */}
+                                                        {!selectMode && (
+                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(l); }} title="이 휴가 삭제" className="absolute right-0.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:bg-red-500 hover:text-white transition opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm">
+                                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 );
@@ -3186,7 +3282,7 @@
                                     </div>
 
                                     <div className="mt-8">
-                                        <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} />
+                                        <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} showConfirm={showConfirm} showAlert={showAlert} />
                                     </div>
                                 </div>
                             )}
