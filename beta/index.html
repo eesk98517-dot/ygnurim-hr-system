@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.17.0-beta)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.17.1-beta)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -66,11 +66,16 @@
         //   ④ 미래(예정) 연차 '예정' 표시 — 직원·관리자 페이지 모두. 차감/집계는 종전과 동일
         //   ※ 데이터 구조 / 탭 / 기존 기능은 전부 그대로 보존합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.17.0-beta";
+        const SYSTEM_VERSION = "6.17.1-beta";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.17.1-beta", date: "2026-07-31", details: [
+                "📅 [대시보드 캘린더 정리] 전사 휴가 캘린더에서 하루에 휴가가 많은 날은 칸 안에 2건까지만 보이고, 나머지는 ‹N개 더보기›로 접힙니다. 눌러 그 날 일정 팝업으로 크게 볼 수 있어 칸이 복잡하지 않습니다",
+                "🪟 [그 날 일정 팝업] ‹더보기›를 누르면 요일·날짜와 그 날의 모든 휴가가 큰 팝업으로 열립니다. 팝업 안에서도 각 항목을 바로 수정·삭제할 수 있고, ESC나 바깥을 눌러 닫을 수 있습니다",
+                "🛡️ [호환] 저장 데이터·집계 방식과 기존 캘린더 삭제·예정 표시 기능은 그대로입니다"
+            ] },
             { version: "6.17.0-beta", date: "2026-07-31", details: [
                 "🖥️ [관리자 등록창 좌우 분할] PC에서 연차 등록 창이 넓어지며 왼쪽=달력, 오른쪽=직원 선택·시간·사유·목록으로 나뉘어 한눈에 보고 빠르게 입력할 수 있습니다 (모바일은 기존처럼 위아래로 표시)",
                 "⌨️ [ESC로 닫기] 연차 등록·수정, 직원 상세·수정, 월간 보고서, 엑셀 대조, 개인 캘린더, 휴가 상세 등 대부분의 창을 키보드 ESC로 바로 닫을 수 있습니다 (실수 방지를 위해 확인·경고창과 비밀번호 변경 창은 제외)",
@@ -1288,8 +1293,73 @@
             // 블록 클릭 동작: 선택 모드면 체크 토글, 아니면 기존처럼 수정 모달 열기
             const handleBlockClick = (l) => { if (selectMode) toggleCheck(l.id); else onEditClick && onEditClick(l.staffId, 0, l); };
 
+            // [v6.17.1] 하루 칸에 최대 몇 건까지 미리 보여줄지 (초과분은 'N개 더보기'로 팝업)
+            const MAX_VISIBLE = 2;
+            // [v6.17.1] 그 날 일정 팝업(모달) 대상 날짜. null이면 닫힘.
+            const [dayModalDate, setDayModalDate] = useState(null);
+            // 팝업은 항상 '최신 staffList'가 반영되도록 leaveMap에서 매 렌더 다시 읽습니다.
+            const dayModalLeaves = dayModalDate ? (leaveMap[dayModalDate] || []) : [];
+            // 팝업 안에 표시할 요일 라벨
+            const dayModalWeekday = useMemo(() => {
+                if (!dayModalDate) return '';
+                const [yy, mm, dd] = dayModalDate.split('-').map(Number);
+                return WEEK_LABELS[new Date(yy, mm - 1, dd).getDay()];
+            }, [dayModalDate]);
+            useEscClose(() => setDayModalDate(null), !!dayModalDate); // [v6.17.1] 팝업 ESC 닫기
+
+            // 팝업에서 삭제하면, 그 날 남은 항목이 없을 때 팝업도 함께 닫습니다.
+            const handleDeleteFromModal = (l) => {
+                showConfirm(`${l.name} 직원의 ${l.date} (${l.type}) 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
+                    try {
+                        await deleteRecords([l]);
+                        // 삭제 후 그 날 항목이 1건뿐이었다면 팝업 닫기 (leaveMap은 다음 렌더에 갱신됨)
+                        if ((leaveMap[l.date] || []).length <= 1) setDayModalDate(null);
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+            // 팝업에서 수정 클릭 → 기존 수정 모달로 연결하고 팝업은 닫음
+            const handleEditFromModal = (l) => { setDayModalDate(null); onEditClick && onEditClick(l.staffId, 0, l); };
+
             return (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 animate-fade-in overflow-hidden flex flex-col h-full min-h-[400px]">
+                    {/* ═══════ [v6.17.1] 그 날 일정 팝업 (업로드 이미지 스타일) ═══════ */}
+                    {dayModalDate && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[450] animate-fade-in backdrop-blur-sm p-4" onClick={() => setDayModalDate(null)}>
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                {/* 상단 헤더: 요일 + 날짜 + 닫기 (이미지의 다크 헤더 느낌) */}
+                                <div className="bg-slate-800 text-white p-5 relative">
+                                    <button type="button" onClick={() => setDayModalDate(null)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition" title="닫기 (ESC)"><Icons.X /></button>
+                                    <p className="text-xs font-bold text-slate-300 mb-0.5">{dayModalWeekday}요일</p>
+                                    <p className="text-3xl font-black tracking-tight">{parseInt(dayModalDate.slice(-2), 10)}<span className="text-base font-bold text-slate-300 ml-2">{dayModalDate.slice(0, 7).replace('-', '. ')}</span></p>
+                                    <p className="text-xs font-bold text-slate-300 mt-1">이 날 휴가 {dayModalLeaves.length}건</p>
+                                </div>
+                                {/* 항목 리스트 (수정·삭제 가능) */}
+                                <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
+                                    {dayModalLeaves.length === 0 ? (
+                                        <p className="text-center text-slate-400 font-bold py-8 text-sm">이 날 남은 휴가가 없습니다.</p>
+                                    ) : dayModalLeaves.map((l, i) => {
+                                        const isPartial = l.type.includes('반차') || l.type.includes('시간');
+                                        const future = isFutureLeave(l.date);
+                                        return (
+                                            <div key={l.id || i} className={`flex items-center justify-between gap-2 p-3 rounded-xl border ${isPartial ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/30' : ''}`}>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-black text-slate-800 text-sm truncate">{l.name}</span>
+                                                        {future && <span className="px-1 rounded-sm bg-slate-800 text-white text-[9px] font-black flex-shrink-0">예정</span>}
+                                                    </div>
+                                                    <p className={`text-xs font-bold mt-0.5 ${isPartial ? 'text-orange-600' : 'text-blue-600'}`}>{fmt(safeParseFloat(l.days))}시간 · {l.type}{l.reason ? ` · ${l.reason}` : ''}</p>
+                                                </div>
+                                                <div className="flex gap-1.5 flex-shrink-0">
+                                                    <button type="button" onClick={() => handleEditFromModal(l)} title="수정" className="text-blue-500 p-2 bg-white rounded-lg shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
+                                                    <button type="button" onClick={() => handleDeleteFromModal(l)} title="삭제" className="text-red-500 p-2 bg-white rounded-lg shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
                         <h3 className="font-bold text-slate-700 flex items-center gap-2 text-sm md:text-base"><Icons.Calendar /> 전사 휴가 캘린더</h3>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1314,11 +1384,15 @@
                                 const dateStr = d ? `${prefix}-${String(d).padStart(2, '0')}` : '';
                                 const leaves = d ? (leaveMap[dateStr] || []) : [];
                                 const isToday = dateStr === todayStr;
+                                // [v6.17.1] 선택 모드에선 모든 건을 다 보여줘야 체크가 가능하므로 자르지 않습니다.
+                                //   평상시엔 MAX_VISIBLE건만 보여주고 초과분은 'N개 더보기'로 팝업 유도.
+                                const visibleLeaves = selectMode ? leaves : leaves.slice(0, MAX_VISIBLE);
+                                const hiddenCount = selectMode ? 0 : Math.max(0, leaves.length - MAX_VISIBLE);
                                 return (
                                     <div key={idx} className={`bg-white h-[80px] md:h-full min-h-[90px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
                                         <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full mx-auto md:mx-0 ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>{d || ''}</div>
                                         <div className="flex-1 overflow-y-auto pr-0.5 space-y-1 mt-1 custom-scrollbar">
-                                            {leaves.map((l, i) => {
+                                            {visibleLeaves.map((l, i) => {
                                                 const checked = selectMode && checkedIds.includes(l.id);
                                                 const isPartial = l.type.includes('반차') || l.type.includes('시간');
                                                 const future = isFutureLeave(l.date); // [v6.17.0] 미래(예정) 여부
@@ -1338,6 +1412,12 @@
                                                     </div>
                                                 );
                                             })}
+                                            {/* [v6.17.1] 초과분: 'N개 더보기' → 그 날 일정 팝업 열기 */}
+                                            {hiddenCount > 0 && (
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); setDayModalDate(dateStr); }} className="w-full text-[10px] md:text-[11px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-md py-0.5 transition">
+                                                    {hiddenCount}개 더보기
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
