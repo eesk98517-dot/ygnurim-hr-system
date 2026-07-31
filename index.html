@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
-<html lang="ko"><head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.13.1-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.18.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -45,7 +45,7 @@
         @keyframes tipUp { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
         .tour-dim { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.72); z-index: 700; }
     </style>
-<style>*, ::before, ::after{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgb(59 130 246 / 0.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/* ! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com */*,::after,::before{box-sizing:border-box;border-width:0;border-style:solid;border-color:#e5e7eb}::after,::before{--tw-content:''}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0;padding:0}legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.pointer-events-none{pointer-events:none}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0px}.inset-y-0{top:0px;bottom:0px}.-top-8{top:-2rem}.left-0{left:0px}.left-1\/2{left:50%}.right-4{right:1rem}.top-0{top:0px}.top-4{top:1rem}.z-10{z-index:10}.z-30{z-index:30}.z-40{z-index:40}.z-50{z-index:50}.z-\[9999\]{z-index:9999}.mx-auto{margin-left:auto;margin-right:auto}.mb-1{margin-bottom:0.25rem}.mb-2{margin-bottom:0.5rem}.mb-4{margin-bottom:1rem}.mb-8{margin-bottom:2rem}.mb-3{margin-bottom:0.75rem}.mb-6{margin-bottom:1.5rem}.ml-1{margin-left:0.25rem}.mt-1{margin-top:0.25rem}.mt-3{margin-top:0.75rem}.mt-4{margin-top:1rem}.mt-8{margin-top:2rem}.ml-0\.5{margin-left:0.125rem}.block{display:block}.flex{display:flex}.grid{display:grid}.hidden{display:none}.h-12{height:3rem}.h-screen{height:100vh}.h-16{height:4rem}.h-10{height:2.5rem}.h-14{height:3.5rem}.h-48{height:12rem}.h-6{height:1.5rem}.h-8{height:2rem}.h-\[80px\]{height:80px}.h-full{height:100%}.min-h-\[400px\]{min-height:400px}.min-h-\[4px\]{min-height:4px}.min-h-\[90px\]{min-height:90px}.w-12{width:3rem}.w-full{width:100%}.w-14{width:3.5rem}.w-6{width:1.5rem}.w-64{width:16rem}.w-8{width:2rem}.min-w-0{min-width:0px}.min-w-\[500px\]{min-width:500px}.max-w-md{max-width:28rem}.max-w-\[120px\]{max-width:120px}.max-w-\[40px\]{max-width:40px}.flex-1{flex:1 1 0%}.flex-shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-x-full{--tw-translate-x:-100%;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.transform{transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@keyframes spin{to{transform:rotate(360deg)}}.animate-spin{animation:spin 1s linear infinite}.cursor-pointer{cursor:pointer}.grid-cols-1{grid-template-columns:repeat(1, minmax(0, 1fr))}.grid-cols-7{grid-template-columns:repeat(7, minmax(0, 1fr))}.flex-col{flex-direction:column}.items-start{align-items:flex-start}.items-end{align-items:flex-end}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-4{gap:1rem}.gap-1{gap:0.25rem}.gap-2{gap:0.5rem}.gap-3{gap:0.75rem}.gap-px{gap:1px}.gap-6{gap:1.5rem}.space-y-6 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1.5rem * var(--tw-space-y-reverse))}.space-y-1 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.25rem * var(--tw-space-y-reverse))}.space-y-2 > :not([hidden]) ~ :not([hidden]){--tw-space-y-reverse:0;margin-top:calc(0.5rem * calc(1 - var(--tw-space-y-reverse)));margin-bottom:calc(0.5rem * var(--tw-space-y-reverse))}.overflow-hidden{overflow:hidden}.overflow-visible{overflow:visible}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.whitespace-nowrap{white-space:nowrap}.rounded-full{border-radius:9999px}.rounded{border-radius:0.25rem}.rounded-2xl{border-radius:1rem}.rounded-xl{border-radius:0.75rem}.rounded-lg{border-radius:0.5rem}.rounded-md{border-radius:0.375rem}.rounded-t-lg{border-top-left-radius:0.5rem;border-top-right-radius:0.5rem}.rounded-t-md{border-top-left-radius:0.375rem;border-top-right-radius:0.375rem}.border-4{border-width:4px}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-t{border-top-width:1px}.border-blue-500{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.border-blue-100{--tw-border-opacity:1;border-color:rgb(219 234 254 / var(--tw-border-opacity, 1))}.border-slate-100{--tw-border-opacity:1;border-color:rgb(241 245 249 / var(--tw-border-opacity, 1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240 / var(--tw-border-opacity, 1))}.border-slate-700{--tw-border-opacity:1;border-color:rgb(51 65 85 / var(--tw-border-opacity, 1))}.border-slate-800{--tw-border-opacity:1;border-color:rgb(30 41 59 / var(--tw-border-opacity, 1))}.border-blue-200{--tw-border-opacity:1;border-color:rgb(191 219 254 / var(--tw-border-opacity, 1))}.border-amber-200{--tw-border-opacity:1;border-color:rgb(253 230 138 / var(--tw-border-opacity, 1))}.border-slate-500{--tw-border-opacity:1;border-color:rgb(100 116 139 / var(--tw-border-opacity, 1))}.border-t-transparent{border-top-color:transparent}.bg-\[\#F1F5F9\]{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.bg-slate-100{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.bg-blue-500{--tw-bg-opacity:1;background-color:rgb(59 130 246 / var(--tw-bg-opacity, 1))}.bg-red-50{--tw-bg-opacity:1;background-color:rgb(254 242 242 / var(--tw-bg-opacity, 1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240 / var(--tw-bg-opacity, 1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252 / var(--tw-bg-opacity, 1))}.bg-slate-50\/50{background-color:rgb(248 250 252 / 0.5)}.bg-slate-700{--tw-bg-opacity:1;background-color:rgb(51 65 85 / var(--tw-bg-opacity, 1))}.bg-slate-800{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.bg-slate-900{--tw-bg-opacity:1;background-color:rgb(15 23 42 / var(--tw-bg-opacity, 1))}.bg-slate-900\/50{background-color:rgb(15 23 42 / 0.5)}.bg-teal-50{--tw-bg-opacity:1;background-color:rgb(240 253 250 / var(--tw-bg-opacity, 1))}.bg-amber-50{--tw-bg-opacity:1;background-color:rgb(255 251 235 / var(--tw-bg-opacity, 1))}.bg-amber-500{--tw-bg-opacity:1;background-color:rgb(245 158 11 / var(--tw-bg-opacity, 1))}.bg-orange-50{--tw-bg-opacity:1;background-color:rgb(255 247 237 / var(--tw-bg-opacity, 1))}.bg-orange-500{--tw-bg-opacity:1;background-color:rgb(249 115 22 / var(--tw-bg-opacity, 1))}.bg-slate-600{--tw-bg-opacity:1;background-color:rgb(71 85 105 / var(--tw-bg-opacity, 1))}.object-contain{object-fit:contain}.p-4{padding:1rem}.p-8{padding:2rem}.p-1{padding:0.25rem}.p-1\.5{padding:0.375rem}.p-2{padding:0.5rem}.p-3{padding:0.75rem}.p-6{padding:1.5rem}.px-2{padding-left:0.5rem;padding-right:0.5rem}.px-4{padding-left:1rem;padding-right:1rem}.py-1{padding-top:0.25rem;padding-bottom:0.25rem}.py-3{padding-top:0.75rem;padding-bottom:0.75rem}.py-4{padding-top:1rem;padding-bottom:1rem}.px-1{padding-left:0.25rem;padding-right:0.25rem}.py-1\.5{padding-top:0.375rem;padding-bottom:0.375rem}.py-2{padding-top:0.5rem;padding-bottom:0.5rem}.py-2\.5{padding-top:0.625rem;padding-bottom:0.625rem}.py-3\.5{padding-top:0.875rem;padding-bottom:0.875rem}.px-1\.5{padding-left:0.375rem;padding-right:0.375rem}.py-0\.5{padding-top:0.125rem;padding-bottom:0.125rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.pb-2{padding-bottom:0.5rem}.pr-0\.5{padding-right:0.125rem}.pt-8{padding-top:2rem}.text-left{text-align:left}.text-center{text-align:center}.font-sans{font-family:ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"}.text-\[10px\]{font-size:10px}.text-sm{font-size:0.875rem;line-height:1.25rem}.text-2xl{font-size:1.5rem;line-height:2rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:0.75rem;line-height:1rem}.text-\[9px\]{font-size:9px}.text-lg{font-size:1.125rem;line-height:1.75rem}.font-bold{font-weight:700}.font-black{font-weight:900}.font-normal{font-weight:400}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-0.025em}.tracking-widest{letter-spacing:0.1em}.tracking-tighter{letter-spacing:-0.05em}.text-slate-400{--tw-text-opacity:1;color:rgb(148 163 184 / var(--tw-text-opacity, 1))}.text-blue-500{--tw-text-opacity:1;color:rgb(59 130 246 / var(--tw-text-opacity, 1))}.text-slate-500{--tw-text-opacity:1;color:rgb(100 116 139 / var(--tw-text-opacity, 1))}.text-slate-700{--tw-text-opacity:1;color:rgb(51 65 85 / var(--tw-text-opacity, 1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.text-blue-400{--tw-text-opacity:1;color:rgb(96 165 250 / var(--tw-text-opacity, 1))}.text-blue-600{--tw-text-opacity:1;color:rgb(37 99 235 / var(--tw-text-opacity, 1))}.text-red-500{--tw-text-opacity:1;color:rgb(239 68 68 / var(--tw-text-opacity, 1))}.text-slate-600{--tw-text-opacity:1;color:rgb(71 85 105 / var(--tw-text-opacity, 1))}.text-slate-800{--tw-text-opacity:1;color:rgb(30 41 59 / var(--tw-text-opacity, 1))}.text-teal-500{--tw-text-opacity:1;color:rgb(20 184 166 / var(--tw-text-opacity, 1))}.text-blue-700{--tw-text-opacity:1;color:rgb(29 78 216 / var(--tw-text-opacity, 1))}.text-amber-600{--tw-text-opacity:1;color:rgb(217 119 6 / var(--tw-text-opacity, 1))}.text-amber-700{--tw-text-opacity:1;color:rgb(180 83 9 / var(--tw-text-opacity, 1))}.text-orange-600{--tw-text-opacity:1;color:rgb(234 88 12 / var(--tw-text-opacity, 1))}.text-slate-300{--tw-text-opacity:1;color:rgb(203 213 225 / var(--tw-text-opacity, 1))}.opacity-0{opacity:0}.opacity-30{opacity:0.3}.opacity-75{opacity:0.75}.shadow-xl{--tw-shadow:0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-md{--tw-shadow:0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);--tw-shadow-colored:0 4px 6px -1px var(--tw-shadow-color), 0 2px 4px -2px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgb(0 0 0 / 0.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow)}.shadow-blue-900\/50{--tw-shadow-color:rgb(30 58 138 / 0.5);--tw-shadow:var(--tw-shadow-colored)}.shadow-amber-200{--tw-shadow-color:#fde68a;--tw-shadow:var(--tw-shadow-colored)}.shadow-blue-200{--tw-shadow-color:#bfdbfe;--tw-shadow:var(--tw-shadow-colored)}.shadow-orange-200{--tw-shadow-color:#fed7aa;--tw-shadow:var(--tw-shadow-colored)}.outline-none{outline:2px solid transparent;outline-offset:2px}.brightness-0{--tw-brightness:brightness(0);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.invert{--tw-invert:invert(100%);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition{transition-property:color, background-color, border-color, fill, stroke, opacity, box-shadow, transform, filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter, -webkit-text-decoration-color, -webkit-backdrop-filter;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-colors{transition-property:color, background-color, border-color, fill, stroke, -webkit-text-decoration-color;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke;transition-property:color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-opacity{transition-property:opacity;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.transition-transform{transition-property:transform;transition-timing-function:cubic-bezier(0.4, 0, 0.2, 1);transition-duration:150ms}.duration-1000{transition-duration:1000ms}.duration-300{transition-duration:300ms}.hover\:border-red-300:hover{--tw-border-opacity:1;border-color:rgb(252 165 165 / var(--tw-border-opacity, 1))}.hover\:border-teal-300:hover{--tw-border-opacity:1;border-color:rgb(94 234 212 / var(--tw-border-opacity, 1))}.hover\:border-blue-300:hover{--tw-border-opacity:1;border-color:rgb(147 197 253 / var(--tw-border-opacity, 1))}.hover\:border-orange-300:hover{--tw-border-opacity:1;border-color:rgb(253 186 116 / var(--tw-border-opacity, 1))}.hover\:border-slate-500:hover{--tw-border-opacity:1;border-color:rgb(100 116 139 / var(--tw-border-opacity, 1))}.hover\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216 / var(--tw-bg-opacity, 1))}.hover\:bg-blue-50:hover{--tw-bg-opacity:1;background-color:rgb(239 246 255 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-100:hover{--tw-bg-opacity:1;background-color:rgb(241 245 249 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-50\/50:hover{background-color:rgb(248 250 252 / 0.5)}.hover\:bg-slate-800:hover{--tw-bg-opacity:1;background-color:rgb(30 41 59 / var(--tw-bg-opacity, 1))}.hover\:bg-white:hover{--tw-bg-opacity:1;background-color:rgb(255 255 255 / var(--tw-bg-opacity, 1))}.hover\:bg-amber-600:hover{--tw-bg-opacity:1;background-color:rgb(217 119 6 / var(--tw-bg-opacity, 1))}.hover\:bg-orange-600:hover{--tw-bg-opacity:1;background-color:rgb(234 88 12 / var(--tw-bg-opacity, 1))}.hover\:bg-slate-500:hover{--tw-bg-opacity:1;background-color:rgb(100 116 139 / var(--tw-bg-opacity, 1))}.hover\:text-red-400:hover{--tw-text-opacity:1;color:rgb(248 113 113 / var(--tw-text-opacity, 1))}.hover\:text-white:hover{--tw-text-opacity:1;color:rgb(255 255 255 / var(--tw-text-opacity, 1))}.hover\:opacity-80:hover{opacity:0.8}.focus\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246 / var(--tw-border-opacity, 1))}.disabled\:opacity-50:disabled{opacity:0.5}.group:hover .group-hover\:bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235 / var(--tw-bg-opacity, 1))}.group:hover .group-hover\:opacity-100{opacity:1}@media (min-width: 640px){.sm\:inline-block{display:inline-block}}@media (min-width: 768px){.md\:static{position:static}.md\:mx-0{margin-left:0px;margin-right:0px}.md\:ml-2{margin-left:0.5rem}.md\:hidden{display:none}.md\:h-64{height:16rem}.md\:h-full{height:100%}.md\:w-auto{width:auto}.md\:flex-none{flex:none}.md\:translate-x-0{--tw-translate-x:0px;transform:translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.md\:grid-cols-3{grid-template-columns:repeat(3, minmax(0, 1fr))}.md\:flex-row{flex-direction:row}.md\:items-center{align-items:center}.md\:gap-2{gap:0.5rem}.md\:gap-4{gap:1rem}.md\:gap-6{gap:1.5rem}.md\:p-6{padding:1.5rem}.md\:p-8{padding:2rem}.md\:px-2{padding-left:0.5rem;padding-right:0.5rem}.md\:px-3{padding-left:0.75rem;padding-right:0.75rem}.md\:px-8{padding-left:2rem;padding-right:2rem}.md\:text-base{font-size:1rem;line-height:1.5rem}.md\:text-sm{font-size:0.875rem;line-height:1.25rem}.md\:text-xs{font-size:0.75rem;line-height:1rem}.md\:text-\[10px\]{font-size:10px}.md\:text-\[11px\]{font-size:11px}}</style></head>
+</head>
 <body class="bg-[#F1F5F9]">
     <div id="root">
         <div class="flex h-screen items-center justify-center flex-col gap-4 text-slate-400">
@@ -58,11 +58,35 @@
         const { useState, useEffect, useRef, useMemo, useCallback, Component } = React;
         const { createRoot } = ReactDOM;
 
-        const SYSTEM_VERSION = "6.13.1-stable";
+        // ============================================================================
+        // [v6.18.0-stable] 정식 릴리즈 — beta(6.16.0/6.17.0/6.17.1) 통합
+        //   ① 관리자 연차 등록 모달 좌우 2단 분할(PC: 좌=달력 / 우=직원·시간·사유·목록·등록)
+        //   ② 모든 일반 모달 ESC 닫기(useEscClose 공통 훅) — 확인·경고·비번강제 제외
+        //   ③ 직원 월별 마감: 직원은 '당월 1일'부터만 등록/수정/삭제 가능(과거월은 관리자만)
+        //   ④ 미래(예정) 연차 '예정' 표시 — 직원·관리자 페이지 모두. 차감/집계는 종전과 동일
+        //   ⑤ 대시보드 전사 캘린더: 개별/다중 삭제 + 하루 2건 초과 시 'N개 더보기' 일정 팝업(수정·삭제 가능)
+        //   ※ 데이터 구조 / 탭 / 기존 기능은 전부 그대로 보존합니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.18.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.18.0-stable", date: "2026-07-31", details: [
+                "🖥️ [관리자 등록창 좌우 분할] PC에서 연차 등록 창이 넓어지며 왼쪽=달력, 오른쪽=직원 선택·시간·사유·목록으로 나뉘어 한눈에 보고 빠르게 입력할 수 있습니다 (모바일은 기존처럼 위아래로 표시)",
+                "⌨️ [ESC로 닫기] 연차 등록·수정, 직원 상세·수정, 월간 보고서, 엑셀 대조, 개인 캘린더, 휴가 상세 등 대부분의 창을 키보드 ESC로 바로 닫을 수 있습니다 (실수 방지를 위해 확인·경고창과 비밀번호 변경 창은 제외)",
+                "🔒 [직원 월별 마감] 직원은 '이번 달 1일'부터의 연차만 직접 등록·수정·삭제할 수 있습니다. 매월 1일이 지나면 지난달 이전 내역은 자동으로 잠겨(안내 문구도 매월 자동으로 바뀜), 과거 내역 변경은 관리자만 할 수 있습니다 (달력에서 지난달은 흐리게 표시)",
+                "🗓️ [미래 '예정' 표시] 대상기간 안의 미래 날짜 연차도 지금 바로 잔여에서 차감되고 내역에도 보입니다. 아직 오지 않은 연차는 직원·관리자 화면 모두에서 '예정' 배지로 구분되며, 직원 현황 카드에는 '이 중 미래 예정 O시간'이 함께 표시됩니다",
+                "🗑️ [대시보드 캘린더 삭제] 전사 휴가 캘린더에서 각 휴가 블록의 작은 ✕ 버튼으로 한 건씩 삭제하거나, 상단 [여러 개 삭제]로 여러 건을 골라 한 번에 삭제할 수 있습니다. 삭제 시 잔여 연차가 자동 복구됩니다",
+                "📅 [캘린더 하루 정리 · 일정 팝업] 하루에 휴가가 많은 날은 칸에 2건까지만 보이고 나머지는 ‹N개 더보기›로 접힙니다. 누르면 그 날 요일·날짜와 전체 휴가가 큰 팝업으로 열리고, 팝업 안에서도 바로 수정·삭제할 수 있습니다",
+                "🛡️ [호환] 저장되는 데이터 구조와 시간 집계 방식은 종전과 100% 동일합니다. 관리자 탭·직원 페이지·엑셀 대조 등 기존 기능은 그대로 유지됩니다"
+            ] },
+            { version: "6.15.0-stable", date: "2026-07-30", details: [
+                "🗓️ [관리자 연차 등록 개편] 관리자용 연차 등록 창도 직원용처럼 '달력을 눌러 날짜를 고르는' 방식으로 바뀌었습니다. 단일/기간/지정일 구분 없이 원하는 날을 자유롭게 클릭·해제하면 됩니다 (연속 기간은 [기간 한 번에 선택])",
+                "🧺 [관리자 장바구니 등록] 직원마다·날짜마다 다른 휴가를 [목록에 담기]로 쌓은 뒤 [전체 등록하기]로 한 번에 저장할 수 있습니다. 한 건이면 담지 않고 바로 등록해도 됩니다",
+                "🎯 [엑셀 대조 → 스마트 사전 입력] 다중 엑셀 정밀 대조 결과창에서 [연차 등록]을 누르면, 누락된 오차 시간이 등록 창의 '시간 직접 입력'칸에 자동으로 미리 채워집니다. 숫자를 다시 옮겨 적을 필요가 없습니다",
+                "🛡️ [호환] 저장되는 데이터 구조와 시간 집계 방식은 종전과 100% 동일합니다. 관리자 탭·직원 페이지·엑셀 대조 등 다른 기능은 그대로 유지됩니다"
+            ] },
             { version: "6.13.1-stable", date: "2026-07-29", details: [
                 "🔤 [용어 통일] 화면에 '시각'과 '시간'이 섞여 있던 것을 '시간'으로 통일해 더 쉽게 읽히도록 정리했습니다 (기능 변화 없음)"
             ] },
@@ -152,13 +176,7 @@
         };
 
         // ===== [v6.9.1] 두 자리 연도(YY) → 네 자리 연도 변환 =====
-        // 기존에는 'YY가 50보다 크면 1900년대, 아니면 2000년대'로 판정했습니다.
-        // 그 결과 1941년생이 2041년(미래)으로 저장되는 문제가 있었습니다.
-        // 이제는 '2000+YY 가 현실적인 출생연도 상한을 넘으면 1900년대로 되돌립니다'.
-        // 상한 = 올해 - MIN_WORK_AGE (올해 태어난 사람이 직원일 수는 없으므로)
-        // 커버 범위: (올해-MIN_WORK_AGE-99) ~ (올해-MIN_WORK_AGE) → 2026년 기준 1913~2012년생
         const MIN_WORK_AGE = 14;
-        // 기본(생년월일 등 '오래된 날짜'용) : 2000+YY 가 상한을 넘으면 1900년대로 되돌립니다.
         const expandYear2 = (yy) => {
             const n = parseInt(yy, 10);
             if (isNaN(n)) return NaN;
@@ -166,8 +184,6 @@
             const cand = 2000 + n;
             return cand > limit ? 1900 + n : cand;
         };
-        // 입사일·퇴사일용 : 생년월일과 규칙이 반대입니다. 입사일 '20'은 1920년이 아니라 2020년입니다.
-        // 미래가 아닌 한 2000년대로 보고, 올해를 넘어설 때만 1900년대로 되돌립니다.
         const expandYear2Recent = (yy) => {
             const n = parseInt(yy, 10);
             if (isNaN(n)) return NaN;
@@ -264,15 +280,6 @@
         };
 
         // [공통화] 엑셀 헤더 자동 탐색 (직원명부 / 퇴사자명부 / 대조 엔진 공용)
-        // needs 의 각 키는 키워드 배열이며, 배열의 '앞쪽 키워드일수록 우선순위가 높습니다'.
-        // 예: hour 목록이 ['휴가','사용시간','연차','시간'] 이면, '휴가'가 들어간 컬럼이 '시간'만 들어간 컬럼을 이깁니다.
-        //
-        // (v6.8.2) 2단 헤더 대응 — 아래처럼 1행이 큰 제목, 2행이 실제 항목명인 양식이 많습니다.
-        //   1행: [No.] [근로지원인]
-        //   2행: [   ] [근로지원인명] [생년월일] [휴가]   ← 진짜 헤더
-        // 예전에는 1행에서 '근로지원인'을 발견하고 즉시 확정해 2행을 데이터로 오인,
-        // '근로지원인명'이 미등록 직원으로 뜨고 시간 열도 못 찾는 문제가 있었습니다.
-        // 이제 후보 행마다 '이름 외에 몇 개 항목을 더 인식했는지(품질 점수)'를 매겨 가장 좋은 행을 헤더로 삼습니다.
         const findColumns = (jsonData, needs, scanRows = 10) => {
             let best = null;
             for (let i = 0; i < Math.min(scanRows, jsonData.length); i++) {
@@ -357,44 +364,68 @@
             return dates;
         };
 
+        // ============ [v6.17.0] 월별 마감 · 미래(예정) 판정 공통 유틸 ============
+        // [3번 월별 마감] 직원은 '당월 1일'부터만 등록/수정/삭제할 수 있습니다.
+        //   currentMonthStart() = 이번 달 1일 00:00 의 'YYYY-MM-01' 문자열.
+        //   isPastLockedForStaff(dateStr) = 그 날짜가 당월 1일보다 이전이면 true(직원 잠금).
+        //   ※ 관리자에게는 이 함수를 적용하지 않습니다(제한 없음).
+        const currentMonthStart = () => {
+            const t = new Date();
+            return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-01`;
+        };
+        const isPastLockedForStaff = (dateStr) => {
+            if (!dateStr) return false;
+            return String(dateStr) < currentMonthStart();
+        };
+        // 달력에서 '과거로 잠긴 달'인지 판정 (해당 월의 말일이 당월 1일보다 이전이면 그 달 전체가 과거)
+        const isMonthPastLocked = (year, month0) => {
+            const lastDay = new Date(year, month0 + 1, 0);
+            return toLocalYMD(lastDay) < currentMonthStart();
+        };
+
+        // [4번 미래 '예정' 표시] 오늘(자정 기준)보다 뒤 날짜면 아직 오지 않은 '예정' 연차입니다.
+        //   차감·합산은 종전과 동일하게 이뤄지되, 화면에서만 '예정'으로 구분해 보여줍니다.
+        const isFutureLeave = (dateStr) => {
+            if (!dateStr) return false;
+            return String(dateStr) > toLocalYMD(new Date());
+        };
+
+        // [2번 ESC 닫기] 모달이 열려 있는 동안 ESC 키를 누르면 onClose를 호출하는 공통 훅.
+        //   · enabled=false 면 리스너를 걸지 않습니다(확인·경고·비번강제 등 제외 대상).
+        //   · 여러 모달이 동시에 열려도, 각 모달이 자기 리스너를 달았다가 언마운트 시 해제하므로
+        //     가장 위(마지막에 열린) 모달부터 순차적으로 닫힙니다.
+        const useEscClose = (onClose, enabled = true) => {
+            useEffect(() => {
+                if (!enabled || typeof onClose !== 'function') return;
+                const handler = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+                document.addEventListener('keydown', handler);
+                return () => document.removeEventListener('keydown', handler);
+            }, [onClose, enabled]);
+        };
+
         // ============ [v6.12.0] 시간(Hour) 단위 정밀 계산 유틸 ============
-        // "HH:MM" 문자열을 분(minute)으로 변환. 잘못된 값이면 null.
         const timeToMinutes = (t) => {
             if (!t || typeof t !== 'string' || !/^\d{1,2}:\d{2}$/.test(t)) return null;
             const [h, m] = t.split(':').map(Number);
             if (isNaN(h) || isNaN(m)) return null;
             return h * 60 + m;
         };
-        // [v6.13.0] 실제 차감 시간 = 연차 구간에서 '휴게와 겹치는 부분만' 뺀 시간.
-        // 이전에는 (연차시간 − 휴게시간)을 무조건 빼서, 휴게가 연차 시간대 밖(예: 연차 9~12시, 휴게 12~13시)이어도
-        // 차감되는 버그가 있었습니다. 이제 두 구간의 교집합(overlap)만 계산해 빼므로,
-        //   · 연차 09:00~12:00 / 휴게 12:00~13:00 → 겹침 0분 → 3시간 (정상)
-        //   · 연차 09:00~18:00 / 휴게 12:00~13:00 → 겹침 60분 → 8시간
-        //   · 연차 09:00~12:30 / 휴게 12:00~13:00 → 겹침 30분 → 3시간
-        // 반환: { hours, error, workMin, overlapMin } — error가 있으면 hours는 0.
         const calcLeaveHours = (startT, endT, breakStartT, breakEndT) => {
             const s = timeToMinutes(startT), e = timeToMinutes(endT);
             if (s === null || e === null) return { hours: 0, error: '연차 시작·종료 시간을 입력하세요.', workMin: 0, overlapMin: 0 };
             if (e <= s) return { hours: 0, error: '연차 종료 시간은 시작 시간보다 뒤여야 합니다.', workMin: 0, overlapMin: 0 };
             const workMin = e - s;
             const bs = timeToMinutes(breakStartT), be = timeToMinutes(breakEndT);
-            // 휴게시간은 필수 입력. 둘 다 있어야 유효한 것으로 처리.
             if (bs === null || be === null) return { hours: 0, error: '휴게 시작·종료 시간을 입력하세요.', workMin, overlapMin: 0 };
             if (be < bs) return { hours: 0, error: '휴게 종료 시간은 시작 시간보다 뒤여야 합니다.', workMin, overlapMin: 0 };
-            // 교집합(overlap) = 두 구간이 실제로 겹치는 분. 겹치지 않으면 0.
             const overlapMin = Math.max(0, Math.min(e, be) - Math.max(s, bs));
             const net = workMin - overlapMin;
             if (net <= 0) return { hours: 0, error: '휴게시간을 빼면 실제 차감 시간이 0 이하입니다.', workMin, overlapMin };
             return { hours: Math.round((net / 60) * 100) / 100, error: '', workMin, overlapMin };
         };
-        // 시간 값을 사람이 읽기 좋은 라벨로 (예: 8 → '8시간', 4.5 → '4.5시간')
         const hourLabel = (h) => `${fmt(h)}시간`;
 
-        // ============ [v6.13.0] 24시간제 시각 선택기 (시·분 드롭다운) ============
-        // 브라우저 type="time"이 로케일에 따라 '오전 12:00'처럼 12시간제로 보이는 문제를 해결하기 위해,
-        // 항상 24시간제(0시~23시)로 보이는 시·분 드롭다운으로 대체합니다.
-        // value/onChange는 기존과 동일하게 "HH:MM" 문자열을 주고받아 계산 로직과 100% 호환됩니다.
-        // accent: 'blue'(연차) | 'orange'(휴게) — 포커스 테두리 색만 다릅니다.
+        // ============ [v6.13.0] 24시간제 시간 선택기 (시·분 드롭다운) ============
         const TimeSelect = ({ value, onChange, accent }) => {
             const [hh, mm] = (value && /^\d{1,2}:\d{2}$/.test(value)) ? value.split(':').map(Number) : [0, 0];
             const border = accent === 'orange' ? 'border-orange-200 focus:border-orange-500' : 'border-slate-200 focus:border-blue-500';
@@ -415,11 +446,9 @@
         };
 
         // ============ [v6.13.0] 통합 미니 캘린더 (날짜방식 탭 제거) ============
-        // 이제 모드 구분 없이 '클릭한 날짜들'을 모두 등록합니다. value는 항상 'YYYY-MM-DD' 배열.
-        //  · 기본        : 날짜를 누를 때마다 선택/해제 토글
-        //  · 범위 채우기 : 상단 토글을 켜고 두 날짜를 클릭하면 그 사이를 전부 선택(휴무일 자동 제외)
-        // offDays: 휴무 요일은 흐리게 표시하고, 범위 채우기 시 자동 제외합니다(개별 클릭은 그래도 가능).
-        const MiniCalendar = ({ value, onChange, offDays, takenDates }) => {
+        // [v6.17.0] lockPast: true 이면 '당월 1일 이전' 날짜를 선택 불가로 잠급니다(직원 월별 마감용).
+        //           관리자 등록 모달에서는 lockPast를 넘기지 않아(=false) 과거도 자유롭게 선택 가능합니다.
+        const MiniCalendar = ({ value, onChange, offDays, takenDates, lockPast = false }) => {
             const arr = Array.isArray(value) ? value : [];
             const taken = takenDates instanceof Set ? takenDates : new Set();
             const [viewDate, setViewDate] = useState(() => {
@@ -438,12 +467,15 @@
             const isSelected = (dateStr) => arr.includes(dateStr);
 
             const handleClick = (dateStr) => {
+                // [v6.17.0] 직원 월별 마감: 당월 1일 이전 날짜는 선택 불가
+                if (lockPast && isPastLockedForStaff(dateStr)) return;
                 if (rangeMode) {
                     if (!rangeAnchor) { setRangeAnchor(dateStr); return; }
-                    // 두 번째 클릭 → anchor~dateStr 사이 근무일을 모두 선택에 합칩니다.
                     const a = rangeAnchor < dateStr ? rangeAnchor : dateStr;
                     const b = rangeAnchor < dateStr ? dateStr : rangeAnchor;
-                    const span = listWorkingDates(a, b, off);
+                    let span = listWorkingDates(a, b, off);
+                    // [v6.17.0] 범위 채우기에서도 잠긴 과거 날짜는 제외
+                    if (lockPast) span = span.filter(ds => !isPastLockedForStaff(ds));
                     const merged = Array.from(new Set([...arr, ...span])).sort();
                     onChange(merged);
                     setRangeAnchor(null);
@@ -483,6 +515,7 @@
                             const isTaken = taken.has(dateStr);
                             const dow = idx % 7;
                             const isOff = off.includes(dow);
+                            const isLocked = lockPast && isPastLockedForStaff(dateStr); // [v6.17.0] 과거 잠금 여부
                             let cls = 'text-slate-700';
                             if (isAnchor) cls = 'bg-amber-500 text-white font-black shadow-md ring-2 ring-amber-300';
                             else if (sel) cls = 'bg-blue-600 text-white font-black shadow-md';
@@ -490,7 +523,7 @@
                             else if (dow === 0) cls = 'text-red-400';
                             else if (dow === 6) cls = 'text-blue-400';
                             return (
-                                <button key={idx} type="button" onClick={() => handleClick(dateStr)} title={isTaken ? '이미 등록된 휴가가 있는 날' : ''} className={`relative h-9 rounded-lg text-xs transition flex items-center justify-center hover:bg-slate-100 ${cls} ${isOff && !sel && !isAnchor ? 'opacity-40' : ''}`}>
+                                <button key={idx} type="button" disabled={isLocked} onClick={() => handleClick(dateStr)} title={isLocked ? '지난달 이전은 관리자만 등록할 수 있어요' : (isTaken ? '이미 등록된 휴가가 있는 날' : '')} className={`relative h-9 rounded-lg text-xs transition flex items-center justify-center ${isLocked ? 'opacity-30 cursor-not-allowed line-through' : 'hover:bg-slate-100'} ${cls} ${isOff && !sel && !isAnchor && !isLocked ? 'opacity-40' : ''}`}>
                                     {d}
                                     {isTaken && <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : 'bg-orange-400'}`}></span>}
                                 </button>
@@ -545,9 +578,6 @@
         const ForceUpdateModal = () => (<div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[200] animate-fade-in backdrop-blur-md px-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-orange-500 text-center"><div className="text-orange-500 mb-4 flex justify-center scale-150"><Icons.Refresh /></div><h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">새로운 업데이트 발견</h3><p className="text-slate-600 font-bold mb-6 text-sm">관리자가 시스템을 새 버전으로 업데이트했습니다.<br/>안정적인 데이터 처리를 위해 새로고침 해주세요.</p><button onClick={() => window.location.reload(true)} className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black hover:bg-orange-600 transition shadow-lg shadow-orange-200 text-sm flex items-center justify-center gap-2"><Icons.Refresh /> 지금 새로고침</button></div></div>);
 
         // ------------------ [신규 v6.10.0] 초기 비밀번호 강제 변경 화면 ------------------
-        // 초기 비밀번호(123456)로 로그인한 직원에게만 노출됩니다.
-        // ① Firebase Auth의 실제 로그인 비밀번호를 새 값으로 교체(updatePassword)하고,
-        // ② DB(users 컬렉션)의 tempPw 를 빈 문자열('')로 지워 다음부터는 이 화면이 뜨지 않게 합니다.
         const ForcePwChangeModal = ({ user, onDone, onLogout }) => {
             const [pw1, setPw1] = useState('');
             const [pw2, setPw2] = useState('');
@@ -561,11 +591,9 @@
                 if (pw1 !== pw2) { setError('두 비밀번호가 일치하지 않습니다. 다시 확인해주세요.'); return; }
                 setLoading(true);
                 try {
-                    // ① Firebase 로그인 비밀번호 실제 변경
                     const current = auth.currentUser;
                     if (!current) throw new Error('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
                     await current.updatePassword(pw1);
-                    // ② DB의 tempPw 해제 → 다시는 이 화면이 뜨지 않음
                     await db.collection('users').doc(user.email).update({ tempPw: '' });
                     onDone();
                 } catch (err) {
@@ -639,8 +667,6 @@
 
 
         // ============ [신규 v6.8.0] 스포트라이트 오버레이 투어 ============
-        // 실제 화면 요소를 밝게 뚫어 보여주며 위치를 안내합니다.
-        // data-tour="키" 속성이 달린 요소를 찾아 좌표를 계산합니다.
         const TOUR_STEPS = [
             { key: 'stats',   badge: '①', title: '내 연차 현황', body: '총 발생 · 사용 · 잔여가 이 3개의 카드에 시간(Hour) 단위로 표시됩니다. 초록색 잔여가 앞으로 쓸 수 있는 시간입니다.' },
             { key: 'datemode',badge: '②', title: '1단계 · 날짜 선택 안내', body: '먼저 아래 달력에서 원하는 날짜를 누릅니다. 여러 날을 눌러 한 번에 등록할 수 있어요.' },
@@ -658,7 +684,6 @@
             const [tipPos, setTipPos] = useState(null);  // 말풍선 좌표 (null → 하단 고정)
             const [ready, setReady] = useState(false);
 
-            // 현재 단계에서 실제로 존재하는 요소만 추려 둡니다 (없는 단계는 자동 건너뜀)
             const steps = useMemo(() => TOUR_STEPS.filter(st => document.querySelector(`[data-tour="${st.key}"]`)), []);
             const total = steps.length;
             const step = steps[idx];
@@ -668,11 +693,7 @@
                 const pad = 8;
                 const hole = { top: r.top - pad, left: r.left - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
                 setRect(hole);
-
-                // 좁은 화면이면 계산하지 않고 하단 고정 카드로 착지합니다
                 if (vw < 640) { setTipPos(null); setReady(true); return; }
-
-                // 아래 → 위 → 오른쪽 → 왼쪽 순으로 자리를 찾습니다
                 let pos = null;
                 if (hole.top + hole.height + GAP + TIP_H_EST < vh - EDGE) {
                     pos = { top: hole.top + hole.height + GAP, left: hole.left + hole.width / 2 - TIP_W / 2 };
@@ -683,9 +704,7 @@
                 } else if (hole.left - GAP - TIP_W > EDGE) {
                     pos = { top: Math.max(EDGE, hole.top), left: hole.left - GAP - TIP_W };
                 }
-
                 if (!pos) { setTipPos(null); setReady(true); return; }
-                // 화면 밖으로 넘어가면 안쪽으로 당깁니다
                 pos.left = Math.min(Math.max(EDGE, pos.left), vw - TIP_W - EDGE);
                 pos.top = Math.min(Math.max(EDGE, pos.top), vh - TIP_H_EST - EDGE);
                 setTipPos(pos); setReady(true);
@@ -695,11 +714,8 @@
                 if (!step) return;
                 const el = document.querySelector(`[data-tour="${step.key}"]`);
                 if (!el) { setRect(null); setTipPos(null); setReady(true); return; }
-
                 const vw = window.innerWidth, vh = window.innerHeight;
                 const r = el.getBoundingClientRect();
-
-                // 대상이 화면 밖이면 스크롤로 끌어온 뒤 다시 측정합니다
                 if (r.top < 60 || r.bottom > vh - 60) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     setTimeout(() => {
@@ -759,6 +775,7 @@
         const StaffGuideModal = ({ onClose, onStartTour }) => {
             const [step, setStep] = useState(0);
             const [dontShow, setDontShow] = useState(true);
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const isLast = step === GUIDE_STEPS.length - 1;
             const s = GUIDE_STEPS[step];
             const tone = {
@@ -838,6 +855,7 @@
         };
 
         const StaffDetailModal = ({ staff, onClose }) => {
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
             if (!staff) return null;
             const Row = ({ label, value, danger }) => (<div className={`flex justify-between p-3 rounded-xl ${danger ? 'bg-red-50 border border-red-100' : 'bg-slate-50'}`}><span className={`text-xs font-bold ${danger ? 'text-red-500' : 'text-slate-500'}`}>{label}</span><span className={`text-sm font-bold ${danger ? 'text-red-600' : 'text-slate-800'}`}>{value}</span></div>);
             return (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative"><button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button><div className="text-center mb-6"><div className="w-20 h-20 bg-blue-50 rounded-full mx-auto flex items-center justify-center mb-3"><span className="text-3xl font-black text-blue-600">{(staff.name || '?')[0]}</span></div><h3 className="text-2xl font-bold text-slate-800">{staff.name}</h3><p className="text-sm text-slate-500 font-medium">{staff.resignDate ? '퇴사자 정보' : '상세 정보'}</p></div><div className="space-y-4"><Row label="생년월일" value={safeDate(staff.birth) || '-'} /><Row label="휴대폰" value={staff.phone || '-'} /><Row label="입사일" value={safeDate(staff.joinDate) || '-'} /><div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">근무시간</span><span className="text-sm font-bold text-blue-600">{staff.workHours || 8}시간</span></div><div className="flex justify-between p-3 bg-slate-50 rounded-xl"><span className="text-xs font-bold text-slate-500">고정 휴무일</span><span className="text-sm font-bold text-red-500">{(staff.offDays || [0]).map(d => WEEK_LABELS[d]).join(', ')}요일</span></div>{staff.resignDate && <Row label="퇴사일" value={safeDate(staff.resignDate)} danger />}</div><button type="button" onClick={onClose} className="w-full mt-6 bg-slate-800 text-white py-3 rounded-xl text-sm font-bold hover:bg-slate-700 transition">닫기</button></div></div>);
@@ -845,6 +863,7 @@
 
         const EditStaffModal = ({ staff, onClose, showAlert }) => {
             const [formData, setFormData] = useState({ ...staff }); const [msg, setMsg] = useState('');
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
             const handleOffDayChange = (val) => {
                 let cur = formData.offDays || [0];
@@ -873,6 +892,7 @@
         const MonthlyReportModal = ({ staffList, onClose, showAlert }) => {
             const [isExporting, setIsExporting] = useState(false);
             const [targetMonth, setTargetMonth] = useState(toLocalYMD(new Date()).substring(0, 7));
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
 
             const reportData = useMemo(() => staffList.map(staff => {
                 const dailyHours = safeParseFloat(staff.workHours) || 8;
@@ -927,12 +947,14 @@
             );
         };
 
-        // ================= [v6.7.0 핵심 수정] 다중 엑셀 정밀 대조 엔진 =================
-        // 변경점 : 대조 대상 = '현재 재직 중인 직원'만. 엑셀에 섞여 들어온 퇴사자 행은
-        //          오차 목록에 올리지 않고 조용히 제외(skippedResigned)하여 오탐을 없앱니다.
+        // ================= [v6.7.0] 다중 엑셀 정밀 대조 엔진 =================
+        // [v6.15.0] 개선점: 오차 내역의 [연차 등록] 버튼을 누를 때, 직원 ID뿐 아니라
+        //           '누락된 오차 시간(r.diff)'까지 함께 모달로 전달합니다.
+        //           → 연차 등록 모달이 '시간 직접 입력' 모드로 열리며 해당 시간이 미리 채워집니다.
         const AdvancedAuditModal = ({ staffList, onClose, showAlert, onOpenModal, defaultPromoFilter = false }) => {
             const today = new Date();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const [step, setStep] = useState(1);
             const [mappings, setMappings] = useState([]);
             const [results, setResults] = useState(null);
@@ -942,15 +964,11 @@
             const [isPromoFilterEnabled, setIsPromoFilterEnabled] = useState(defaultPromoFilter);
             const [filterPromoMonth, setFilterPromoMonth] = useState(defaultMonth);
 
-            // 재직자 / 퇴사자를 명확히 분리
             // ===== [v6.9.0] 재직/퇴사 판정 및 대조 대상 구성 =====
-            // isResigned : status가 'resigned' 이거나, 퇴사일이 입력되어 있으면 퇴사자로 봅니다.
             const isResigned = (s) => s.status === 'resigned' || !!(s.resignDate && String(s.resignDate).trim());
             const activeStaffs = useMemo(() => staffList.filter(s => !isResigned(s)), [staffList]);
             const resignedStaffs = useMemo(() => staffList.filter(isResigned), [staffList]);
 
-            // 퇴사자 판별용 인덱스 — 이름뿐 아니라 '이름+생년월일' 조합도 함께 봅니다.
-            // (동명이인 중 한 명만 퇴사한 경우, 재직자까지 통째로 제외되는 사고를 막기 위함)
             const resignedIndex = useMemo(() => {
                 const byName = new Map();   // 이름 → 퇴사자 수
                 const byKey = new Set();    // 이름|생년월일
@@ -963,7 +981,6 @@
                 return { byName, byKey };
             }, [resignedStaffs]);
 
-            // 재직자 이름 → 인원수 (동명이인 판별용)
             const activeNameCount = useMemo(() => {
                 const m = new Map();
                 activeStaffs.forEach(s => { const n = cleanName(s.name); if (n) m.set(n, (m.get(n) || 0) + 1); });
@@ -997,7 +1014,6 @@
 
                     const excelDataMap = {}; const unmatchedExcelData = []; let skipped = 0;
                     const autoFixedFiles = []; const failedFiles = []; const ambiguousRows = [];
-                    // 우선순위 순서 (앞쪽일수록 강함) — '근무시간' 같은 열에 오인식되지 않도록 구체적 키워드를 앞에 둡니다
                     const NEEDS = {
                         name: ['근로지원인', '성명', '이름'],
                         hour: ['휴가사용시간', '연차사용시간', '사용시간', '휴가시간', '연차시간', '사용연차', '휴가', '연차', '시간'],
@@ -1017,8 +1033,6 @@
                         let hourCol = cols.hour !== undefined ? cols.hour : -1;
                         const infoCol = cols.info !== undefined ? cols.info : -1;
 
-                        // [v6.8.1 안전망] 헤더로 찾은 시간 컬럼에 유효한 숫자가 하나도 없으면,
-                        // 데이터를 직접 훑어 '양수 합계가 가장 큰 숫자 컬럼'을 시간 컬럼으로 자동 채택합니다.
                         const colSum = (c) => {
                             if (c < 0) return 0;
                             let sum = 0;
@@ -1047,20 +1061,15 @@
                             if (!rawName || hours <= 0) continue;
 
                             const exName = cleanName(rawName);
-                            // [v6.8.2] 헤더/합계/소계 같은 '사람이 아닌 행'은 이름으로 취급하지 않습니다
                             if (isNotPersonName(exName)) continue;
 
                             const infoStr = infoCol !== -1 ? normalizeString(row[infoCol]) : '';
                             const exBirth = normalizeString(safeDate(infoStr));
 
-                            // ===== [v6.9.0 핵심] 재직자 한정 대조 =====
-                            // 1) 먼저 '재직 중인 직원' 안에서만 정확히 일치하는 사람을 찾습니다.
                             const sameName = activeStaffs.filter(s => cleanName(s.name) === exName);
                             let targetStaffId = null;
 
                             if (sameName.length === 1) {
-                                // 양쪽 모두 생년월일을 가지고 있는데 서로 다르면 동일인이 아닙니다.
-                                // (같은 이름의 퇴사자 데이터가 재직자에게 잘못 붙는 것을 막습니다)
                                 const only = sameName[0];
                                 const onlyBirth = normalizeString(safeDate(only.birth));
                                 if (onlyBirth && exBirth && onlyBirth !== exBirth) {
@@ -1070,7 +1079,6 @@
                                 }
                                 targetStaffId = only.id;
                             } else if (sameName.length > 1) {
-                                // 동명이인 → 생년월일 / 연락처로 특정합니다
                                 const found = sameName.find(s => {
                                     const sBirth = normalizeString(safeDate(s.birth));
                                     const sPhone = normalizeString(s.phone);
@@ -1081,13 +1089,11 @@
                                 else { ambiguousRows.push({ name: rawName, month: mapItem.month, hours }); continue; }
                             }
 
-                            // 2) 재직자 중에 없다면 — 퇴사자인지 확인하고, 맞으면 조용히 제외합니다.
                             if (!targetStaffId) {
                                 const isResignedPerson = exBirth
                                     ? resignedIndex.byKey.has(exName + '|' + exBirth) || (resignedIndex.byName.has(exName) && !activeNameCount.has(exName))
                                     : resignedIndex.byName.has(exName) && !activeNameCount.has(exName);
                                 if (isResignedPerson) { skipped++; continue; }
-                                // 3) 재직자도 퇴사자도 아니면 진짜 미등록 인원입니다.
                                 unmatchedExcelData.push({ name: rawName, month: mapItem.month, hours });
                                 continue;
                             }
@@ -1111,7 +1117,6 @@
                         });
                     });
 
-                    // 촉진 필터가 꺼져 있을 때만 '미등록' 인원을 알림 (퇴사자는 이미 위에서 제외됨)
                     if (!isPromoFilterEnabled) {
                         unmatchedExcelData.forEach((u, idx) => {
                             if (!auditMonths.has(u.month)) return;
@@ -1140,7 +1145,7 @@
 
             return (
                 <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl relative flex flex-col max-h-[90vh]"><button type="button" onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                    <div className="mb-6 border-b pb-4"><h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Icons.CheckCircle /> 다중 엑셀 정밀 대조 엔진</h3><p className="text-sm text-slate-500 font-bold mt-2">수십 개의 엑셀을 한 번에 올려 월별 누락을 핀포인트로 찾아내고 즉시 보완합니다.</p><p className="text-[11px] text-blue-600 font-bold mt-1.5 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">🛡️ v6.7.0 : 직원 명부상 <b>현재 재직 중인 직원</b>만 대조합니다. (퇴사자 자동 제외)</p></div>
+                    <div className="mb-6 border-b pb-4"><h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Icons.CheckCircle /> 다중 엑셀 정밀 대조 엔진</h3><p className="text-sm text-slate-500 font-bold mt-2">수십 개의 엑셀을 한 번에 올려 월별 누락을 핀포인트로 찾아내고 즉시 보완합니다.</p><p className="text-[11px] text-blue-600 font-bold mt-1.5 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">🛡️ 재직 중인 직원만 대조 · 🎯 v6.15.0 : [연차 등록] 시 오차 시간이 자동으로 미리 채워집니다</p></div>
                     {isProcessing && (<div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-3xl backdrop-blur-sm"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-bold text-indigo-700">모든 엑셀 데이터를 월별로 병합하여 분석 중입니다...</p></div>)}
                     {!results && !isProcessing && (
                         <div className="mb-4 bg-orange-50 p-4 rounded-xl border border-orange-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -1171,7 +1176,9 @@
                                 {results.length > 0 ? (
                                     <table className="w-full text-sm text-left whitespace-nowrap"><thead className="bg-slate-100 text-slate-600 font-bold sticky top-0 z-10 shadow-sm border-b border-slate-200"><tr><th className="p-3">이름</th><th className="p-3 text-center">발생 월</th><th className="p-3 text-center text-slate-500 border-l border-slate-200">엑셀 기록</th><th className="p-3 text-center text-slate-500">DB(시스템)</th><th className="p-3 text-center text-red-500">오차 시간</th><th className="p-3 text-center w-32">즉시 보완</th></tr></thead>
                                         <tbody className="divide-y divide-slate-100 bg-white">
-                                            {results.map((r) => (<tr key={r.id} className="hover:bg-red-50/30 transition"><td className="p-3 font-bold text-slate-800">{r.name}</td><td className="p-3 text-center font-bold text-indigo-600">{r.month}</td><td className="p-3 text-center font-bold text-slate-600 border-l border-slate-100">{r.excelHours}h</td><td className="p-3 text-center font-bold text-slate-600">{r.dbHours}h</td><td className="p-3 text-center"><span className="bg-red-50 text-red-600 px-2 py-1 rounded font-black border border-red-100">{r.diff}h 차이</span><div className="text-[10px] text-red-400 mt-1">{r.type === 'missing_in_db' ? 'DB 누락됨' : 'DB 데이터 초과'}</div></td><td className="p-3 text-center"><button onClick={() => { if (r.staffId) onOpenModal(r.staffId); else showAlert("직원 명부에 등록되지 않은 인원입니다.\n[직원 명부] 탭에서 먼저 등록해주세요."); }} className={`text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 ${r.staffId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-400 cursor-not-allowed'}`}><Icons.Plus /> 연차 등록</button></td></tr>))}
+                                            {/* [v6.15.0] onOpenModal 호출 시 두 번째 인자로 r.diff(오차 시간)를 함께 전달 →
+                                                        연차 등록 모달이 '시간 직접 입력' 모드로 열리며 이 시간이 미리 채워집니다. */}
+                                            {results.map((r) => (<tr key={r.id} className="hover:bg-red-50/30 transition"><td className="p-3 font-bold text-slate-800">{r.name}</td><td className="p-3 text-center font-bold text-indigo-600">{r.month}</td><td className="p-3 text-center font-bold text-slate-600 border-l border-slate-100">{r.excelHours}h</td><td className="p-3 text-center font-bold text-slate-600">{r.dbHours}h</td><td className="p-3 text-center"><span className="bg-red-50 text-red-600 px-2 py-1 rounded font-black border border-red-100">{r.diff}h 차이</span><div className="text-[10px] text-red-400 mt-1">{r.type === 'missing_in_db' ? 'DB 누락됨' : 'DB 데이터 초과'}</div></td><td className="p-3 text-center"><button onClick={() => { if (r.staffId) onOpenModal(r.staffId, r.diff); else showAlert("직원 명부에 등록되지 않은 인원입니다.\n[직원 명부] 탭에서 먼저 등록해주세요."); }} className={`text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 ${r.staffId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-400 cursor-not-allowed'}`}><Icons.Plus /> 연차 등록</button></td></tr>))}
                                         </tbody>
                                     </table>
                                 ) : (<div className="flex flex-col items-center justify-center h-full py-20 text-slate-400"><div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-4 border border-green-100 shadow-sm"><Icons.CheckCircle /></div><p className="font-bold text-lg text-slate-700">모든 데이터가 완벽하게 일치합니다!</p><p className="text-sm mt-1">업로드하신 엑셀 파일과 DB 내역에 오차가 없습니다.</p></div>)}
@@ -1196,8 +1203,23 @@
             );
         };
 
-        const CalendarView = ({ staffList, onEditClick }) => {
+        // ============================================================================
+        //  [v6.16.0-beta] 대시보드 '전사 휴가 캘린더' — 삭제 기능 추가
+        //   ▷ 새 prop: showConfirm / showAlert  (App에서 함께 내려줍니다)
+        //   ▷ 두 가지 삭제 방식을 모두 제공합니다.
+        //     ① 개별 삭제 : 각 휴가 블록 위에 상시 표시되는 작은 X 버튼 → 그 1건만 삭제
+        //     ② 여러 개 삭제 : [여러 개 삭제] 버튼으로 '선택 모드'에 진입 → 블록을 눌러
+        //                       여러 건을 체크한 뒤 [선택 삭제]로 한 번에 삭제
+        //   ▷ 삭제는 기존 recalcAndSave(직원별로 leaveHistory에서 해당 id 제거 후 재계산)를
+        //     그대로 사용하므로 데이터 구조·집계 방식은 종전과 100% 동일합니다.
+        //   ▷ 전사 캘린더는 여러 직원의 휴가가 섞여 있으므로, 삭제 시 직원(staffId)별로
+        //     묶어서 각 직원 문서를 한 번씩만 갱신합니다.
+        // ============================================================================
+        const CalendarView = ({ staffList, onEditClick, showConfirm, showAlert }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
+            // [v6.16.0] 선택 모드 및 체크된 항목(id) 목록
+            const [selectMode, setSelectMode] = useState(false);
+            const [checkedIds, setCheckedIds] = useState([]);
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
 
@@ -1216,12 +1238,135 @@
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
             const todayStr = toLocalYMD(new Date());
 
+            // [v6.16.0] 이번 달 화면에 보이는 전체 휴가 건들을 평탄화 — 삭제 대상 조회용
+            const monthLeaves = useMemo(() => Object.values(leaveMap).flat(), [leaveMap]);
+
+            const toggleCheck = (id) => setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+            const exitSelectMode = () => { setSelectMode(false); setCheckedIds([]); };
+
+            // [v6.16.0] 공통 삭제 실행기 — 삭제할 record 배열을 받아 직원별로 묶어 일괄 반영
+            //  recs: [{ id, staffId, ... }]  (leaveMap이 만들어 준 name·staffId 포함 객체)
+            const deleteRecords = async (recs) => {
+                // 직원 id → 삭제할 휴가 id Set 으로 그룹화
+                const byStaff = {};
+                recs.forEach(r => { (byStaff[r.staffId] = byStaff[r.staffId] || new Set()).add(r.id); });
+                for (const staffId of Object.keys(byStaff)) {
+                    const staff = staffList.find(s => s.id === staffId);
+                    if (!staff) continue;
+                    const idSet = byStaff[staffId];
+                    const newHistory = (staff.leaveHistory || []).filter(h => !idSet.has(h.id));
+                    await recalcAndSave(staffId, staff.joinDate, newHistory);
+                }
+            };
+
+            // ① 개별 삭제 (X 버튼)
+            const handleDeleteOne = (l) => {
+                showConfirm(`${l.name} 직원의 ${l.date} (${l.type}) 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
+                    try { await deleteRecords([l]); }
+                    catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+
+            // ② 여러 개 삭제 (선택 모드)
+            const handleBulkDelete = () => {
+                if (!checkedIds.length) return;
+                const recs = monthLeaves.filter(l => checkedIds.includes(l.id));
+                if (!recs.length) return;
+                const preview = recs.slice(0, 8).map(r => `${r.date} ${r.name}(${r.type})`).join('\n');
+                const more = recs.length > 8 ? `\n… 외 ${recs.length - 8}건` : '';
+                showConfirm(`선택한 ${recs.length}건의 휴가를 삭제하시겠습니까?\n삭제 시 각 직원의 잔여 연차가 자동으로 복구됩니다.\n\n${preview}${more}`, async () => {
+                    try { await deleteRecords(recs); exitSelectMode(); showAlert(`🗑️ ${recs.length}건 삭제 완료!`); }
+                    catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+
+            // 블록 클릭 동작: 선택 모드면 체크 토글, 아니면 기존처럼 수정 모달 열기
+            const handleBlockClick = (l) => { if (selectMode) toggleCheck(l.id); else onEditClick && onEditClick(l.staffId, 0, l); };
+
+            // [v6.17.1] 하루 칸에 최대 몇 건까지 미리 보여줄지 (초과분은 'N개 더보기'로 팝업)
+            const MAX_VISIBLE = 2;
+            // [v6.17.1] 그 날 일정 팝업(모달) 대상 날짜. null이면 닫힘.
+            const [dayModalDate, setDayModalDate] = useState(null);
+            // 팝업은 항상 '최신 staffList'가 반영되도록 leaveMap에서 매 렌더 다시 읽습니다.
+            const dayModalLeaves = dayModalDate ? (leaveMap[dayModalDate] || []) : [];
+            // 팝업 안에 표시할 요일 라벨
+            const dayModalWeekday = useMemo(() => {
+                if (!dayModalDate) return '';
+                const [yy, mm, dd] = dayModalDate.split('-').map(Number);
+                return WEEK_LABELS[new Date(yy, mm - 1, dd).getDay()];
+            }, [dayModalDate]);
+            useEscClose(() => setDayModalDate(null), !!dayModalDate); // [v6.17.1] 팝업 ESC 닫기
+
+            // 팝업에서 삭제하면, 그 날 남은 항목이 없을 때 팝업도 함께 닫습니다.
+            const handleDeleteFromModal = (l) => {
+                showConfirm(`${l.name} 직원의 ${l.date} (${l.type}) 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
+                    try {
+                        await deleteRecords([l]);
+                        // 삭제 후 그 날 항목이 1건뿐이었다면 팝업 닫기 (leaveMap은 다음 렌더에 갱신됨)
+                        if ((leaveMap[l.date] || []).length <= 1) setDayModalDate(null);
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                });
+            };
+            // 팝업에서 수정 클릭 → 기존 수정 모달로 연결하고 팝업은 닫음
+            const handleEditFromModal = (l) => { setDayModalDate(null); onEditClick && onEditClick(l.staffId, 0, l); };
+
             return (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6 animate-fade-in overflow-hidden flex flex-col h-full min-h-[400px]">
-                    <div className="flex justify-between items-center mb-4">
+                    {/* ═══════ [v6.17.1] 그 날 일정 팝업 (업로드 이미지 스타일) ═══════ */}
+                    {dayModalDate && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[450] animate-fade-in backdrop-blur-sm p-4" onClick={() => setDayModalDate(null)}>
+                            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                {/* 상단 헤더: 요일 + 날짜 + 닫기 (이미지의 다크 헤더 느낌) */}
+                                <div className="bg-slate-800 text-white p-5 relative">
+                                    <button type="button" onClick={() => setDayModalDate(null)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition" title="닫기 (ESC)"><Icons.X /></button>
+                                    <p className="text-xs font-bold text-slate-300 mb-0.5">{dayModalWeekday}요일</p>
+                                    <p className="text-3xl font-black tracking-tight">{parseInt(dayModalDate.slice(-2), 10)}<span className="text-base font-bold text-slate-300 ml-2">{dayModalDate.slice(0, 7).replace('-', '. ')}</span></p>
+                                    <p className="text-xs font-bold text-slate-300 mt-1">이 날 휴가 {dayModalLeaves.length}건</p>
+                                </div>
+                                {/* 항목 리스트 (수정·삭제 가능) */}
+                                <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
+                                    {dayModalLeaves.length === 0 ? (
+                                        <p className="text-center text-slate-400 font-bold py-8 text-sm">이 날 남은 휴가가 없습니다.</p>
+                                    ) : dayModalLeaves.map((l, i) => {
+                                        const isPartial = l.type.includes('반차') || l.type.includes('시간');
+                                        const future = isFutureLeave(l.date);
+                                        return (
+                                            <div key={l.id || i} className={`flex items-center justify-between gap-2 p-3 rounded-xl border ${isPartial ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/30' : ''}`}>
+                                                <div className="min-w-0">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="font-black text-slate-800 text-sm truncate">{l.name}</span>
+                                                        {future && <span className="px-1 rounded-sm bg-slate-800 text-white text-[9px] font-black flex-shrink-0">예정</span>}
+                                                    </div>
+                                                    <p className={`text-xs font-bold mt-0.5 ${isPartial ? 'text-orange-600' : 'text-blue-600'}`}>{fmt(safeParseFloat(l.days))}시간 · {l.type}{l.reason ? ` · ${l.reason}` : ''}</p>
+                                                </div>
+                                                <div className="flex gap-1.5 flex-shrink-0">
+                                                    <button type="button" onClick={() => handleEditFromModal(l)} title="수정" className="text-blue-500 p-2 bg-white rounded-lg shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
+                                                    <button type="button" onClick={() => handleDeleteFromModal(l)} title="삭제" className="text-red-500 p-2 bg-white rounded-lg shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
                         <h3 className="font-bold text-slate-700 flex items-center gap-2 text-sm md:text-base"><Icons.Calendar /> 전사 휴가 캘린더</h3>
-                        <CalendarNav year={year} month={month} setCurrentDate={setCurrentDate} />
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {/* [v6.16.0] 여러 개 삭제 / 선택 취소 토글 */}
+                            {selectMode
+                                ? <button type="button" onClick={exitSelectMode} className="text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition">선택 취소</button>
+                                : <button type="button" onClick={() => setSelectMode(true)} className="text-xs font-bold py-2 px-3 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition flex items-center gap-1.5"><Icons.Trash /> 여러 개 삭제</button>}
+                            <CalendarNav year={year} month={month} setCurrentDate={setCurrentDate} />
+                        </div>
                     </div>
+                    {/* [v6.16.0] 선택 모드 안내 배너 */}
+                    {selectMode && (
+                        <div className="mb-3 flex items-center justify-between bg-orange-50 border border-orange-200 rounded-xl px-3 py-2">
+                            <span className="text-xs font-bold text-orange-700">삭제할 휴가 블록을 눌러 선택하세요 · 선택됨 <span className="text-red-600">{checkedIds.length}</span>건</span>
+                            <button type="button" onClick={handleBulkDelete} disabled={!checkedIds.length} className={`text-xs font-bold py-1.5 px-4 rounded-lg transition flex items-center gap-1.5 ${checkedIds.length ? 'bg-red-500 text-white hover:bg-red-600 shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}><Icons.Trash /> 선택 삭제</button>
+                        </div>
+                    )}
                     <div className="w-full overflow-x-auto no-scrollbar flex-1">
                         <div className="min-w-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-200 gap-px grid grid-cols-7 h-full">
                             {WEEK_LABELS.map((d, i) => (<div key={d} className={`bg-slate-50 py-2 text-center text-xs font-bold tracking-widest ${i===0?'text-red-500':i===6?'text-blue-500':'text-slate-600'}`}>{d}</div>))}
@@ -1229,11 +1374,40 @@
                                 const dateStr = d ? `${prefix}-${String(d).padStart(2, '0')}` : '';
                                 const leaves = d ? (leaveMap[dateStr] || []) : [];
                                 const isToday = dateStr === todayStr;
+                                // [v6.17.1] 선택 모드에선 모든 건을 다 보여줘야 체크가 가능하므로 자르지 않습니다.
+                                //   평상시엔 MAX_VISIBLE건만 보여주고 초과분은 'N개 더보기'로 팝업 유도.
+                                const visibleLeaves = selectMode ? leaves : leaves.slice(0, MAX_VISIBLE);
+                                const hiddenCount = selectMode ? 0 : Math.max(0, leaves.length - MAX_VISIBLE);
                                 return (
                                     <div key={idx} className={`bg-white h-[80px] md:h-full min-h-[90px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
                                         <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full mx-auto md:mx-0 ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>{d || ''}</div>
                                         <div className="flex-1 overflow-y-auto pr-0.5 space-y-1 mt-1 custom-scrollbar">
-                                            {leaves.map((l, i) => (<div key={i} onClick={(e) => { e.stopPropagation(); onEditClick && onEditClick(l.staffId, 0, l); }} className={`cursor-pointer hover:opacity-80 text-[10px] md:text-[11px] px-1.5 py-0.5 rounded-md truncate font-bold shadow-sm ${l.type.includes('반차') || l.type.includes('시간')?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'}`} title={`${l.name} (${l.type}) - 클릭하여 수정`}>{l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span></div>))}
+                                            {visibleLeaves.map((l, i) => {
+                                                const checked = selectMode && checkedIds.includes(l.id);
+                                                const isPartial = l.type.includes('반차') || l.type.includes('시간');
+                                                const future = isFutureLeave(l.date); // [v6.17.0] 미래(예정) 여부
+                                                return (
+                                                    // [v6.16.0] group: 마우스 오버 시 X 버튼 노출(모바일은 상시 노출). 선택 모드에선 체크 표시.
+                                                    // [v6.17.0] 미래 건은 점선 테두리 + '예정' 배지로 구분.
+                                                    <div key={l.id || i} onClick={(e) => { e.stopPropagation(); handleBlockClick(l); }} className={`group relative cursor-pointer hover:opacity-90 text-[10px] md:text-[11px] pl-1.5 pr-5 py-0.5 rounded-md truncate font-bold shadow-sm ${isPartial?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/40' : ''} ${checked ? 'ring-2 ring-slate-800' : ''}`} title={`${l.name} (${l.type})${future ? ' · 예정(미래)' : ''} - ${selectMode ? '눌러서 선택' : '클릭하여 수정'}`}>
+                                                        {selectMode && <span className="mr-0.5">{checked ? '☑' : '☐'}</span>}
+                                                        {future && <span className="mr-0.5 px-1 rounded-sm bg-slate-800 text-white text-[8px] md:text-[9px] font-black align-middle">예정</span>}
+                                                        {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span>
+                                                        {/* 개별 삭제 X 버튼 (선택 모드가 아닐 때만 표시) */}
+                                                        {!selectMode && (
+                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(l); }} title="이 휴가 삭제" className="absolute right-0.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:bg-red-500 hover:text-white transition opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm">
+                                                                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {/* [v6.17.1] 초과분: 'N개 더보기' → 그 날 일정 팝업 열기 */}
+                                            {hiddenCount > 0 && (
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); setDayModalDate(dateStr); }} className="w-full text-[10px] md:text-[11px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-md py-0.5 transition">
+                                                    {hiddenCount}개 더보기
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -1246,6 +1420,7 @@
 
         const PersonalCalendarModal = ({ staff, onClose, onOpenModal, onEditClick }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
 
@@ -1287,115 +1462,332 @@
             );
         };
 
-        const LeaveActionModal = ({ onClose, staffList, adminName, initialData = null, showAlert }) => {
-            const isEdit = !!(initialData && initialData.id);
+        // ============================================================================
+        // [v6.15.0-stable ★전면 개편] 관리자용 연차 등록/수정 모달 (LeaveActionModal)
+        //   기존: 직원 검색 + 등록단위(일/시간) + 날짜방식 3탭(단일/기간/지정일)
+        //   변경: 직원 검색 + MiniCalendar(달력 클릭 선택) + 시간(Hour) 정밀 입력
+        //         + [목록에 담기] 장바구니(cart) + [전체 등록하기] 일괄 저장
+        //
+        //   ▷ 추가된 prop:
+        //     - prefillHours : 엑셀 대조창에서 넘어온 '오차 시간'(숫자). 값이 있으면
+        //                      '시간 직접 입력' 모드로 자동 세팅 + 인풋칸에 미리 채워집니다.
+        //
+        //   ▷ 저장 데이터 구조는 종전과 100% 동일합니다.
+        //     · days   : 실제 차감 시간(시간 단위 숫자)  → 관리자 집계/엑셀대조 그대로 호환
+        //     · type   : '8시간' 같은 라벨
+        //     · date / reason / addedBy / createdAt
+        //     · (시간 정밀입력 시) startTime/endTime/breakStart/breakEnd 추가 필드
+        //     · (온종일 처리 시) fullDay: true
+        //   ============================================================================
+        const LeaveActionModal = ({ onClose, staffList, adminName, initialData = null, prefillHours = null, showAlert, showConfirm }) => {
+            const isEdit = !!(initialData && initialData.id); // 기존 내역 '수정' 여부
+
+            // ---- 직원 선택 (기존 검색 드롭다운 UI 그대로 유지) ----
             const [selectedStaffId, setSelectedStaffId] = useState(initialData?.staffId || '');
             const [staffSearch, setStaffSearch] = useState('');
             const [isStaffDropdownOpen, setIsStaffDropdownOpen] = useState(false);
             const dropdownRef = useRef(null);
 
-            const [dateMode, setDateMode] = useState('single');
-            const [leaveDate, setLeaveDate] = useState(initialData?.date || toLocalYMD(new Date()));
-            const [endDate, setEndDate] = useState(initialData?.date || toLocalYMD(new Date()));
-            const [customDates, setCustomDates] = useState([]);
-            const [customDateInput, setCustomDateInput] = useState('');
-            const [customYear, setCustomYear] = useState(new Date().getFullYear());
+            // ---- [v6.15.0] 날짜: MiniCalendar 다중 선택 (기존 dateMode 3탭 제거) ----
+            //  · 신규 등록: 달력에서 여러 날짜 클릭 → selectedDates 배열
+            //  · 수정(isEdit): 해당 1건의 날짜만 담아 시작
+            const [selectedDates, setSelectedDates] = useState(
+                isEdit && initialData?.date ? [initialData.date] : []
+            );
 
-            const [inputType, setInputType] = useState('day');
-            const [leaveDayType, setLeaveDayType] = useState('1');
-            const [leaveHourValue, setLeaveHourValue] = useState('');
+            // ---- [v6.15.0] 시간 입력 방식 ----
+            //  'time'   : 연차/휴게 시작·종료로 실제 차감 시간 자동 계산 (TimeSelect)
+            //  'manual' : 차감 시간(숫자)을 직접 입력  ← 엑셀 대조 Pre-fill이 여기로 들어옵니다
+            const [inputMode, setInputMode] = useState('manual'); // 기본은 '직접 입력'(관리자 편의)
+            const [startTime, setStartTime] = useState('00:00');
+            const [endTime, setEndTime] = useState('00:00');
+            const [breakStart, setBreakStart] = useState('00:00');
+            const [breakEnd, setBreakEnd] = useState('00:00');
+            const [manualHours, setManualHours] = useState(''); // 직접 입력 시간(문자열)
+
             const [reason, setReason] = useState(initialData?.reason || '');
             const [msg, setMsg] = useState('');
 
+            // ---- [v6.15.0] 장바구니(cart) ----
+            //  각 항목: { key, dates:[YYYY-MM-DD...], deductHours, inputMode,
+            //            startTime, endTime, breakStart, breakEnd, reason }
+            const [cart, setCart] = useState([]);
+
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
+
+            // 드롭다운 바깥 클릭 시 닫기
             useEffect(() => {
                 const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsStaffDropdownOpen(false); };
                 document.addEventListener("mousedown", handleClickOutside);
                 return () => document.removeEventListener("mousedown", handleClickOutside);
             }, []);
 
+            // 수정 모드로 열릴 때 직원 이름을 검색창에 표시
             useEffect(() => { if (initialData && staffList.length) { const s = staffList.find(x => x.id === initialData.staffId); if (s) setStaffSearch(s.name); } }, [initialData, staffList]);
-            useEffect(() => { if (dateMode === 'multi') { setInputType('day'); setLeaveDayType('1'); } }, [dateMode]);
+
+            // 수정 모드: 기존 내역의 시간 정보를 폼에 채움
             useEffect(() => {
                 if (initialData && isEdit) {
-                    const days = safeParseFloat(initialData.days);
-                    if (days === 1 || days === 0.5) { setInputType('day'); setLeaveDayType(String(days)); }
-                    else { setInputType('hour'); setLeaveHourValue(String(days)); }
+                    if (initialData.startTime && initialData.endTime) {
+                        // 시각 정보가 있으면 '시각으로 계산' 모드로 복원
+                        setInputMode('time');
+                        setStartTime(initialData.startTime); setEndTime(initialData.endTime);
+                        setBreakStart(initialData.breakStart || '00:00'); setBreakEnd(initialData.breakEnd || '00:00');
+                    } else {
+                        // 옛 데이터(시각 없음)는 '직접 입력' 모드로, 기존 차감 시간을 보존
+                        setInputMode('manual');
+                        setManualHours(String(safeParseFloat(initialData.days) || ''));
+                    }
                 }
             }, [initialData, isEdit]);
 
+            // ★[v6.15.0 핵심] 엑셀 대조 Pre-fill: prefillHours가 넘어오면
+            //  '직접 입력' 모드로 강제 전환 + 오차 시간을 인풋칸에 미리 채웁니다.
+            useEffect(() => {
+                if (!isEdit && prefillHours !== null && prefillHours !== undefined && safeParseFloat(prefillHours) > 0) {
+                    setInputMode('manual');
+                    setManualHours(String(safeParseFloat(prefillHours)));
+                }
+            }, [prefillHours, isEdit]);
+
             const filteredStaffList = useMemo(() => [...staffList].sort((a,b) => a.name.localeCompare(b.name)).filter(s => s.name.toLowerCase().includes(staffSearch.toLowerCase())), [staffList, staffSearch]);
             const selectedStaff = useMemo(() => staffList.find(s => s.id === selectedStaffId), [staffList, selectedStaffId]);
+            const dailyHours = safeParseFloat(selectedStaff?.workHours) || 8;
 
-            const calcDeductHours = (staff) => {
-                const dailyHours = safeParseFloat(staff?.workHours) || 8;
-                return inputType === 'day' ? (leaveDayType === '1' ? dailyHours : dailyHours / 2) : safeParseFloat(leaveHourValue);
+            // ---- 실시간 차감 시간 계산 ----
+            const calc = useMemo(() => calcLeaveHours(startTime, endTime, breakStart, breakEnd), [startTime, endTime, breakStart, breakEnd]);
+            const deductHours = inputMode === 'time' ? calc.hours : safeParseFloat(manualHours);
+            const blockingError = inputMode === 'time' ? calc.error : (deductHours <= 0 ? '차감 시간을 입력하세요.' : '');
+            const ratio = dailyHours > 0 ? Math.min(1, deductHours / dailyHours) : 0;
+
+            // 선택 날짜(정렬)
+            const validDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
+
+            // 이미 휴가가 등록된 날 (달력 주황 점 + 중복 확인용)
+            const takenDates = useMemo(() => {
+                const s = new Set();
+                (selectedStaff?.leaveHistory || []).forEach(h => { if (h.date) s.add(h.date); });
+                return s;
+            }, [selectedStaff]);
+            // 장바구니에 담긴 날도 중복 대상에 포함
+            const cartDates = useMemo(() => { const s = new Set(); cart.forEach(it => it.dates.forEach(d => s.add(d))); return s; }, [cart]);
+            const dupDates = useMemo(() => validDates.filter(d => takenDates.has(d) || cartDates.has(d)), [validDates, takenDates, cartDates]);
+            const calendarTaken = useMemo(() => new Set([...takenDates, ...cartDates]), [takenDates, cartDates]);
+            const cartTotalDays = useMemo(() => cart.reduce((sum, it) => sum + it.dates.length, 0), [cart]);
+
+            // ---- [v6.15.0] 목록에 담기 (등록하지 않고 장바구니에만 추가) ----
+            const addToCart = () => {
+                if (!selectedStaffId || !selectedStaff) { setMsg('❌ 먼저 직원을 검색·선택해주세요.'); return; }
+                if (blockingError) { setMsg('❌ ' + blockingError); return; }
+                if (deductHours <= 0) { setMsg('❌ 실제 차감 시간이 0입니다. 시간을 확인해주세요.'); return; }
+                if (!validDates.length) { setMsg('❌ 달력에서 날짜를 먼저 선택해주세요.'); return; }
+                if (dupDates.length) { setMsg(`❌ 다음 날짜는 이미 등록됐거나 담겨 있습니다: ${dupDates.join(', ')}`); return; }
+                const item = {
+                    key: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+                    dates: [...validDates], deductHours, inputMode,
+                    startTime, endTime, breakStart, breakEnd, reason
+                };
+                setCart(prev => [...prev, item]);
+                // 다음 입력을 위해 날짜·사유만 비우고 시간 설정은 유지(연속 입력 편의)
+                setSelectedDates([]); setReason(''); setMsg('');
             };
-            const typeText = (hours, daily) => inputType === 'day' ? (leaveDayType === '1' ? '연차' : '반차') : `${hours}시간`;
 
-            const handleAddCustomDate = () => {
-                if (!customDateInput.trim()) return;
-                if (!selectedStaffId) { setMsg('❌ 먼저 상단에서 직원을 선택해주세요.'); return; }
-                const deductHours = calcDeductHours(selectedStaff);
-                if (deductHours <= 0) { setMsg('❌ 시간을 올바르게 입력하세요.'); return; }
-                const tText = typeText(deductHours);
-                const parsed = parseCustomDates(customDateInput, customYear).filter(d => !customDates.some(cd => cd.date === d));
-                if (parsed.length) {
-                    setCustomDates([...customDates, ...parsed.map(d => ({ date: d, type: tText, deductHours }))].sort((a,b) => a.date.localeCompare(b.date)));
-                    setCustomDateInput(''); setMsg('');
-                } else setMsg('❌ 날짜 형식을 확인해주세요 (예: 4.1, 2026.5.21)');
+            const removeFromCart = (key) => setCart(prev => prev.filter(it => it.key !== key));
+
+            // ---- 저장 헬퍼: 장바구니 항목 배열을 leaveHistory 레코드로 변환 ----
+            const buildRecords = (items) => {
+                const recs = [];
+                items.forEach((item, ci) => {
+                    const tText = hourLabel(item.deductHours);
+                    item.dates.forEach((d, idx) => {
+                        const rec = {
+                            id: Date.now().toString() + Math.floor(Math.random() * 1000) + ci + '_' + idx,
+                            date: safeDate(d), days: item.deductHours, type: tText,
+                            reason: item.reason, addedBy: adminName, createdAt: new Date().toISOString()
+                        };
+                        if (item.inputMode === 'time') { rec.startTime = item.startTime; rec.endTime = item.endTime; rec.breakStart = item.breakStart; rec.breakEnd = item.breakEnd; }
+                        else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; }
+                        recs.push(rec);
+                    });
+                });
+                return recs;
             };
 
-            const validDates = useMemo(() => {
-                if (dateMode === 'single') return [leaveDate];
-                if (dateMode === 'custom') return customDates.map(c => c.date);
-                return listWorkingDates(leaveDate, endDate, selectedStaff?.offDays);
-            }, [leaveDate, endDate, customDates, dateMode, selectedStaff]);
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                if (!selectedStaffId || !selectedStaff) { setMsg('❌ 직원을 검색하여 선택해주세요.'); return; }
-                const deductHours = calcDeductHours(selectedStaff);
-                if (inputType === 'hour' && deductHours <= 0) { setMsg('❌ 시간을 입력하세요.'); return; }
-                if ((dateMode === 'multi' || dateMode === 'custom') && !validDates.length) { setMsg('❌ 선택된 날짜가 없습니다. (휴무일일 수 있습니다)'); return; }
-                setMsg('처리 중...');
+            // ---- 장바구니 전체 등록 ----
+            const doRegisterCart = async () => {
                 try {
-                    const newHistory = [...(selectedStaff.leaveHistory || [])];
-                    const tText = typeText(deductHours);
-                    if (isEdit) {
-                        const idx = newHistory.findIndex(h => h.id === initialData.id);
-                        if (idx !== -1) newHistory[idx] = { ...newHistory[idx], date: safeDate(leaveDate), days: deductHours, type: tText, reason, addedBy: adminName };
-                    } else if (dateMode === 'custom') {
-                        customDates.forEach((item, idx) => newHistory.push({ id: Date.now().toString() + Math.floor(Math.random() * 1000) + idx, date: safeDate(item.date), days: item.deductHours, type: item.type, reason, addedBy: adminName, createdAt: new Date().toISOString() }));
-                    } else {
-                        validDates.forEach((d, idx) => newHistory.push({ id: Date.now().toString() + Math.floor(Math.random() * 1000) + idx, date: safeDate(d), days: deductHours, type: tText, reason, addedBy: adminName, createdAt: new Date().toISOString() }));
-                    }
+                    const newHistory = [...(selectedStaff.leaveHistory || []), ...buildRecords(cart)];
                     await recalcAndSave(selectedStaffId, selectedStaff.joinDate, newHistory);
-                    setMsg('✅ 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 1000);
+                    setMsg('✅ 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 900);
                 } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
             };
 
-            const currentYearNum = new Date().getFullYear();
-            const yearOptions = [currentYearNum + 1, currentYearNum, currentYearNum - 1, currentYearNum - 2, currentYearNum - 3, currentYearNum - 4];
+            // ---- 현재 입력 한 건만 바로 등록 (장바구니 미사용 경로) ----
+            const doRegisterSingle = async () => {
+                try {
+                    const singleItem = [{ dates: validDates, deductHours, inputMode, startTime, endTime, breakStart, breakEnd, reason }];
+                    const newHistory = [...(selectedStaff.leaveHistory || []), ...buildRecords(singleItem)];
+                    await recalcAndSave(selectedStaffId, selectedStaff.joinDate, newHistory);
+                    setMsg('✅ 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 900);
+                } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
+            };
+
+            // ---- 기존 내역 '수정' 저장 ----
+            const doSaveEdit = async () => {
+                try {
+                    const newHistory = [...(selectedStaff.leaveHistory || [])];
+                    const idx = newHistory.findIndex(h => h.id === initialData.id);
+                    if (idx !== -1) {
+                        const tText = hourLabel(deductHours);
+                        const rec = { ...newHistory[idx], date: safeDate(validDates[0] || initialData.date), days: deductHours, type: tText, reason, addedBy: adminName, updatedAt: new Date().toISOString() };
+                        if (inputMode === 'time') { rec.startTime = startTime; rec.endTime = endTime; rec.breakStart = breakStart; rec.breakEnd = breakEnd; }
+                        else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; }
+                        newHistory[idx] = rec;
+                    }
+                    await recalcAndSave(selectedStaffId, selectedStaff.joinDate, newHistory);
+                    setMsg('✅ 수정 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 900);
+                } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
+            };
+
+            // ---- 메인 제출 핸들러 ----
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!selectedStaffId || !selectedStaff) { setMsg('❌ 직원을 검색하여 선택해주세요.'); return; }
+                if (blockingError) { setMsg('❌ ' + blockingError); return; }
+
+                // (1) 수정 모드
+                if (isEdit) {
+                    if (!validDates.length) { setMsg('❌ 날짜를 선택해주세요.'); return; }
+                    setMsg('처리 중...'); doSaveEdit(); return;
+                }
+
+                // (2) 장바구니에 담긴 항목이 있으면 그것을 등록
+                if (cart.length) {
+                    // 입력창에 아직 담지 않은 유효 날짜가 남아있으면 안내
+                    if (validDates.length && !dupDates.length && deductHours > 0) {
+                        showConfirm(`장바구니에 담긴 ${cart.length}건과 별도로, 지금 입력한 날짜(${validDates.length}일)는 아직 담지 않았습니다.\n\n담긴 ${cart.length}건만 등록할까요?\n(현재 입력분도 넣으려면 취소 후 [목록에 담기]를 누르세요)`, () => { setMsg('처리 중...'); doRegisterCart(); });
+                        return;
+                    }
+                    setMsg('처리 중...'); doRegisterCart(); return;
+                }
+
+                // (3) 장바구니가 비어 있으면 현재 입력 한 건을 바로 등록
+                if (deductHours <= 0) { setMsg('❌ 실제 차감 시간이 0입니다. 시간을 확인해주세요.'); return; }
+                if (!validDates.length) { setMsg('❌ 달력에서 날짜를 선택해주세요.'); return; }
+                if (dupDates.length) {
+                    showConfirm(`선택한 날짜 중 ${dupDates.length}일은 이미 휴가가 등록되어 있습니다.\n\n· ${dupDates.join(', ')}\n\n그래도 추가로 등록하시겠습니까? (같은 날에 여러 건이 쌓입니다)`, () => { setMsg('처리 중...'); doRegisterSingle(); });
+                    return;
+                }
+                setMsg('처리 중...'); doRegisterSingle();
+            };
 
             return (
-                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[500] animate-fade-in backdrop-blur-sm p-4 overflow-y-auto pt-20"><div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative my-auto"><button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button><h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">{isEdit ? '연차 수정' : '연차 등록'}</h3><form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="relative" ref={dropdownRef}><label className="block text-xs font-bold text-slate-500 mb-1">직원 검색 및 선택</label><input type="text" className="w-full border rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder={isEdit ? "" : "직원 이름 검색..."} value={staffSearch} onChange={(e) => { setStaffSearch(e.target.value); setIsStaffDropdownOpen(true); setSelectedStaffId(''); }} onFocus={() => { if(!isEdit) setIsStaffDropdownOpen(true); }} disabled={isEdit} required />
-                        {isStaffDropdownOpen && !isEdit && (<div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">{filteredStaffList.length > 0 ? filteredStaffList.map(s => (<div key={s.id} className="p-3 text-sm hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-slate-50" onClick={() => { setSelectedStaffId(s.id); setStaffSearch(s.name); setIsStaffDropdownOpen(false); }}><span className="font-bold text-slate-800">{s.name}</span> <span className="text-slate-500 text-xs">(일 {s.workHours || 8}h)</span></div>)) : <div className="p-3 text-sm text-slate-400 text-center">검색 결과가 없습니다.</div>}</div>)}
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100"><label className="block text-xs font-bold text-slate-700 mb-2">등록 단위 선택</label><div className={`flex gap-2 mb-2 ${dateMode === 'multi' ? 'opacity-50 pointer-events-none' : ''}`}><label className="flex-1 border bg-white rounded-xl p-2 text-sm text-center cursor-pointer transition hover:bg-slate-100"><input type="radio" name="itype" value="day" checked={inputType === 'day'} onChange={() => setInputType('day')} className="hidden"/>일 단위</label><label className="flex-1 border bg-white rounded-xl p-2 text-sm text-center cursor-pointer transition hover:bg-slate-100"><input type="radio" name="itype" value="hour" checked={inputType === 'hour'} onChange={() => setInputType('hour')} className="hidden"/>시간 단위</label></div>
-                        {inputType === 'day' ? (<div className="flex gap-2"><label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveDayType === '1' ? 'bg-blue-50 border-blue-200 text-blue-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" name="dtype" value="1" checked={leaveDayType === '1'} onChange={() => setLeaveDayType('1')} className="hidden"/>연차 (1일)</label><label className={`flex-1 border rounded-xl p-3 text-sm text-center cursor-pointer transition ${leaveDayType === '0.5' ? 'bg-orange-50 border-orange-200 text-orange-600 font-bold' : 'bg-white hover:bg-slate-100'}`}><input type="radio" name="dtype" value="0.5" checked={leaveDayType === '0.5'} onChange={() => setLeaveDayType('0.5')} className="hidden"/>반차 (0.5일)</label></div>) : (<div className="flex items-center gap-2"><input type="number" value={leaveHourValue} onChange={e => setLeaveHourValue(e.target.value)} className="w-full border rounded-xl p-2.5 text-sm outline-none font-bold text-center focus:ring-2 focus:ring-blue-100 bg-white" placeholder="시간 입력 (예: 2)" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div>)}
-                    </div>
-                    {!isEdit && (<div><label className="block text-xs font-bold text-slate-700 mb-2">날짜 입력 방식</label><div className="flex bg-slate-100 p-1 rounded-xl mb-3">{[['single','단일 날짜'],['multi','기간 설정'],['custom','지정일 선택']].map(([k, label]) => (<button key={k} type="button" onClick={() => setDateMode(k)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${dateMode === k ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>{label}</button>))}</div></div>)}
-                    {dateMode === 'single' && (<div><label className="block text-xs font-bold text-slate-500 mb-1">날짜 선택</label><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" required /></div>)}
-                    {dateMode === 'multi' && (<div className="bg-blue-50 p-4 rounded-xl border border-blue-100"><label className="block text-xs font-bold text-blue-600 mb-1">기간 선택 (직원 휴무일 자동 제외 / 연차 1일 단위 전용)</label><div className="flex items-center gap-2"><input type="date" value={leaveDate} onChange={e => setLeaveDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required /><span className="text-slate-400 font-bold">~</span><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="flex-1 border border-blue-200 rounded-lg p-2 text-sm outline-none" required /></div><p className="text-[11px] text-blue-500 font-bold mt-2 text-center bg-white py-1 rounded border border-blue-100">등록 예정일 {validDates.length}일</p></div>)}
-                    {dateMode === 'custom' && (
-                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100"><label className="block text-xs font-bold text-purple-600 mb-1">지정일 추가 (위에서 선택한 단위로 개별 저장됩니다)</label><div className="flex items-center gap-2 mb-3"><select value={customYear} onChange={e => setCustomYear(parseInt(e.target.value))} className="border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200 bg-white font-bold text-purple-700">{yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}</select><input type="text" placeholder="예: 4.1, 5.21" value={customDateInput} onChange={e => setCustomDateInput(e.target.value)} onKeyDown={e => { if(e.key==='Enter') { e.preventDefault(); handleAddCustomDate(); } }} className="flex-1 border border-purple-200 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-purple-200" /><button type="button" onClick={handleAddCustomDate} className="bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition">추가</button></div>
-                            <div className="flex flex-wrap gap-2">{customDates.map(d => (<span key={d.date} className="bg-white border border-purple-200 text-purple-700 px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 shadow-sm">{d.date} <span className="text-[10px] bg-purple-100 px-1 rounded">{d.type}</span><button type="button" onClick={() => setCustomDates(customDates.filter(cd => cd.date !== d.date))} className="text-purple-400 hover:text-purple-600 p-0.5 rounded-full hover:bg-purple-50">✕</button></span>))}{customDates.length === 0 && <span className="text-xs text-purple-400 font-medium">추가된 날짜가 없습니다.</span>}</div>
-                            <p className="text-xs text-purple-500 font-bold mt-3 text-center bg-white py-1 rounded border border-purple-100">총 {customDates.length}일 등록 예정</p>
+                // [v6.17.0] PC에서는 max-w-4xl 2단(좌: 달력 / 우: 입력), 모바일은 max-w-md 세로.
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[500] animate-fade-in backdrop-blur-sm p-4 overflow-y-auto pt-20 md:pt-4"><div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md md:max-w-4xl relative my-auto"><button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 z-10"><Icons.X /></button>
+                    <h3 className="font-bold text-slate-800 mb-1 flex items-center gap-2 text-lg">{isEdit ? '연차 수정' : '연차 등록'}</h3>
+                    <p className="text-xs text-slate-500 font-bold mb-4">달력에서 날짜를 고르고 시간을 입력한 뒤 등록하세요.{!isEdit && ' 여러 건은 [목록에 담기]로 쌓아 한 번에 등록할 수 있습니다.'}</p>
+                    {/* [v6.17.0] 2단 그리드: 모바일 1열, PC(md) 2열 */}
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 md:gap-6">
+                        {/* ═══════ 좌측 컬럼: ① 날짜 선택 (달력) ═══════ */}
+                        <div className="space-y-4 mb-4 md:mb-0">
+                            {/* ── [v6.15.0] ① 날짜 선택 : MiniCalendar (달력 클릭) ── */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-2">① 날짜 선택 <span className="font-normal text-slate-400">(달력에서 원하는 날을 눌러 여러 날 선택 가능)</span></label>
+                                <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={selectedStaff?.offDays} takenDates={calendarTaken} />
+                                <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 휴가가 등록된 날</div>
+                                <p className="text-[11px] text-slate-500 font-bold mt-2 text-center bg-slate-50 py-1.5 rounded-lg border border-slate-100">
+                                    {validDates.length ? `선택한 ${validDates.length}일에 각각 ${!blockingError ? fmt(deductHours) + '시간씩' : ''} 등록됩니다` : '달력에서 날짜를 눌러주세요'}
+                                </p>
+                                {dupDates.length > 0 && <p className="text-[11px] text-orange-600 font-bold mt-1.5 text-center bg-orange-50 py-1.5 rounded-lg border border-orange-200">⚠️ 선택한 날짜 중 {dupDates.length}일은 이미 등록됐거나 목록에 담겨 있어요.</p>}
+                            </div>
                         </div>
-                    )}
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1">사유</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder="사유 입력" /></div><button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">{isEdit ? '수정 내용 저장' : '연차 등록하기'}</button>{msg && <p className="text-xs text-center font-bold text-red-500">{msg}</p>}
-                </form></div></div>
+
+                        {/* ═══════ 우측 컬럼: 직원 선택 · 시간 · 사유 · 목록 · 등록 ═══════ */}
+                        <div className="space-y-4 md:flex md:flex-col">
+                            {/* ── 직원 검색·선택 (기존 UI 유지) ── */}
+                            <div className="relative" ref={dropdownRef}><label className="block text-xs font-bold text-slate-500 mb-1">직원 검색 및 선택</label><input type="text" className="w-full border rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder={isEdit ? "" : "직원 이름 검색..."} value={staffSearch} onChange={(e) => { setStaffSearch(e.target.value); setIsStaffDropdownOpen(true); setSelectedStaffId(''); }} onFocus={() => { if(!isEdit) setIsStaffDropdownOpen(true); }} disabled={isEdit} required />
+                                {isStaffDropdownOpen && !isEdit && (<div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">{filteredStaffList.length > 0 ? filteredStaffList.map(s => (<div key={s.id} className="p-3 text-sm hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-slate-50" onClick={() => { setSelectedStaffId(s.id); setStaffSearch(s.name); setIsStaffDropdownOpen(false); }}><span className="font-bold text-slate-800">{s.name}</span> <span className="text-slate-500 text-xs">(일 {s.workHours || 8}h)</span></div>)) : <div className="p-3 text-sm text-slate-400 text-center">검색 결과가 없습니다.</div>}</div>)}
+                            </div>
+
+                            {/* ── [v6.15.0] ② 시간 입력 : '직접 입력' / '시각으로 계산' ── */}
+                            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <label className="block text-xs font-bold text-slate-700 mb-2">② 시간 입력 <span className="font-normal text-slate-400">(시간 단위)</span></label>
+                                <div className="flex bg-slate-100 p-1 rounded-xl mb-3">
+                                    {[['manual', '시간 직접 입력'], ['time', '시작·종료로 계산']].map(([k, label]) => (
+                                        <button key={k} type="button" onClick={() => setInputMode(k)} className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${inputMode === k ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}>{label}</button>
+                                    ))}
+                                </div>
+                                {inputMode === 'manual' ? (
+                                    // ★ 엑셀 대조 Pre-fill 값(prefillHours)이 이 인풋칸에 자동으로 채워집니다.
+                                    <div className="flex items-center gap-2"><input type="number" value={manualHours} onChange={e => setManualHours(e.target.value)} className="w-full border rounded-xl p-2.5 text-sm outline-none font-bold text-center bg-white focus:ring-2 focus:ring-blue-100" placeholder="차감 시간 입력 (예: 4)" min="0.1" step="0.1" /><span className="text-sm font-bold text-slate-600">시간</span></div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-2 md:gap-3">
+                                            <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 시작</label><TimeSelect value={startTime} onChange={setStartTime} accent="blue" /></div>
+                                            <div><label className="block text-[11px] font-bold text-slate-600 mb-1">연차 종료</label><TimeSelect value={endTime} onChange={setEndTime} accent="blue" /></div>
+                                            <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 시작 <span className="font-normal text-slate-400">(없으면 0시 0분)</span></label><TimeSelect value={breakStart} onChange={setBreakStart} accent="orange" /></div>
+                                            <div><label className="block text-[11px] font-bold text-orange-600 mb-1">휴게 종료 <span className="font-normal text-slate-400">(없으면 0시 0분)</span></label><TimeSelect value={breakEnd} onChange={setBreakEnd} accent="orange" /></div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* 실시간 차감 시간 미리보기 */}
+                                <div className={`mt-3 p-2.5 rounded-lg border text-center font-bold ${blockingError ? 'bg-red-50 border-red-200 text-red-600' : ratio >= 1 ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-orange-50 border-orange-200 text-orange-700'}`}>
+                                    {blockingError ? <span className="text-xs">{blockingError}</span> : (
+                                        <div>
+                                            <div className="text-sm">실제 차감 <span className="text-lg font-black">{fmt(deductHours)}시간</span> {selectedStaff && <span className="text-[11px] font-normal opacity-70">(하루 {dailyHours}h 중 {Math.round(ratio * 100)}%)</span>}</div>
+                                            {inputMode === 'time' && <div className="text-[10px] font-normal opacity-70 mt-0.5">근무 {fmt(calc.workMin / 60)}h {breakStart === breakEnd ? '· 휴게 없음' : calc.overlapMin > 0 ? `− 휴게 겹침 ${fmt(calc.overlapMin / 60)}h` : '· 휴게 겹침 없음'}</div>}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* ── 사유 ── */}
+                            <div><label className="block text-xs font-bold text-slate-500 mb-1">사유 (선택)</label><input type="text" value={reason} onChange={e => setReason(e.target.value)} className="w-full border rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder="사유 입력" /></div>
+
+                            {/* ── [v6.15.0] 목록에 담기 + 장바구니 (신규 등록 모드에서만 노출) ── */}
+                            {!isEdit && (
+                                <>
+                                    <button type="button" onClick={addToCart} className="w-full bg-slate-100 text-slate-700 py-3 rounded-xl text-sm font-bold hover:bg-slate-200 transition active:scale-95 flex items-center justify-center gap-2 border border-slate-200"><Icons.Plus /> 목록에 담기 {validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}</button>
+
+                                    {cart.length > 0 && (
+                                        <div className="bg-blue-50/60 border border-blue-100 rounded-xl p-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-black text-blue-700">담은 휴가 {cart.length}건 · 총 {cartTotalDays}일</span>
+                                                <button type="button" onClick={() => setCart([])} className="text-[11px] font-bold text-slate-400 hover:text-red-500 transition">전체 비우기</button>
+                                            </div>
+                                            <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+                                                {cart.map(item => {
+                                                    const label = item.inputMode === 'time' ? `${item.startTime}~${item.endTime}${item.breakStart !== item.breakEnd ? ` (휴게 ${item.breakStart}~${item.breakEnd})` : ''}` : '직접 입력';
+                                                    return (
+                                                        <div key={item.key} className="bg-white border border-blue-100 rounded-lg p-2 flex items-start justify-between gap-2">
+                                                            <div className="min-w-0">
+                                                                <p className="text-[11px] font-bold text-slate-700 truncate">{item.dates.join(', ')}</p>
+                                                                <p className="text-[10px] text-slate-500 mt-0.5 truncate">각 {fmt(item.deductHours)}h · {label}{item.reason ? ` · ${item.reason}` : ''}</p>
+                                                            </div>
+                                                            <button type="button" onClick={() => removeFromCart(item.key)} className="p-1.5 bg-white border text-red-400 hover:bg-red-50 rounded-md transition flex-shrink-0"><Icons.Trash /></button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* ── 최종 등록/수정 버튼 (PC에서는 우측 컬럼 하단에 고정되도록 mt-auto) ── */}
+                            <div className="md:mt-auto md:pt-2">
+                                <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">
+                                    {isEdit
+                                        ? '수정 내용 저장'
+                                        : (cart.length > 0
+                                            ? `담은 ${cart.length}건 전체 등록하기 (총 ${cartTotalDays}일)`
+                                            : `연차 등록하기 ${validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}`)}
+                                </button>
+                                {msg && <p className="text-xs text-center font-bold text-red-500 mt-2">{msg}</p>}
+                            </div>
+                        </div>
+                    </form>
+                </div></div>
             );
         };
 
@@ -1538,7 +1930,7 @@
                                                     {data.displayHistory.map((rec, i) => (
                                                         <div key={rec.id || i} className={`flex items-center justify-between text-xs p-2 rounded-lg border md:group hover:border-blue-200 transition ${rec.isWarn ? 'bg-orange-50 border-orange-200 shadow-inner' : 'bg-slate-50'}`}>
                                                             <div className="flex items-center gap-2">
-                                                                <span className={`font-bold ${rec.isWarn ? 'text-orange-700' : ''}`}>{rec.date}</span><span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type})</span>{rec.isWarn && <span className="text-orange-500" title="이 날짜에 연차가 2번 이상 중복 입력되었습니다!"><Icons.Alert /></span>}
+                                                                <span className={`font-bold ${rec.isWarn ? 'text-orange-700' : ''}`}>{rec.date}</span><span className={`px-1.5 rounded text-[10px] font-bold ${rec.days >= data.dailyHours ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'}`}>{fmt(rec.days)}h ({rec.type})</span>{isFutureLeave(rec.date) && <span className="px-1.5 rounded text-[10px] font-black bg-slate-800 text-white" title="아직 오지 않은 예정 연차 (잔여에서 이미 차감됨)">예정</span>}{rec.isWarn && <span className="text-orange-500" title="이 날짜에 연차가 2번 이상 중복 입력되었습니다!"><Icons.Alert /></span>}
                                                             </div>
                                                             <div className="flex gap-1 ml-2 flex-shrink-0 opacity-100"><button type="button" onClick={() => onEditClick(data.id, 0, rec)} className="text-blue-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button><button type="button" onClick={() => handleDeleteLeave(data, rec.id)} className="text-red-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button></div>
                                                         </div>
@@ -1565,7 +1957,6 @@
         };
 
         // 직원 명부 엑셀 헤더 정의 (직원/퇴사자 공용)
-        // 우선순위 순서 (앞쪽일수록 강함)
         const STAFF_NEEDS = {
             name: ['근로지원인', '성명', '이름'],
             birth: ['생년월일', '생일'],
@@ -1643,10 +2034,6 @@
                         const matchedIdx = new Set();
                         const todayStr = toLocalYMD(new Date());
 
-                        // [v6.11.0] 전체 명부(재직+퇴사)를 기준으로 매칭합니다.
-                        //  - 엑셀에 이름이 있으면: 재직 유지 + (퇴사자였다면) 자동 재직 복구
-                        //  - 엑셀에 이름이 없으면: (재직자였다면) 자동 퇴사 처리
-                        //  - 아예 처음 보는 이름이면: 신규 계정 생성
                         staffList.forEach(dbStaff => {
                             const normDbName = normalizeString(dbStaff.name);
                             const idx = excelStaffs.findIndex((es, i) => !matchedIdx.has(i) && es.normName === normDbName);
@@ -1661,7 +2048,6 @@
                                 else updateCount++;
                                 batch.update(docRef, upd);
                             } else if (!wasResigned) {
-                                // 엑셀에 없고, 지금 재직 중인 사람만 퇴사 처리 (이미 퇴사자는 그대로 둠)
                                 batch.update(docRef, { status: 'resigned', resignDate: todayStr }); resignCount++;
                             }
                         });
@@ -1687,7 +2073,6 @@
 
             const handleDeleteOne = (staff) => showConfirm(`정말 [${staff.name}] 직원의 정보를 완전히 삭제하시겠습니까?`, async () => { try { await db.collection('users').doc(staff.id).delete(); showAlert('삭제 완료되었습니다.'); } catch (err) { showAlert('삭제 실패: ' + err.message); } });
 
-            // [v6.11.0] 재직 복구 — 퇴사 처리된 직원을 다시 재직 상태로 되돌립니다. (연차 이력은 그대로 유지)
             const handleReactivate = (staff) => showConfirm(`[${staff.name}] 직원을 다시 '재직 중' 상태로 복구하시겠습니까?\n\n· 연차·인사 정보는 그대로 유지됩니다.\n· 퇴사일 기록은 지워집니다.`, async () => {
                 try {
                     await db.collection('users').doc(staff.id).update({ status: 'active', resignDate: '' });
@@ -1760,20 +2145,14 @@
             };
 
             // [v6.10.0] 비밀번호 초기화 — 직원이 비밀번호 분실 시 초기값(123456)으로 복구
-            // 원리: 클라이언트(브라우저)에는 남의 비밀번호를 바로 바꿀 권한이 없습니다.
-            //       그래서 별도 보조 창구(Secondary App)로 해당 계정을 '삭제 후 → 초기 비번으로 재생성'합니다.
-            //       연차·인사 데이터는 Firestore(users 문서)에 그대로 있으므로 유실되지 않으며,
-            //       tempPw 를 다시 '123456' 으로 표시해 직원이 다음 로그인 때 비번을 새로 정하도록 유도합니다.
             const handleResetPassword = (staff) => {
                 showConfirm(`[${staff.name}] 직원의 비밀번호를 초기 비밀번호(123456)로 되돌리시겠습니까?\n\n· 연차·인사 정보는 그대로 유지됩니다.\n· 직원은 다음 로그인 시 새 비밀번호를 다시 설정하게 됩니다.`, async () => {
                     setUploadMsg(`[${staff.name}] 비밀번호 초기화 중...`);
                     try {
                         const email = staff.id; // 계정 문서 ID = 로그인 이메일
                         const secondaryApp = getSecondaryApp();
-                        // 1) 기존 Auth 계정 삭제 시도 (보조 창구로 로그인 후 삭제)
                         try {
                             const cred = await secondaryApp.auth().signInWithEmailAndPassword(email, '123456');
-                            // 이미 초기 비번인 경우: 그대로 사용하면 됨
                             await secondaryApp.auth().signOut();
                             await db.collection('users').doc(email).update({ tempPw: '123456', authStatus: 'success' });
                             setUploadMsg(`✅ [${staff.name}] 이미 초기 비밀번호(123456) 상태입니다.`);
@@ -1782,15 +2161,10 @@
                         } catch (signInErr) {
                             // 초기 비번이 아니면 삭제 후 재생성 경로로 진행
                         }
-                        // 2) 초기 비번이 아니라면: 계정을 지우고 새로 만들어 초기 비번을 강제 적용
-                        //    (남의 현재 비번을 모른 채 삭제할 수는 없으므로, 재생성으로 안전하게 복구)
                         try {
                             await secondaryApp.auth().createUserWithEmailAndPassword(email, '123456');
                         } catch (createErr) {
                             if (createErr.code === 'auth/email-already-in-use') {
-                                // 직원이 초기 비번(123456)을 이미 자기 비번으로 바꾼 상태.
-                                // 구글 보안 정책상 '남의 현재 비번을 모르는 채' 브라우저에서 그 계정을 삭제·변경하는 것은 불가능합니다.
-                                // → 관리자가 Firebase 콘솔에서 직접 처리하도록, 계정 아이디와 단계를 구체적으로 안내합니다.
                                 throw new Error(
                                     `[${staff.name}] 직원은 초기 비밀번호를 이미 본인 것으로 변경한 상태라,\n` +
                                     `보안 정책상 이 화면(브라우저)에서는 초기화할 수 없습니다.\n\n` +
@@ -2163,8 +2537,6 @@
             const [birthIssues, setBirthIssues] = useState(null); // [v6.9.1] 생년월일 점검 결과
             const fileRef = useRef(null);
 
-            // ===== [v6.9.1] 생년월일 오류 일괄 점검·수정 =====
-            // 과거 버전의 2자리 연도 처리 오류로 1941년생이 2041년으로 저장된 사례를 찾아 바로잡습니다.
             const scanBirthIssues = async () => {
                 setIsProcessing(true);
                 try {
@@ -2274,7 +2646,6 @@
                         <p className="text-sm text-slate-500">클라우드 데이터베이스(DB) 및 현재 시스템의 원본 소스코드를 PC에 백업하고 복원할 수 있습니다.</p>
                     </div>
 
-                    {/* [v6.9.1] 생년월일 오류 일괄 점검 */}
                     <div className="bg-white p-6 rounded-2xl shadow-sm border-2 border-amber-200">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
                             <div className="flex items-start gap-3">
@@ -2331,14 +2702,10 @@
             );
         };
 
-        // ------------------ [신규 v6.10.0] 직원 본인 휴가 수정 모달 ------------------
-        // 관리자용 EditStaffModal 과 별개로, 직원이 자신의 '개별 휴가 1건'을 고칠 수 있는 가벼운 모달입니다.
-        // [v6.12.0] 휴가 상세 팝업 — 시간(Hour) 단위 정밀 수정 + 삭제
-        // 기존 rec에 시각 정보(startTime 등)가 있으면 불러오고, 없으면(옛 데이터) 시각 필드는 비운 채
-        // '직접 시간 입력' 모드로 열어 기존 days 값을 그대로 보존할 수 있게 합니다.
+        // ------------------ [v6.12.0] 직원 본인 휴가 상세/수정 모달 ------------------
         const StaffLeaveDetailModal = ({ rec, dailyHours, onClose, onSave, onDelete }) => {
             const hasTimes = !!(rec.startTime && rec.endTime);
-            // 편집 모드: 'time'(시각으로 계산) | 'manual'(시간 값 직접 입력)
+            useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const [editMode, setEditMode] = useState(hasTimes ? 'time' : 'manual');
             const [date, setDate] = useState(rec.date);
             const [startTime, setStartTime] = useState(rec.startTime || '00:00');
@@ -2364,7 +2731,6 @@
                 } else {
                     const h = safeParseFloat(manualHours);
                     if (h <= 0) { setMsg('❌ 시간을 올바르게 입력하세요.'); return; }
-                    // 직접 입력 시엔 시각 정보를 지워 데이터 혼선을 막습니다.
                     payload = { id: rec.id, date, days: h, type: hourLabel(h), reason,
                         startTime: '', endTime: '', breakStart: '', breakEnd: '' };
                 }
@@ -2422,12 +2788,11 @@
             );
         };
 
-        // [v6.12.0] 직원 본인 달력형 휴가 내역 — 하루 사용 비율에 따라 색 구분(100% 파랑 / 그 미만 주황)
-        // 블록 클릭 시 onSelect(rec) 로 상세 팝업을 엽니다.
+        // [v6.12.0] 직원 본인 달력형 휴가 내역
         const StaffLeaveCalendar = ({ history, dailyHours, onSelect, onBulkDelete }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
             const [selectMode, setSelectMode] = useState(false);
-            const [checkedIds, setCheckedIds] = useState([]); // 선택된 휴가 record id 목록
+            const [checkedIds, setCheckedIds] = useState([]);
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
             const dh = dailyHours || 8;
@@ -2448,7 +2813,6 @@
             const handleBlockClick = (l) => { if (selectMode) toggleCheck(l.id); else onSelect && onSelect(l); };
             const handleBulk = () => {
                 if (!checkedIds.length) return;
-                // 선택된 id에 해당하는 record 배열을 상위로 전달
                 const recs = (history || []).filter(h => checkedIds.includes(h.id));
                 onBulkDelete && onBulkDelete(recs, exitSelectMode);
             };
@@ -2483,10 +2847,12 @@
                                             const h = safeParseFloat(l.days);
                                             const isFull = dh > 0 && h >= dh;
                                             const checked = selectMode && checkedIds.includes(l.id);
+                                            const future = isFutureLeave(l.date); // [v6.17.0] 오늘 이후 = 예정
                                             return (
-                                                <div key={i} onClick={() => handleBlockClick(l)} title={`${l.type}${l.reason ? ' · ' + l.reason : ''}${selectMode ? ' · 눌러서 선택' : ' · 클릭하여 상세/수정'}`}
-                                                    className={`cursor-pointer hover:opacity-80 text-[9px] md:text-[10px] px-1 py-0.5 rounded text-center truncate font-bold shadow-sm text-white relative ${isFull ? 'bg-blue-500' : 'bg-orange-500'} ${checked ? 'ring-2 ring-slate-800' : ''}`}>
+                                                <div key={i} onClick={() => handleBlockClick(l)} title={`${l.type}${l.reason ? ' · ' + l.reason : ''}${future ? ' · 아직 오지 않은 예정 연차' : ''}${selectMode ? ' · 눌러서 선택' : ' · 클릭하여 상세/수정'}`}
+                                                    className={`cursor-pointer hover:opacity-80 text-[9px] md:text-[10px] px-1 py-0.5 rounded text-center truncate font-bold shadow-sm text-white relative ${isFull ? 'bg-blue-500' : 'bg-orange-500'} ${future ? 'ring-1 ring-dashed ring-slate-800/40 opacity-90' : ''} ${checked ? 'ring-2 ring-slate-800' : ''}`}>
                                                     {selectMode && <span className="absolute left-0.5 top-1/2 -translate-y-1/2">{checked ? '☑' : '☐'}</span>}
+                                                    {future && <span className="absolute -top-0.5 -right-0.5 bg-white text-slate-700 text-[7px] md:text-[8px] font-black px-0.5 rounded-sm shadow border border-slate-300 leading-tight">예정</span>}
                                                     {fmt(h)}h
                                                 </div>
                                             );
@@ -2509,26 +2875,20 @@
         const StaffPortal = ({ user, onLogout, showAlert, showConfirm }) => {
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [showGuide, setShowGuide] = useState(false); // [v6.7.0] 사용 가이드
-            const [showTour, setShowTour] = useState(false);   // [v6.8.0] 오버레이 투어
+            const [showGuide, setShowGuide] = useState(false);
+            const [showTour, setShowTour] = useState(false);
             const [showHelpMenu, setShowHelpMenu] = useState(false);
             const helpRef = useRef(null);
 
-            // [v6.13.0] 날짜방식 탭 제거 — 달력에서 클릭한 날짜들을 하나의 배열로 관리
             const [selectedDates, setSelectedDates] = useState([]);
-
-            // [v6.13.0] 시간 정밀 입력기 (기본값 0:00 — 사용자가 직접 채우도록)
             const [startTime, setStartTime] = useState('00:00');
             const [endTime, setEndTime] = useState('00:00');
             const [breakStart, setBreakStart] = useState('00:00');
             const [breakEnd, setBreakEnd] = useState('00:00');
-            // [v6.13.0] 연속 기간이어도 사용자가 '시간으로 입력'을 강제할 수 있는 수동 토글
             const [forceTimeInput, setForceTimeInput] = useState(false);
 
             const [reason, setReason] = useState('');
-            const [detailRec, setDetailRec] = useState(null); // [v6.12.0] 상세/수정 대상
-            // [v6.13.0] 서로 다른 조건의 휴가를 담아 한 번에 등록하는 장바구니
-            //  각 항목: { key, dates:[YYYY-MM-DD...], deductHours, useTimeInput, startTime, endTime, breakStart, breakEnd, reason }
+            const [detailRec, setDetailRec] = useState(null);
             const [cart, setCart] = useState([]);
 
             useEffect(() => {
@@ -2539,7 +2899,6 @@
                 return () => unsub();
             }, [user.email]);
 
-            // [v6.7.0] 최초 접속 시 가이드 1회 자동 노출
             useEffect(() => {
                 if (loading) return;
                 let seen = null;
@@ -2547,7 +2906,6 @@
                 if (!seen) { const t = setTimeout(() => setShowGuide(true), 600); return () => clearTimeout(t); }
             }, [loading]);
 
-            // [v6.8.0] 도움말 드롭다운 바깥 클릭 시 닫기
             useEffect(() => {
                 const h = (e) => { if (helpRef.current && !helpRef.current.contains(e.target)) setShowHelpMenu(false); };
                 document.addEventListener('mousedown', h);
@@ -2564,22 +2922,19 @@
                 const activeHistory = (userData.leaveHistory || []).filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
                 const usedHours = activeHistory.reduce((acc, cur) => acc + safeParseFloat(cur.days), 0);
                 const remainingHours = totalHours - usedHours;
-                return { ...leaveInfo, totalDays, dailyHours, totalHours, usedHours, remainingHours,
+                // [v6.17.0] '예정'(오늘 이후 날짜) 분리 집계 — 차감은 usedHours에 이미 포함되며, 여기선 표시용으로만 나눕니다.
+                const futureHours = activeHistory.filter(h => isFutureLeave(h.date)).reduce((acc, cur) => acc + safeParseFloat(cur.days), 0);
+                return { ...leaveInfo, totalDays, dailyHours, totalHours, usedHours, remainingHours, futureHours,
                     usedDays: dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0,
                     remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0,
+                    futureDays: dailyHours > 0 ? Math.round((futureHours / dailyHours) * 10) / 10 : 0,
                     displayHistory: [...activeHistory].sort((a, b) => b.date.localeCompare(a.date)) };
             }, [userData, dailyHours]);
 
-            // [v6.13.0] 실시간 차감 시간 계산 (시각 기반)
             const calc = useMemo(() => calcLeaveHours(startTime, endTime, breakStart, breakEnd), [startTime, endTime, breakStart, breakEnd]);
+            // [v6.17.0] 직원 월별 마감: 혹시 남아있는 과거(당월 1일 이전) 날짜는 등록 대상에서 제외
+            const validDates = useMemo(() => [...selectedDates].filter(d => !isPastLockedForStaff(d)).sort(), [selectedDates]);
 
-            // [v6.13.0] 선택된 날짜 목록 (달력이 이미 근무일만 담아줌)
-            const validDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
-
-            // [v6.13.0] 선택 날짜가 '연속된 기간'인지 판정
-            //  · 2일 이상이고, 최소~최대 사이의 모든 근무일(휴무 제외)이 빠짐없이 선택돼 있으면 연속으로 봅니다.
-            //  · 연속이면 '온종일 휴가'로 간주 → 시각 입력을 비활성화하고 하루 근무시간 전체를 차감.
-            //  · 단, 사용자가 [시간으로 입력] 토글을 켜면 강제로 시각 입력을 사용합니다(예외 대응).
             const isConsecutiveRange = useMemo(() => {
                 if (validDates.length < 2) return false;
                 const span = listWorkingDates(validDates[0], validDates[validDates.length - 1], userData?.offDays);
@@ -2587,35 +2942,26 @@
                 return span.every((d, i) => d === validDates[i]);
             }, [validDates, userData]);
 
-            // 실제로 시각 입력을 쓰는가? (연속이면 기본 꺼짐, 단 강제 토글이 켜지면 켜짐)
             const useTimeInput = !isConsecutiveRange || forceTimeInput;
-            // 온종일(연속)일 때 하루 차감 시간
             const fullDayHours = dailyHours;
-            // 실제 차감 시간: 시각 입력 모드면 calc.hours, 온종일 모드면 하루 전체
             const deductHours = useTimeInput ? calc.hours : fullDayHours;
             const ratio = dailyHours > 0 ? Math.min(1, deductHours / dailyHours) : 0;
-            // 시각 입력 모드에서만 계산 오류를 등록 차단 사유로 사용
             const blockingError = useTimeInput ? calc.error : '';
 
-            // [v6.13.0] 이미 휴가가 등록된 날짜 집합 (달력 점 표시 + 중복 경고용)
             const takenDates = useMemo(() => {
                 const s = new Set();
                 (userData?.leaveHistory || []).forEach(h => { if (h.date) s.add(h.date); });
                 return s;
             }, [userData]);
-            // [v6.13.0] 이미 장바구니에 담긴 날짜도 중복 대상에 포함
             const cartDates = useMemo(() => {
                 const s = new Set();
                 cart.forEach(item => item.dates.forEach(d => s.add(d)));
                 return s;
             }, [cart]);
-            // 지금 선택한 날짜 중 이미 등록됐거나 장바구니에 담긴 날
             const dupDates = useMemo(() => validDates.filter(d => takenDates.has(d) || cartDates.has(d)), [validDates, takenDates, cartDates]);
             const cartTotalDays = useMemo(() => cart.reduce((sum, it) => sum + it.dates.length, 0), [cart]);
-            // 달력 점 표시용: 이미 등록된 날 + 장바구니에 담긴 날
             const calendarTaken = useMemo(() => new Set([...takenDates, ...cartDates]), [takenDates, cartDates]);
 
-            // [v6.13.0] 현재 입력한 조건을 장바구니에 담기 (등록하지 않고 목록에만 추가)
             const addToCart = () => {
                 if (useTimeInput && blockingError) { showAlert('❌ ' + blockingError); return; }
                 if (deductHours <= 0) { showAlert('❌ 실제 차감 시간이 0입니다. 시간을 확인해주세요.'); return; }
@@ -2629,13 +2975,11 @@
                     reason
                 };
                 setCart(prev => [...prev, item]);
-                // 다음 입력을 위해 날짜/사유는 비우고, 시각은 유지(연속 입력 편의)
                 setSelectedDates([]); setForceTimeInput(false); setReason('');
             };
 
             const removeFromCart = (key) => setCart(prev => prev.filter(it => it.key !== key));
 
-            // 장바구니에 담긴 모든 항목을 한 번에 등록
             const doRegisterCart = async () => {
                 try {
                     const newHistory = [...(userData.leaveHistory || [])];
@@ -2662,13 +3006,9 @@
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
 
-            // [v6.13.0] 등록 버튼: 장바구니에 미리 담아둔 게 있으면 그것들을,
-            //  없으면 현재 입력한 한 건을 바로 등록합니다(빠른 단일 등록 유지).
             const handleSubmit = async (e) => {
                 e.preventDefault(); if (!userData) return;
-                // 장바구니에 담긴 게 있으면 담긴 것 + (입력 중인 유효한 한 건이 있으면) 함께 등록 여부 확인
                 if (cart.length) {
-                    // 입력창에 아직 담지 않은 유효한 날짜가 남아있으면 안내
                     if (validDates.length && !dupDates.length && !(useTimeInput && blockingError) && deductHours > 0) {
                         showConfirm(`장바구니에 담긴 ${cart.length}건과 별도로, 지금 입력한 날짜(${validDates.length}일)는 아직 담지 않았습니다.\n\n담긴 ${cart.length}건만 등록할까요?\n(현재 입력분도 넣으려면 취소 후 [담기]를 누르세요)`, doRegisterCart);
                         return;
@@ -2676,7 +3016,6 @@
                     doRegisterCart();
                     return;
                 }
-                // 장바구니가 비어 있으면 현재 입력 한 건을 바로 등록
                 if (useTimeInput && blockingError) { showAlert('❌ ' + blockingError); return; }
                 if (deductHours <= 0) { showAlert('❌ 실제 차감 시간이 0입니다. 시간을 확인해주세요.'); return; }
                 if (!validDates.length) { showAlert('❌ 선택된 날짜가 없습니다. 달력에서 날짜를 선택해주세요. (휴무일은 자동 제외됩니다)'); return; }
@@ -2687,7 +3026,6 @@
                 doRegisterSingle();
             };
 
-            // 현재 입력 한 건만 바로 등록 (장바구니 미사용 경로)
             const doRegisterSingle = async () => {
                 try {
                     const newHistory = [...(userData.leaveHistory || [])];
@@ -2712,8 +3050,12 @@
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
 
-            // [v6.12.0] 본인 휴가 삭제 — Firestore 즉시 반영
+            // [v6.17.0] 월별 마감 안내 문구
+            const LOCK_MSG = '지난달 이전 내역은 마감되어 수정·삭제할 수 없습니다.\n관리자에게 요청해주세요.';
+
             const handleDeleteOwnLeave = (rec) => {
+                // [v6.17.0] 당월 1일 이전(과거월) 내역은 직원이 삭제 불가 — 관리자만 가능
+                if (isPastLockedForStaff(rec.date)) { showAlert('🔒 ' + LOCK_MSG); return; }
                 showConfirm(`${rec.date} (${rec.type}) 휴가 내역을 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
                     try {
                         const newHistory = (userData.leaveHistory || []).filter(h => h.id !== rec.id);
@@ -2724,9 +3066,11 @@
                 });
             };
 
-            // [v6.13.0] 본인 휴가 여러 건 일괄 삭제
             const handleBulkDeleteOwnLeave = (recs, onDone) => {
                 if (!recs || !recs.length) return;
+                // [v6.17.0] 과거월 잠긴 건이 섞여 있으면 삭제 차단
+                const lockedOnes = recs.filter(r => isPastLockedForStaff(r.date));
+                if (lockedOnes.length) { showAlert(`🔒 선택 항목 중 ${lockedOnes.length}건이 지난달 이전(마감)입니다.\n${LOCK_MSG}`); return; }
                 const preview = recs.slice(0, 8).map(r => `${r.date} (${r.type})`).join('\n');
                 const more = recs.length > 8 ? `\n… 외 ${recs.length - 8}건` : '';
                 showConfirm(`선택한 ${recs.length}건의 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.\n\n${preview}${more}`, async () => {
@@ -2740,8 +3084,11 @@
                 });
             };
 
-            // [v6.12.0] 본인 휴가 수정 저장
-            const handleSaveEditOwnLeave = async (updated) => {                try {
+            const handleSaveEditOwnLeave = async (updated) => {
+                // [v6.17.0] 원본 날짜 또는 바꾸려는 날짜가 과거월이면 직원 수정 불가
+                const orig = (userData.leaveHistory || []).find(h => h.id === updated.id);
+                if ((orig && isPastLockedForStaff(orig.date)) || isPastLockedForStaff(updated.date)) { showAlert('🔒 ' + LOCK_MSG); return; }
+                try {
                     const newHistory = (userData.leaveHistory || []).map(h => h.id === updated.id
                         ? { ...h, date: safeDate(updated.date), days: updated.days, type: updated.type, reason: updated.reason,
                             startTime: updated.startTime, endTime: updated.endTime, breakStart: updated.breakStart, breakEnd: updated.breakEnd,
@@ -2787,8 +3134,13 @@
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-bold text-slate-500">({leaveStats.period})</span></h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4" data-tour="stats">
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500"><div><p className="text-xs font-bold text-slate-600 mb-1">총 발생 연차</p><span className="text-xl md:text-2xl font-black text-slate-800">{fmt(leaveStats.totalHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.totalDays}일)</span></div></div>
-                            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-red-500"><div><p className="text-xs font-bold text-slate-600 mb-1">사용 연차</p><span className="text-xl md:text-2xl font-black text-red-500">{fmt(leaveStats.usedHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.usedDays}일)</span></div></div>
+                            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-red-500"><div><p className="text-xs font-bold text-slate-600 mb-1">사용 연차</p><span className="text-xl md:text-2xl font-black text-red-500">{fmt(leaveStats.usedHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.usedDays}일)</span>{leaveStats.futureHours > 0 && <p className="text-[10px] font-bold text-slate-400 mt-1">이 중 미래 예정 <span className="text-orange-500">{fmt(leaveStats.futureHours)}시간</span> ({leaveStats.futureDays}일) 포함</p>}</div></div>
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-green-500"><div><p className="text-xs font-bold text-slate-600 mb-1">잔여 연차</p><span className="text-xl md:text-2xl font-black text-green-600">{fmt(leaveStats.remainingHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.remainingDays}일)</span></div></div>
+                        </div>
+                        {/* [v6.17.0] 월별 마감 안내 — 직원은 당월 1일부터만 등록/수정 가능 */}
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2 text-[11px] md:text-xs font-bold text-blue-700">
+                            <span className="text-sm leading-none mt-0.5">🔒</span>
+                            <span>이번 달 <b>{new Date().getMonth() + 1}월 1일</b>부터의 연차만 직접 등록·수정할 수 있어요. 지난달 이전 내역 변경이 필요하면 관리자에게 요청해주세요. <span className="font-normal text-blue-500">(달력의 미래 날짜 연차는 지금 바로 잔여에서 차감되며 <span className="text-orange-500 font-bold">'예정'</span>으로 표시됩니다)</span></span>
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
                             <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -2797,7 +3149,7 @@
                                     <div>
                                         <label className="block text-xs font-bold text-slate-700 mb-2" data-tour="datemode">① 날짜 선택 <span className="font-normal text-slate-400">(달력에서 원하는 날을 눌러 여러 날 선택 가능)</span></label>
                                         <div data-tour="calendar">
-                                            <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={userData.offDays} takenDates={calendarTaken} />
+                                            <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={userData.offDays} takenDates={calendarTaken} lockPast={true} />
                                         </div>
                                         <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400"><span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 휴가가 등록된 날</div>
                                         <p className="text-[11px] text-slate-500 font-bold mt-2 text-center bg-slate-50 py-1.5 rounded-lg border border-slate-100">
@@ -2877,6 +3229,7 @@
                                 <div className="flex items-center gap-4 mt-3 text-[11px] font-bold text-slate-500 justify-center flex-wrap">
                                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-500 inline-block"></span>하루 전체(100%)</span>
                                     <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-orange-500 inline-block"></span>일부 사용</span>
+                                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded ring-1 ring-dashed ring-slate-800/50 bg-white inline-block"></span>예정(미래)</span>
                                 </div>
                             </div>
                         </div>
@@ -2952,9 +3305,18 @@
             const handleAdminNameSave = (name) => { localStorage.setItem('ygnurim_admin_name', name); setAdminName(name); };
             const handleTabClick = (tab) => { setActiveTab(tab); setIsMobileMenuOpen(false); };
             const handleLogout = async () => { try { await auth.signOut(); } catch(e) {} setUser(null); };
+            // 기존 내역 '수정' 진입 (행의 연필 버튼 등) — initialData에 id가 실려 수정 모드로 열립니다.
             const handleEditLeave = useCallback((staffId, index, data) => { setEditingLeaveData({ ...data, staffId, index }); setShowLeaveModal(true); }, []);
             const closeLeaveModal = () => { setShowLeaveModal(false); setEditingLeaveData(null); };
-            const handleOpenModal = useCallback((staffId = null) => { setEditingLeaveData(staffId ? { staffId } : null); setShowLeaveModal(true); }, []);
+            // ★[v6.15.0] 연차 등록 모달 오픈 핸들러 — 두 번째 인자 prefillHours 추가.
+            //   · 일반 [연차 등록] FAB/버튼 : handleOpenModal(staffId)         → prefillHours 없음(null)
+            //   · 엑셀 대조창 [연차 등록]   : handleOpenModal(staffId, r.diff) → 오차 시간을 그대로 전달
+            //   전달된 값은 editingLeaveData.prefillHours 에 저장했다가, 아래 <LeaveActionModal>의
+            //   prefillHours prop 으로 넘겨 '시간 직접 입력' 모드 + 인풋 자동 채움에 사용합니다.
+            const handleOpenModal = useCallback((staffId = null, prefillHours = null) => {
+                setEditingLeaveData(staffId ? { staffId, prefillHours } : null);
+                setShowLeaveModal(true);
+            }, []);
 
             const activeStaffs = useMemo(() => staffList.filter(s => s.status !== 'resigned'), [staffList]);
 
@@ -3088,7 +3450,7 @@
                                     </div>
 
                                     <div className="mt-8">
-                                        <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} />
+                                        <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} showConfirm={showConfirm} showAlert={showAlert} />
                                     </div>
                                 </div>
                             )}
@@ -3101,7 +3463,10 @@
                             {activeTab === 'settings' && <SettingsTab showAlert={showAlert} showConfirm={showConfirm} />}
                         </main>
 
-                        {showLeaveModal && <LeaveActionModal onClose={closeLeaveModal} staffList={staffList} adminName={adminName} initialData={editingLeaveData} showAlert={showAlert} />}
+                        {/* ★[v6.15.0] LeaveActionModal 렌더 — prefillHours(엑셀 대조 오차 시간)와 showConfirm을 함께 전달.
+                            · initialData 에 담긴 prefillHours 를 뽑아 prop 으로 넘깁니다(없으면 null).
+                            · showConfirm 은 장바구니/중복 확인 다이얼로그에 사용됩니다. */}
+                        {showLeaveModal && <LeaveActionModal onClose={closeLeaveModal} staffList={staffList} adminName={adminName} initialData={editingLeaveData} prefillHours={editingLeaveData?.prefillHours ?? null} showAlert={showAlert} showConfirm={showConfirm} />}
                     </div>
                 </div>
             );
