@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.18.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.20.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -59,19 +59,32 @@
         const { createRoot } = ReactDOM;
 
         // ============================================================================
-        // [v6.18.0-stable] 정식 릴리즈 — beta(6.16.0/6.17.0/6.17.1) 통합
-        //   ① 관리자 연차 등록 모달 좌우 2단 분할(PC: 좌=달력 / 우=직원·시간·사유·목록·등록)
-        //   ② 모든 일반 모달 ESC 닫기(useEscClose 공통 훅) — 확인·경고·비번강제 제외
-        //   ③ 직원 월별 마감: 직원은 '당월 1일'부터만 등록/수정/삭제 가능(과거월은 관리자만)
-        //   ④ 미래(예정) 연차 '예정' 표시 — 직원·관리자 페이지 모두. 차감/집계는 종전과 동일
-        //   ⑤ 대시보드 전사 캘린더: 개별/다중 삭제 + 하루 2건 초과 시 'N개 더보기' 일정 팝업(수정·삭제 가능)
-        //   ※ 데이터 구조 / 탭 / 기존 기능은 전부 그대로 보존합니다.
+        // [v6.19.0-beta] beta 릴리즈 — v6.18.0-stable 기반 3대 개선
+        //   ① 데이터 로딩 안정화 : App의 onSnapshot 구독에 '에러 콜백 + 자동 재시도 +
+        //      dataLoaded 신호'를 추가해, 초기 접속 시 간헐적으로 발생하던 무한 로딩을
+        //      해소하고, 실패 시 화면을 멈추는 대신 안내 문구와 [다시 시도] 버튼을 노출합니다.
+        //   ② 모바일 대시보드 캘린더 : 좁은 화면(md 미만)에서는 격자 캘린더 대신 '날짜별
+        //      리스트/카드 뷰'로 자동 전환해 가독성과 터치 사용성을 높였습니다. PC는 기존
+        //      격자 캘린더를 그대로 유지합니다.
+        //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.18.0-stable";
+        const SYSTEM_VERSION = "6.20.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.20.0-stable", date: "2026-08-04", details: [
+                "\ud83d\udcd6 [\uc5c5\ub370\uc774\ud2b8 \uc54c\ub9bc\ucc3d \uac1c\uc120] \uc0c8 \ubc84\uc804 \uc548\ub0b4 \ub0b4\uc6a9\uc774 \uae38\uc5b4 [\ud655\uc778] \ubc84\ud2bc\uc774 \ud654\uba74 \ubc16\uc73c\ub85c \ubc00\ub824 \uc548 \ubcf4\uc774\ub358 \ubb38\uc81c\ub97c \ud574\uacb0\ud588\uc2b5\ub2c8\ub2e4. \uc548\ub0b4 \ud56d\ubaa9\uc774 \ub9ce\uc73c\uba74 \ucc98\uc74c\uc5d4 3\uac1c\ub9cc \ubcf4\uc5ec\uc8fc\uace0, \ub098\uba38\uc9c0\ub294 [\uc790\uc138\ud788 \ubcf4\uae30]\ub97c \ub20c\ub7ec \ud3bc\uccd0 \ubcfc \uc218 \uc788\uc2b5\ub2c8\ub2e4",
+                "\ud83d\udd18 [\ud655\uc778 \ubc84\ud2bc \ud56d\uc0c1 \ub178\ucd9c] \uc548\ub0b4\ucc3d \ubcf8\ubb38\uc5d0 \uc2a4\ud06c\ub864\uc744 \uc801\uc6a9\ud558\uace0 [\ud655\uc778] \ubc84\ud2bc\uc744 \ucc3d \ud558\ub2e8\uc5d0 \uace0\uc815\ud574, \uc5b4\ub5a4 \ud654\uba74 \ud06c\uae30\uc5d0\uc11c\ub3c4 \ubc84\ud2bc\uc774 \uc0ac\ub77c\uc9c0\uc9c0 \uc54a\uace0 \ud56d\uc0c1 \ub20c\ub7ec \ub2eb\uc744 \uc218 \uc788\uc2b5\ub2c8\ub2e4",
+                "\ud83d\udee1\ufe0f [\ub370\uc774\ud130 \ub85c\ub529 \uc548\uc815\ud654] \ucc98\uc74c \uc811\uc18d\ud588\uc744 \ub54c \ub370\uc774\ud130\ub97c \ubabb \ubd88\ub7ec\uc640 \ud654\uba74\uc774 \uacc4\uc18d \ub3c4\ub294(\ubb34\ud55c \ub85c\ub529) \uac04\ud5d0\uc801 \ubb38\uc81c\ub97c \ud574\uacb0\ud588\uc2b5\ub2c8\ub2e4. \ud1b5\uc2e0\uc774 \uc7a0\uae50 \ub04a\uae30\uac70\ub098 \ub290\ub824\ub3c4 \uc2dc\uc2a4\ud15c\uc774 \uc2a4\uc2a4\ub85c \uba87 \ucc28\ub840 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uace0, \uadf8\ub798\ub3c4 \uc548 \ub418\uba74 [\ub2e4\uc2dc \uc2dc\ub3c4] \ubc84\ud2bc\uacfc \uc548\ub0b4 \ubb38\uad6c\ub97c \ubcf4\uc5ec\uc90d\ub2c8\ub2e4 (\uc5ec\ub7ec \ubc88 \uc0c8\ub85c\uace0\uce68\ud560 \ud544\uc694\uac00 \uc904\uc5b4\ub4ed\ub2c8\ub2e4)",
+                "\ud83d\udcf1 [\ubaa8\ubc14\uc77c \uce98\ub9b0\ub354 \uac1c\uc120] \ub300\uc2dc\ubcf4\ub4dc\uc758 \uc804\uc0ac \ud734\uac00 \uce98\ub9b0\ub354\uac00 \uc791\uc740 \ud734\ub300\ud3f0 \ud654\uba74\uc5d0\uc11c \uae00\uc790\uac00 \ub649\uac8c\uc9c0\ub358 \ubb38\uc81c\ub97c \uac1c\uc120\ud588\uc2b5\ub2c8\ub2e4. \uc881\uc740 \ud654\uba74\uc5d0\uc11c\ub294 \ub2ec\ub825 \uaca9\uc790 \ub300\uc2e0 \uadf8 \ub2ec\uc5d0 \ud734\uac00\uac00 \uc788\ub294 \ub0a0\uc9dc\ub9cc \uce74\ub4dc\ub85c \uc815\ub9ac\ud574 \ubcf4\uc5ec\uc8fc\ub294 \ub9ac\uc2a4\ud2b8 \ud615\ud0dc\ub85c \uc790\ub3d9 \uc804\ud658\ub418\uc5b4, \ub204\uac00 \uc5b8\uc81c \uc26c\ub294\uc9c0 \ud6e8\uc52c \ub610\ub838\ud558\uac8c \ud655\uc778\ud558\uace0 \ubc14\ub85c \uc218\uc815\u00b7\uc0ad\uc81c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4 (PC \ud654\uba74\uc740 \uae30\uc874 \ub2ec\ub825 \uadf8\ub300\ub85c)",
+                "\ud83d\udee1\ufe0f [\ud638\ud658] \uc800\uc7a5\ub418\ub294 \ub370\uc774\ud130 \uad6c\uc870\u00b7\uc9d1\uacc4 \ubc29\uc2dd\uacfc \uad00\ub9ac\uc790 \ud0ed\u00b7\uc9c1\uc6d0 \ud398\uc774\uc9c0\u00b7\uc5d1\uc140 \ub300\uc870 \ub4f1 \uae30\uc874 \uae30\ub2a5\uc740 \uc885\uc804\uacfc 100% \ub3d9\uc77c\ud569\ub2c8\ub2e4"
+            ] },
+            { version: "6.19.0-beta", date: "2026-08-04", details: [
+                "🛡️ [데이터 로딩 안정화] 처음 접속했을 때 데이터를 못 불러와 화면이 계속 도는(무한 로딩) 간헐적 문제를 해결했습니다. 이제 통신이 잠깐 끊기거나 느려도 시스템이 스스로 몇 차례 다시 시도하고, 그래도 안 되면 로딩만 계속하지 않고 [다시 시도] 버튼과 안내 문구를 보여줍니다 (여러 번 새로고침할 필요가 줄어듭니다)",
+                "📱 [모바일 캘린더 개선] 대시보드의 '전사 휴가 캘린더'가 작은 휴대폰 화면에서 글자가 뭉개지던 문제를 개선했습니다. 좁은 화면에서는 달력 격자 대신 '그 달에 휴가가 있는 날짜만 위에서 아래로 카드로 정리해 보여주는' 리스트 형태로 자동 전환되어, 누가 언제 쉬는지 훨씬 또렷하게 확인하고 바로 수정·삭제할 수 있습니다 (PC 화면에서는 기존 달력 그대로)",
+                "🛠️ [호환] 저장되는 데이터 구조와 시간 집계 방식, 관리자 탭·직원 페이지·엑셀 대조 등 기존 기능은 종전과 100% 동일합니다 (베타 버전 — 안정성 확인용)"
+            ] },
             { version: "6.18.0-stable", date: "2026-07-31", details: [
                 "🖥️ [관리자 등록창 좌우 분할] PC에서 연차 등록 창이 넓어지며 왼쪽=달력, 오른쪽=직원 선택·시간·사유·목록으로 나뉘어 한눈에 보고 빠르게 입력할 수 있습니다 (모바일은 기존처럼 위아래로 표시)",
                 "⌨️ [ESC로 닫기] 연차 등록·수정, 직원 상세·수정, 월간 보고서, 엑셀 대조, 개인 캘린더, 휴가 상세 등 대부분의 창을 키보드 ESC로 바로 닫을 수 있습니다 (실수 방지를 위해 확인·경고창과 비밀번호 변경 창은 제외)",
@@ -574,7 +587,43 @@
         const CustomAlertModal = ({ msg, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-lg text-center"><div className="text-blue-500 mb-4 flex justify-center"><Icons.Info /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap text-left leading-relaxed text-sm">{msg}</p><button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">확인</button></div></div>);
         const CustomConfirmModal = ({ msg, onConfirm, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-sm text-center"><div className="text-orange-500 mb-4 flex justify-center scale-125"><Icons.Alert /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap leading-relaxed">{msg}</p><div className="flex gap-3"><button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">취소</button><button onClick={() => { onConfirm(); onClose(); }} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition">확인</button></div></div></div>);
         const AdminNameModal = ({ onSave }) => { const [name, setName] = useState(''); return (<div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[300] animate-fade-in backdrop-blur-sm px-4"><div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative text-center border-4 border-blue-500"><div className="text-blue-500 mb-4 flex justify-center scale-125"><Icons.User /></div><h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">관리자 식별</h3><p className="text-slate-500 font-bold mb-6 text-sm leading-relaxed">공용 관리자 계정을 사용 중입니다.<br/>작업 이력에 남길 성함을 입력해주세요.</p><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-center mb-4 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" placeholder="예: 홍길동 대리" /><button onClick={() => name.trim() && onSave(name.trim())} className={`w-full py-4 rounded-2xl font-black transition shadow-lg text-sm ${name.trim() ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>설정 완료</button></div></div>); };
-        const VersionAlertModal = ({ onClose }) => (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500"><div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div><h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 시스템 업데이트</h3><p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 배포 완료</p><div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium"><p className="text-blue-600 font-bold">🌟 <b>핵심 업데이트 내역</b></p>{UPDATE_LOGS[0].details.map((d, i) => <p key={i}>{d}</p>)}</div><button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button></div></div>);
+        // [v6.20.0] 업데이트 알림창 — 내용이 길어도 [확인] 버튼이 항상 보이도록 개선
+        //   · 안내 항목이 COLLAPSE_LIMIT(3개)를 넘으면 처음엔 3개만 보이고, 나머지는 [자세히 보기]로 펼침
+        //   · 본문 영역은 max-height + 스크롤, [확인] 버튼은 하단 고정(flex 레이아웃)
+        const VersionAlertModal = ({ onClose }) => {
+            const COLLAPSE_LIMIT = 3;
+            const details = (UPDATE_LOGS[0] && UPDATE_LOGS[0].details) || [];
+            const [expanded, setExpanded] = useState(false);
+            const isLong = details.length > COLLAPSE_LIMIT;
+            const visible = (isLong && !expanded) ? details.slice(0, COLLAPSE_LIMIT) : details;
+            const hiddenCount = details.length - COLLAPSE_LIMIT;
+            return (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4 py-6">
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500 flex flex-col max-h-[90vh]">
+                        <div className="flex-shrink-0">
+                            <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 시스템 업데이트</h3>
+                            <p className="text-center text-blue-600 font-bold mb-4">v{SYSTEM_VERSION} 배포 완료</p>
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-2xl mb-4 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium overflow-y-auto custom-scrollbar flex-1 min-h-0">
+                            <p className="text-blue-600 font-bold">🌟 <b>핵심 업데이트 내역</b></p>
+                            {visible.map((d, i) => <p key={i}>{d}</p>)}
+                            {isLong && !expanded && (
+                                <button onClick={() => setExpanded(true)} className="w-full mt-2 text-blue-600 font-bold bg-blue-50 border border-blue-100 rounded-xl py-2 hover:bg-blue-100 transition text-xs">
+                                    ＋ {hiddenCount}개 더 보기 (자세히 보기)
+                                </button>
+                            )}
+                            {isLong && expanded && (
+                                <button onClick={() => setExpanded(false)} className="w-full mt-2 text-slate-500 font-bold bg-white border border-slate-200 rounded-xl py-2 hover:bg-slate-50 transition text-xs">
+                                    접기
+                                </button>
+                            )}
+                        </div>
+                        <button onClick={onClose} className="flex-shrink-0 w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
+                    </div>
+                </div>
+            );
+        };
         const ForceUpdateModal = () => (<div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[200] animate-fade-in backdrop-blur-md px-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-orange-500 text-center"><div className="text-orange-500 mb-4 flex justify-center scale-150"><Icons.Refresh /></div><h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">새로운 업데이트 발견</h3><p className="text-slate-600 font-bold mb-6 text-sm">관리자가 시스템을 새 버전으로 업데이트했습니다.<br/>안정적인 데이터 처리를 위해 새로고침 해주세요.</p><button onClick={() => window.location.reload(true)} className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black hover:bg-orange-600 transition shadow-lg shadow-orange-200 text-sm flex items-center justify-center gap-2"><Icons.Refresh /> 지금 새로고침</button></div></div>);
 
         // ------------------ [신규 v6.10.0] 초기 비밀번호 강제 변경 화면 ------------------
@@ -1214,6 +1263,12 @@
         //     그대로 사용하므로 데이터 구조·집계 방식은 종전과 100% 동일합니다.
         //   ▷ 전사 캘린더는 여러 직원의 휴가가 섞여 있으므로, 삭제 시 직원(staffId)별로
         //     묶어서 각 직원 문서를 한 번씩만 갱신합니다.
+        //
+        //  [v6.19.0-beta] 모바일 UI 개선
+        //   ▷ 좁은 화면(md 미만)에서는 기존 격자 캘린더 대신 '날짜별 리스트/카드 뷰'로
+        //     자동 전환합니다(휴가가 있는 날짜만 위→아래로 카드로 나열).
+        //     · PC(md 이상)는 종전과 동일한 격자 캘린더를 유지합니다.
+        //     · 리스트 뷰에서도 기존과 동일하게 수정·개별삭제·다중삭제가 가능합니다.
         // ============================================================================
         const CalendarView = ({ staffList, onEditClick, showConfirm, showAlert }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
@@ -1240,6 +1295,9 @@
 
             // [v6.16.0] 이번 달 화면에 보이는 전체 휴가 건들을 평탄화 — 삭제 대상 조회용
             const monthLeaves = useMemo(() => Object.values(leaveMap).flat(), [leaveMap]);
+
+            // [v6.19.0] 모바일 리스트 뷰용 — 휴가가 있는 날짜만 오름차순 정렬
+            const sortedDaysWithLeaves = useMemo(() => Object.keys(leaveMap).sort(), [leaveMap]);
 
             const toggleCheck = (id) => setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
             const exitSelectMode = () => { setSelectMode(false); setCheckedIds([]); };
@@ -1367,8 +1425,12 @@
                             <button type="button" onClick={handleBulkDelete} disabled={!checkedIds.length} className={`text-xs font-bold py-1.5 px-4 rounded-lg transition flex items-center gap-1.5 ${checkedIds.length ? 'bg-red-500 text-white hover:bg-red-600 shadow-sm' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}><Icons.Trash /> 선택 삭제</button>
                         </div>
                     )}
-                    <div className="w-full overflow-x-auto no-scrollbar flex-1">
-                        <div className="min-w-[500px] border border-slate-200 rounded-lg overflow-hidden bg-slate-200 gap-px grid grid-cols-7 h-full">
+
+                    {/* ══════════════════════════════════════════════════════════════
+                        [v6.19.0] 데스크톱(md 이상) : 기존 격자 캘린더 — 그대로 유지
+                       ══════════════════════════════════════════════════════════════ */}
+                    <div className="hidden md:flex w-full overflow-x-auto no-scrollbar flex-1">
+                        <div className="min-w-[500px] w-full border border-slate-200 rounded-lg overflow-hidden bg-slate-200 gap-px grid grid-cols-7 h-full">
                             {WEEK_LABELS.map((d, i) => (<div key={d} className={`bg-slate-50 py-2 text-center text-xs font-bold tracking-widest ${i===0?'text-red-500':i===6?'text-blue-500':'text-slate-600'}`}>{d}</div>))}
                             {weeks.flat().map((d, idx) => {
                                 const dateStr = d ? `${prefix}-${String(d).padStart(2, '0')}` : '';
@@ -1379,23 +1441,24 @@
                                 const visibleLeaves = selectMode ? leaves : leaves.slice(0, MAX_VISIBLE);
                                 const hiddenCount = selectMode ? 0 : Math.max(0, leaves.length - MAX_VISIBLE);
                                 return (
-                                    <div key={idx} className={`bg-white h-[80px] md:h-full min-h-[90px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
-                                        <div className={`text-[10px] md:text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full mx-auto md:mx-0 ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>{d || ''}</div>
+                                    <div key={idx} className={`bg-white h-full min-h-[90px] p-1.5 flex flex-col overflow-hidden transition-colors ${d?'hover:bg-slate-50/50':'opacity-30 pointer-events-none'}`}>
+                                        <div className={`text-xs font-bold p-1 flex justify-center items-center w-6 h-6 rounded-full md:mx-0 ${isToday?'bg-blue-600 text-white shadow-md':idx%7===0?'text-red-500':idx%7===6?'text-blue-500':'text-slate-700'}`}>{d || ''}</div>
                                         <div className="flex-1 overflow-y-auto pr-0.5 space-y-1 mt-1 custom-scrollbar">
                                             {visibleLeaves.map((l, i) => {
                                                 const checked = selectMode && checkedIds.includes(l.id);
                                                 const isPartial = l.type.includes('반차') || l.type.includes('시간');
                                                 const future = isFutureLeave(l.date); // [v6.17.0] 미래(예정) 여부
                                                 return (
-                                                    // [v6.16.0] group: 마우스 오버 시 X 버튼 노출(모바일은 상시 노출). 선택 모드에선 체크 표시.
+                                                    // [v6.16.0] group: 마우스 오버 시 X 버튼 노출. 선택 모드에선 체크 표시.
                                                     // [v6.17.0] 미래 건은 점선 테두리 + '예정' 배지로 구분.
-                                                    <div key={l.id || i} onClick={(e) => { e.stopPropagation(); handleBlockClick(l); }} className={`group relative cursor-pointer hover:opacity-90 text-[10px] md:text-[11px] pl-1.5 pr-5 py-0.5 rounded-md truncate font-bold shadow-sm ${isPartial?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/40' : ''} ${checked ? 'ring-2 ring-slate-800' : ''}`} title={`${l.name} (${l.type})${future ? ' · 예정(미래)' : ''} - ${selectMode ? '눌러서 선택' : '클릭하여 수정'}`}>
-                                                        {selectMode && <span className="mr-0.5">{checked ? '☑' : '☐'}</span>}
-                                                        {future && <span className="mr-0.5 px-1 rounded-sm bg-slate-800 text-white text-[8px] md:text-[9px] font-black align-middle">예정</span>}
-                                                        {l.name} <span className="font-normal opacity-75 ml-0.5 text-[9px] md:text-[10px] tracking-tighter">({l.type})</span>
+                                                    <div key={l.id || i} onClick={(e) => { e.stopPropagation(); handleBlockClick(l); }} className={`group relative cursor-pointer hover:opacity-90 text-[11px] pl-1.5 pr-5 py-0.5 rounded-md truncate font-bold shadow-sm ${isPartial?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/40' : ''} ${checked ? 'ring-2 ring-slate-800' : ''}`} title={`${l.name} (${l.type})${future ? ' · 예정(미래)' : ''} - ${selectMode ? '눌러서 선택' : '클릭하여 수정'}`}>  
+
+ {selectMode && <span className="mr-0.5">{checked ? '☑' : '☐'}</span>}
+                                                        {future && <span className="mr-0.5 px-1 rounded-sm bg-slate-800 text-white text-[9px] font-black align-middle">예정</span>}
+                                                        {l.name} <span className="font-normal opacity-75 ml-0.5 text-[10px] tracking-tighter">({l.type})</span>
                                                         {/* 개별 삭제 X 버튼 (선택 모드가 아닐 때만 표시) */}
                                                         {!selectMode && (
-                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(l); }} title="이 휴가 삭제" className="absolute right-0.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:bg-red-500 hover:text-white transition opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-sm">
+                                                            <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(l); }} title="이 휴가 삭제" className="absolute right-0.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center rounded-full bg-white/80 text-slate-400 hover:bg-red-500 hover:text-white transition opacity-0 group-hover:opacity-100 shadow-sm">
                                                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                                             </button>
                                                         )}
@@ -1404,7 +1467,7 @@
                                             })}
                                             {/* [v6.17.1] 초과분: 'N개 더보기' → 그 날 일정 팝업 열기 */}
                                             {hiddenCount > 0 && (
-                                                <button type="button" onClick={(e) => { e.stopPropagation(); setDayModalDate(dateStr); }} className="w-full text-[10px] md:text-[11px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-md py-0.5 transition">
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); setDayModalDate(dateStr); }} className="w-full text-[11px] font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-md py-0.5 transition">
                                                     {hiddenCount}개 더보기
                                                 </button>
                                             )}
@@ -1413,6 +1476,76 @@
                                 );
                             })}
                         </div>
+                    </div>
+
+                    {/* ══════════════════════════════════════════════════════════════
+                        [v6.19.0] 모바일(md 미만) : 날짜별 리스트/카드 뷰
+                        · 격자를 좁은 화면에 욱여넣지 않고, '휴가가 있는 날짜'만
+                          위→아래로 카드로 나열해 가독성을 확보합니다.
+                        · 각 카드 헤더에 날짜·요일·건수, 그 아래 그 날의 휴가들을
+                          한 줄씩 표시하고, 오른쪽 버튼으로 수정·삭제할 수 있습니다.
+                        · 선택 모드일 때는 카드 안의 각 휴가를 눌러 체크(다중 삭제)합니다.
+                       ══════════════════════════════════════════════════════════════ */}
+                    <div className="md:hidden flex-1 overflow-y-auto custom-scrollbar -mx-1 px-1">
+                        {sortedDaysWithLeaves.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+                                <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mb-3 text-slate-300"><Icons.Calendar /></div>
+                                <p className="font-bold text-sm text-slate-500">{month + 1}월에 등록된 휴가가 없습니다.</p>
+                                <p className="text-xs mt-1">위 달 이동 버튼으로 다른 달을 확인해보세요.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3 pb-2">
+                                {sortedDaysWithLeaves.map(dateStr => {
+                                    const leaves = leaveMap[dateStr] || [];
+                                    const [yy, mm, dd] = dateStr.split('-').map(Number);
+                                    const dowIdx = new Date(yy, mm - 1, dd).getDay();
+                                    const isToday = dateStr === todayStr;
+                                    return (
+                                        <div key={dateStr} className={`rounded-2xl border shadow-sm overflow-hidden ${isToday ? 'border-blue-300 ring-1 ring-blue-200' : 'border-slate-200'}`}>
+                                            {/* 카드 헤더: 날짜·요일·건수 */}
+                                            <div className={`flex items-center justify-between px-3.5 py-2.5 ${isToday ? 'bg-blue-50' : 'bg-slate-50'}`}>
+                                                <div className="flex items-baseline gap-2">
+                                                    <span className={`text-lg font-black ${isToday ? 'text-blue-600' : 'text-slate-800'}`}>{dd}일</span>
+                                                    <span className={`text-xs font-bold ${dowIdx === 0 ? 'text-red-500' : dowIdx === 6 ? 'text-blue-500' : 'text-slate-500'}`}>({WEEK_LABELS[dowIdx]})</span>
+                                                    {isToday && <span className="text-[10px] font-black bg-blue-600 text-white px-1.5 py-0.5 rounded">오늘</span>}
+                                                </div>
+                                                <span className="text-[11px] font-bold text-slate-400">휴가 {leaves.length}건</span>
+                                            </div>
+                                            {/* 그 날의 휴가 목록 */}
+                                            <div className="divide-y divide-slate-100 bg-white">
+                                                {leaves.map((l, i) => {
+                                                    const checked = selectMode && checkedIds.includes(l.id);
+                                                    const isPartial = l.type.includes('반차') || l.type.includes('시간');
+                                                    const future = isFutureLeave(l.date);
+                                                    return (
+                                                        <div key={l.id || i} onClick={() => { if (selectMode) toggleCheck(l.id); }} className={`flex items-center justify-between gap-2 px-3.5 py-2.5 ${selectMode ? 'cursor-pointer active:bg-slate-50' : ''} ${checked ? 'bg-slate-800/5 ring-1 ring-inset ring-slate-800' : ''}`}>
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                {selectMode && <span className="text-base flex-shrink-0">{checked ? '☑' : '☐'}</span>}
+                                                                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isPartial ? 'bg-orange-400' : 'bg-blue-500'}`}></span>
+                                                                <div className="min-w-0">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="font-black text-slate-800 text-sm truncate">{l.name}</span>
+                                                                        {future && <span className="px-1 rounded-sm bg-slate-800 text-white text-[9px] font-black flex-shrink-0">예정</span>}
+                                                                    </div>
+                                                                    <p className={`text-[11px] font-bold mt-0.5 ${isPartial ? 'text-orange-600' : 'text-blue-600'}`}>{fmt(safeParseFloat(l.days))}시간 · {l.type}{l.reason ? ` · ${l.reason}` : ''}</p>
+                                                                </div>
+                                                            </div>
+                                                            {/* 선택 모드가 아닐 때만 수정·삭제 버튼 노출 */}
+                                                            {!selectMode && (
+                                                                <div className="flex gap-1.5 flex-shrink-0">
+                                                                    <button type="button" onClick={(e) => { e.stopPropagation(); onEditClick && onEditClick(l.staffId, 0, l); }} title="수정" className="text-blue-500 p-2 bg-white rounded-lg shadow-sm border hover:bg-blue-50 transition"><Icons.Edit /></button>
+                                                                    <button type="button" onClick={(e) => { e.stopPropagation(); handleDeleteOne(l); }} title="삭제" className="text-red-500 p-2 bg-white rounded-lg shadow-sm border hover:bg-red-50 transition"><Icons.Trash /></button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -3254,6 +3387,14 @@
             const [confirmData, setConfirmData] = useState(null);
             const [pwChangeDone, setPwChangeDone] = useState(false); // [v6.10.0] 초기 비번 변경 완료 플래그
 
+            // ★[v6.19.0] 데이터 로딩 상태 신호등
+            //   dataLoaded : 관리자 직원 목록의 '첫 응답'이 실제로 도착했는지 여부.
+            //                false 인 동안엔 로딩 화면을 보여주고, true 가 되면 본 화면을 그립니다.
+            //   loadError  : 구독이 실패(네트워크/권한 등)했을 때의 안내 메시지. 있으면 [다시 시도] UI 노출.
+            const [dataLoaded, setDataLoaded] = useState(false);
+            const [loadError, setLoadError] = useState('');
+            const [retryTick, setRetryTick] = useState(0); // 수동 [다시 시도] 버튼용 카운터
+
             const showAlert = useCallback((msg) => setAlertData({ msg }), []);
             const showConfirm = useCallback((msg, onConfirm) => setConfirmData({ msg, onConfirm }), []);
             const addToast = useCallback((msg, type = 'info') => {
@@ -3265,6 +3406,9 @@
             const isInitialLoad = useRef(true);
             const prevStaffList = useRef([]);
 
+            // ────────────────────────────────────────────────────────────────
+            // [v6.19.0] 버전 자동 체크 (데이터 구독과 분리) — user 로그인 시 1회 + 주기 실행
+            // ────────────────────────────────────────────────────────────────
             useEffect(() => {
                 if (!user) return;
                 const checkVersionFromUrl = async () => {
@@ -3278,28 +3422,95 @@
                 checkVersionFromUrl();
                 const versionInterval = setInterval(checkVersionFromUrl, 15000);
                 if (localStorage.getItem('ygnurim_version') !== SYSTEM_VERSION) setShowUpdateModal(true);
+                return () => clearInterval(versionInterval);
+            }, [user]);
 
-                let unsubUsers = () => {};
-                if (user.role === 'admin') {
-                    unsubUsers = db.collection('users').onSnapshot((snapshot) => {
-                        const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
-                        if (!isInitialLoad.current && adminName) {
-                            list.forEach(newStaff => {
-                                const oldStaff = prevStaffList.current.find(s => s.id === newStaff.id);
-                                if (!oldStaff) return;
-                                const oldIds = new Set((oldStaff.leaveHistory || []).map(h => h.id));
-                                (newStaff.leaveHistory || []).forEach(leave => {
-                                    if (!oldIds.has(leave.id) && leave.addedBy && leave.addedBy !== adminName) addToast(`[실시간] ${leave.addedBy}님이 ${newStaff.name} 직원의 연차를 등록/수정했습니다.`, 'success');
+            // ────────────────────────────────────────────────────────────────
+            // [v6.19.0 ★핵심] 관리자 직원 목록 실시간 구독 — 로딩 안정화 / 재시도 / 에러 처리
+            //   · onSnapshot 두 번째 인자로 '에러 콜백'을 넘겨, 통신 실패 시 화면이 멈추지 않고
+            //     안내 문구를 띄우도록 합니다(기존엔 에러 콜백이 없어 첫 응답이 안 오면 무한 로딩).
+            //   · 자동 재시도 : 실패하면 일정 시간 뒤 스스로 다시 구독을 시도합니다(최대 5회, 점증 간격).
+            //   · 수동 재시도 : loadError 화면의 [다시 시도] 버튼이 retryTick을 올려 이 훅을 재실행합니다.
+            //   · '진짜로 데이터가 0명'인 상태와 '아직 로딩 중'을 dataLoaded로 명확히 구분합니다.
+            //   ※ 데이터 병합·토스트 로직은 종전과 동일합니다.
+            // ────────────────────────────────────────────────────────────────
+            useEffect(() => {
+                if (!user || user.role !== 'admin') { setDataLoaded(true); return; }
+
+                let unsub = () => {};
+                let retryTimer = null;
+                let cancelled = false;
+                let attempt = 0;
+                const MAX_ATTEMPTS = 5;
+
+                const subscribe = () => {
+                    if (cancelled) return;
+                    // 새 구독을 걸기 전, 이전 구독이 남아있다면 정리
+                    try { unsub(); } catch (e) {}
+                    unsub = db.collection('users').onSnapshot(
+                        // ── 성공 콜백 ──
+                        (snapshot) => {
+                            if (cancelled) return;
+                            attempt = 0;            // 성공했으니 재시도 카운터 리셋
+                            setLoadError('');       // 이전 에러 안내 제거
+                            const list = snapshot.docs.map(d => ({ ...d.data(), id: d.id })).filter(u => u.role === 'staff');
+                            // ── 실시간 등록 토스트 (기존 로직 그대로) ──
+                            if (!isInitialLoad.current && adminName) {
+                                list.forEach(newStaff => {
+                                    const oldStaff = prevStaffList.current.find(s => s.id === newStaff.id);
+                                    if (!oldStaff) return;
+                                    const oldIds = new Set((oldStaff.leaveHistory || []).map(h => h.id));
+                                    (newStaff.leaveHistory || []).forEach(leave => {
+                                        if (!oldIds.has(leave.id) && leave.addedBy && leave.addedBy !== adminName) addToast(`[실시간] ${leave.addedBy}님이 ${newStaff.name} 직원의 연차를 등록/수정했습니다.`, 'success');
+                                    });
                                 });
-                            });
+                            }
+                            prevStaffList.current = list;
+                            isInitialLoad.current = false;
+                            setStaffList(list);
+                            setDataLoaded(true);    // 첫 응답 도착 → 본 화면 렌더 허용
+                        },
+                        // ── 에러 콜백 (v6.19.0 신설) ──
+                        (error) => {
+                            if (cancelled) return;
+                            console.error('onSnapshot error:', error);
+                            attempt += 1;
+                            if (attempt <= MAX_ATTEMPTS) {
+                                // 점증 간격(2s,3s,4s,5s,6s)으로 자동 재시도
+                                const delay = 1000 * (attempt + 1);
+                                setLoadError(`데이터를 불러오는 중 통신 문제가 발생했습니다. 자동으로 다시 시도합니다… (${attempt}/${MAX_ATTEMPTS})`);
+                                retryTimer = setTimeout(() => { if (!cancelled) subscribe(); }, delay);
+                            } else {
+                                // 자동 재시도 소진 → 수동 [다시 시도] 안내
+                                setLoadError('데이터를 계속 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 [다시 시도]를 눌러주세요.');
+                            }
                         }
-                        prevStaffList.current = list;
-                        isInitialLoad.current = false;
-                        setStaffList(list);
-                    });
-                }
-                return () => { clearInterval(versionInterval); unsubUsers(); };
-            }, [user, adminName, addToast]);
+                    );
+                };
+
+                // 최초 구독 시작 전 로딩 상태로 초기화
+                setDataLoaded(false);
+                setLoadError('');
+                subscribe();
+
+                // ── 세이프가드 타이머 : 8초 안에 첫 응답이 없으면 안내만 표시(구독은 계속 유지) ──
+                const safeguard = setTimeout(() => {
+                    if (!cancelled && !dataLoaded) {
+                        setLoadError(prev => prev || '데이터 응답이 지연되고 있습니다. 네트워크 상태를 확인하는 중입니다…');
+                    }
+                }, 8000);
+
+                return () => {
+                    cancelled = true;
+                    if (retryTimer) clearTimeout(retryTimer);
+                    clearTimeout(safeguard);
+                    try { unsub(); } catch (e) {}
+                };
+            // retryTick : [다시 시도] 버튼이 올리면 이 훅이 통째로 재실행됩니다.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            }, [user, adminName, addToast, retryTick]);
+
+            const handleManualRetry = () => { setLoadError(''); setDataLoaded(false); setRetryTick(t => t + 1); };
 
             const handleUpdateConfirm = () => { localStorage.setItem('ygnurim_version', SYSTEM_VERSION); setShowUpdateModal(false); };
             const handleAdminNameSave = (name) => { localStorage.setItem('ygnurim_admin_name', name); setAdminName(name); };
@@ -3371,6 +3582,41 @@
                 );
             }
 
+            // ────────────────────────────────────────────────────────────────
+            // [v6.19.0] 관리자: 첫 데이터가 아직 도착하지 않았을 때의 로딩/에러 화면
+            //   · dataLoaded=false 인 동안 이 화면을 보여줍니다.
+            //   · loadError 가 있으면 안내 + [다시 시도] 버튼을 함께 노출합니다.
+            //   · 무한 로딩 대신, 사용자가 상황을 알고 직접 재시도할 수 있게 합니다.
+            // ────────────────────────────────────────────────────────────────
+            if (!dataLoaded) {
+                return (
+                    <div className="flex h-screen items-center justify-center bg-[#F1F5F9] p-6">
+                        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 md:p-10 w-full max-w-md text-center">
+                            {loadError && !loadError.includes('자동으로 다시') && !loadError.includes('지연') ? (
+                                // 자동 재시도 소진 등 '멈춤' 상태 → 경고 아이콘 + 다시 시도 버튼
+                                <>
+                                    <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-5 scale-110"><Icons.Alert /></div>
+                                    <h2 className="text-lg font-black text-slate-800 mb-2">데이터를 불러오지 못했습니다</h2>
+                                    <p className="text-sm text-slate-500 font-bold leading-relaxed mb-6 whitespace-pre-wrap">{loadError}</p>
+                                    <button onClick={handleManualRetry} className="w-full bg-blue-600 text-white py-3.5 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2"><Icons.Refresh /> 다시 시도</button>
+                                    <button onClick={() => window.location.reload()} className="w-full mt-2 text-slate-400 hover:text-slate-600 py-2 rounded-xl font-bold text-xs transition">그래도 안 되면 페이지 새로고침</button>
+                                </>
+                            ) : (
+                                // 정상 로딩 중 / 자동 재시도 중 → 스피너 + 상태 안내
+                                <>
+                                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-5"></div>
+                                    <h2 className="text-lg font-black text-slate-800 mb-2">시스템 데이터 로딩 중…</h2>
+                                    <p className="text-sm text-slate-500 font-bold leading-relaxed">{loadError || '직원 명부와 연차 정보를 안전하게 불러오고 있습니다. 잠시만 기다려주세요.'}</p>
+                                    {loadError && (
+                                        <button onClick={handleManualRetry} className="mt-6 text-blue-600 hover:text-blue-700 font-bold text-xs underline underline-offset-2">계속 지연되면 여기를 눌러 다시 시도</button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+
             const NAV_ITEMS = [
                 { id: 'dashboard', icon: <Icons.Grid />, label: '대시보드', title: '종합 대시보드' },
                 { id: 'leave', icon: <Icons.Calendar />, label: '연차 관리', title: '연차 등록 및 관리' },
@@ -3390,6 +3636,16 @@
                     {alertData && <CustomAlertModal msg={alertData.msg} onClose={() => setAlertData(null)} />}
                     {confirmData && <CustomConfirmModal msg={confirmData.msg} onConfirm={confirmData.onConfirm} onClose={() => setConfirmData(null)} />}
                     {viewingStaffDetail && <StaffDetailModal staff={viewingStaffDetail} onClose={() => setViewingStaffDetail(null)} />}
+
+                    {/* [v6.19.0] 로딩 이후에도 통신이 잠깐 끊기면 우상단에 살짝 안내(비차단) */}
+                    {loadError && (
+                        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9998] pointer-events-none">
+                            <div className="pointer-events-auto bg-amber-50 text-amber-800 border border-amber-200 px-4 py-2 rounded-xl shadow-lg font-bold text-xs flex items-center gap-2 animate-fade-in">
+                                <Icons.Alert /> {loadError}
+                                <button onClick={handleManualRetry} className="ml-1 underline underline-offset-2 hover:text-amber-900">다시 시도</button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none">
                         {toasts.map(t => (<div key={t.id} className={`pointer-events-auto px-4 py-3 rounded-xl shadow-lg font-bold text-sm flex items-center gap-2 animate-slide-in-right border ${t.type === 'success' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}><Icons.Info /> {t.msg}</div>))}
