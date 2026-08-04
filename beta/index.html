@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.19.0-beta)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.20.0-beta)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -68,11 +68,18 @@
         //      격자 캘린더를 그대로 유지합니다.
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.19.0-beta";
+        const SYSTEM_VERSION = "6.20.0-beta";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
+            { version: "6.20.0-beta", date: "2026-08-04", details: [
+                "\ud83d\udcd6 [\uc5c5\ub370\uc774\ud2b8 \uc54c\ub9bc\ucc3d \uac1c\uc120] \uc0c8 \ubc84\uc804 \uc548\ub0b4 \ub0b4\uc6a9\uc774 \uae38\uc5b4 [\ud655\uc778] \ubc84\ud2bc\uc774 \ud654\uba74 \ubc16\uc73c\ub85c \ubc00\ub824 \uc548 \ubcf4\uc774\ub358 \ubb38\uc81c\ub97c \ud574\uacb0\ud588\uc2b5\ub2c8\ub2e4. \uc548\ub0b4 \ud56d\ubaa9\uc774 \ub9ce\uc73c\uba74 \ucc98\uc74c\uc5d4 3\uac1c\ub9cc \ubcf4\uc5ec\uc8fc\uace0, \ub098\uba38\uc9c0\ub294 [\uc790\uc138\ud788 \ubcf4\uae30]\ub97c \ub20c\ub7ec \ud3bc\uccd0 \ubcfc \uc218 \uc788\uc2b5\ub2c8\ub2e4",
+                "\ud83d\udd18 [\ud655\uc778 \ubc84\ud2bc \ud56d\uc0c1 \ub178\ucd9c] \uc548\ub0b4\ucc3d \ubcf8\ubb38\uc5d0 \uc2a4\ud06c\ub864\uc744 \uc801\uc6a9\ud558\uace0 [\ud655\uc778] \ubc84\ud2bc\uc744 \ucc3d \ud558\ub2e8\uc5d0 \uace0\uc815\ud574, \uc5b4\ub5a4 \ud654\uba74 \ud06c\uae30\uc5d0\uc11c\ub3c4 \ubc84\ud2bc\uc774 \uc0ac\ub77c\uc9c0\uc9c0 \uc54a\uace0 \ud56d\uc0c1 \ub20c\ub7ec \ub2eb\uc744 \uc218 \uc788\uc2b5\ub2c8\ub2e4",
+                "\ud83d\udee1\ufe0f [\ub370\uc774\ud130 \ub85c\ub529 \uc548\uc815\ud654 \uacc4\uc2b9] \ucd08\uae30 \uc811\uc18d \uc2dc \uac04\ud5d0\uc801 \ubb34\ud55c \ub85c\ub529\uc744 \ub9c9\uae30 \uc704\ud574 \uc790\ub3d9 \uc7ac\uc2dc\ub3c4\u00b7[\ub2e4\uc2dc \uc2dc\ub3c4] \ubc84\ud2bc\uc744 \uc720\uc9c0\ud569\ub2c8\ub2e4",
+                "\ud83d\udcf1 [\ubaa8\ubc14\uc77c \uce98\ub9b0\ub354 \uacc4\uc2b9] \ub300\uc2dc\ubcf4\ub4dc \uc804\uc0ac \ud734\uac00 \uce98\ub9b0\ub354\ub294 \uc881\uc740 \ud654\uba74\uc5d0\uc11c \ub0a0\uc9dc\ubcc4 \ub9ac\uc2a4\ud2b8/\uce74\ub4dc \ubdf0\ub85c \uc790\ub3d9 \uc804\ud658\ub429\ub2c8\ub2e4",
+                "\ud83d\udee1\ufe0f [\ud638\ud658] \uc800\uc7a5\ub418\ub294 \ub370\uc774\ud130 \uad6c\uc870\u00b7\uc9d1\uacc4 \ubc29\uc2dd\uacfc \uae30\uc874 \uae30\ub2a5\uc740 \uc885\uc804\uacfc 100% \ub3d9\uc77c\ud569\ub2c8\ub2e4 (\ubca0\ud0c0 \ubc84\uc804 \u2014 \uc548\uc815\uc131 \ud655\uc778\uc6a9)"
+            ] },
             { version: "6.19.0-beta", date: "2026-08-04", details: [
                 "🛡️ [데이터 로딩 안정화] 처음 접속했을 때 데이터를 못 불러와 화면이 계속 도는(무한 로딩) 간헐적 문제를 해결했습니다. 이제 통신이 잠깐 끊기거나 느려도 시스템이 스스로 몇 차례 다시 시도하고, 그래도 안 되면 로딩만 계속하지 않고 [다시 시도] 버튼과 안내 문구를 보여줍니다 (여러 번 새로고침할 필요가 줄어듭니다)",
                 "📱 [모바일 캘린더 개선] 대시보드의 '전사 휴가 캘린더'가 작은 휴대폰 화면에서 글자가 뭉개지던 문제를 개선했습니다. 좁은 화면에서는 달력 격자 대신 '그 달에 휴가가 있는 날짜만 위에서 아래로 카드로 정리해 보여주는' 리스트 형태로 자동 전환되어, 누가 언제 쉬는지 훨씬 또렷하게 확인하고 바로 수정·삭제할 수 있습니다 (PC 화면에서는 기존 달력 그대로)",
@@ -580,7 +587,43 @@
         const CustomAlertModal = ({ msg, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-lg text-center"><div className="text-blue-500 mb-4 flex justify-center"><Icons.Info /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap text-left leading-relaxed text-sm">{msg}</p><button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">확인</button></div></div>);
         const CustomConfirmModal = ({ msg, onConfirm, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-sm text-center"><div className="text-orange-500 mb-4 flex justify-center scale-125"><Icons.Alert /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap leading-relaxed">{msg}</p><div className="flex gap-3"><button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition">취소</button><button onClick={() => { onConfirm(); onClose(); }} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-bold hover:bg-red-600 transition">확인</button></div></div></div>);
         const AdminNameModal = ({ onSave }) => { const [name, setName] = useState(''); return (<div className="fixed inset-0 bg-slate-900/90 flex items-center justify-center z-[300] animate-fade-in backdrop-blur-sm px-4"><div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md relative text-center border-4 border-blue-500"><div className="text-blue-500 mb-4 flex justify-center scale-125"><Icons.User /></div><h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">관리자 식별</h3><p className="text-slate-500 font-bold mb-6 text-sm leading-relaxed">공용 관리자 계정을 사용 중입니다.<br/>작업 이력에 남길 성함을 입력해주세요.</p><input type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl font-bold text-center mb-4 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition" placeholder="예: 홍길동 대리" /><button onClick={() => name.trim() && onSave(name.trim())} className={`w-full py-4 rounded-2xl font-black transition shadow-lg text-sm ${name.trim() ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}>설정 완료</button></div></div>); };
-        const VersionAlertModal = ({ onClose }) => (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500"><div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div><h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 시스템 업데이트</h3><p className="text-center text-blue-600 font-bold mb-6">v{SYSTEM_VERSION} 배포 완료</p><div className="bg-slate-50 p-4 rounded-2xl mb-6 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium"><p className="text-blue-600 font-bold">🌟 <b>핵심 업데이트 내역</b></p>{UPDATE_LOGS[0].details.map((d, i) => <p key={i}>{d}</p>)}</div><button onClick={onClose} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button></div></div>);
+        // [v6.20.0] 업데이트 알림창 — 내용이 길어도 [확인] 버튼이 항상 보이도록 개선
+        //   · 안내 항목이 COLLAPSE_LIMIT(3개)를 넘으면 처음엔 3개만 보이고, 나머지는 [자세히 보기]로 펼침
+        //   · 본문 영역은 max-height + 스크롤, [확인] 버튼은 하단 고정(flex 레이아웃)
+        const VersionAlertModal = ({ onClose }) => {
+            const COLLAPSE_LIMIT = 3;
+            const details = (UPDATE_LOGS[0] && UPDATE_LOGS[0].details) || [];
+            const [expanded, setExpanded] = useState(false);
+            const isLong = details.length > COLLAPSE_LIMIT;
+            const visible = (isLong && !expanded) ? details.slice(0, COLLAPSE_LIMIT) : details;
+            const hiddenCount = details.length - COLLAPSE_LIMIT;
+            return (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] animate-fade-in backdrop-blur-md px-4 py-6">
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-blue-500 flex flex-col max-h-[90vh]">
+                        <div className="flex-shrink-0">
+                            <div className="text-blue-600 mb-4 flex justify-center"><Icons.Info /></div>
+                            <h3 className="text-xl md:text-2xl font-black text-slate-800 text-center mb-2 font-sans">양지누림 시스템 업데이트</h3>
+                            <p className="text-center text-blue-600 font-bold mb-4">v{SYSTEM_VERSION} 배포 완료</p>
+                        </div>
+                        <div className="bg-slate-50 p-4 rounded-2xl mb-4 space-y-2 text-xs md:text-sm text-slate-600 border border-slate-100 font-medium overflow-y-auto custom-scrollbar flex-1 min-h-0">
+                            <p className="text-blue-600 font-bold">🌟 <b>핵심 업데이트 내역</b></p>
+                            {visible.map((d, i) => <p key={i}>{d}</p>)}
+                            {isLong && !expanded && (
+                                <button onClick={() => setExpanded(true)} className="w-full mt-2 text-blue-600 font-bold bg-blue-50 border border-blue-100 rounded-xl py-2 hover:bg-blue-100 transition text-xs">
+                                    ＋ {hiddenCount}개 더 보기 (자세히 보기)
+                                </button>
+                            )}
+                            {isLong && expanded && (
+                                <button onClick={() => setExpanded(false)} className="w-full mt-2 text-slate-500 font-bold bg-white border border-slate-200 rounded-xl py-2 hover:bg-slate-50 transition text-xs">
+                                    접기
+                                </button>
+                            )}
+                        </div>
+                        <button onClick={onClose} className="flex-shrink-0 w-full bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg shadow-blue-200 uppercase tracking-widest text-sm">확인했습니다</button>
+                    </div>
+                </div>
+            );
+        };
         const ForceUpdateModal = () => (<div className="fixed inset-0 bg-slate-900/80 flex items-center justify-center z-[200] animate-fade-in backdrop-blur-md px-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-md relative border-4 border-orange-500 text-center"><div className="text-orange-500 mb-4 flex justify-center scale-150"><Icons.Refresh /></div><h3 className="text-xl md:text-2xl font-black text-slate-800 mb-2">새로운 업데이트 발견</h3><p className="text-slate-600 font-bold mb-6 text-sm">관리자가 시스템을 새 버전으로 업데이트했습니다.<br/>안정적인 데이터 처리를 위해 새로고침 해주세요.</p><button onClick={() => window.location.reload(true)} className="w-full bg-orange-500 text-white py-4 rounded-2xl font-black hover:bg-orange-600 transition shadow-lg shadow-orange-200 text-sm flex items-center justify-center gap-2"><Icons.Refresh /> 지금 새로고침</button></div></div>);
 
         // ------------------ [신규 v6.10.0] 초기 비밀번호 강제 변경 화면 ------------------
