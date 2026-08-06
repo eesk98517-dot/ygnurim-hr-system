@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.20.0-beta)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.21.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -59,26 +59,30 @@
         const { createRoot } = ReactDOM;
 
         // ============================================================================
-        // [v6.19.0-beta] beta 릴리즈 — v6.18.0-stable 기반 3대 개선
-        //   ① 데이터 로딩 안정화 : App의 onSnapshot 구독에 '에러 콜백 + 자동 재시도 +
-        //      dataLoaded 신호'를 추가해, 초기 접속 시 간헐적으로 발생하던 무한 로딩을
-        //      해소하고, 실패 시 화면을 멈추는 대신 안내 문구와 [다시 시도] 버튼을 노출합니다.
-        //   ② 모바일 대시보드 캘린더 : 좁은 화면(md 미만)에서는 격자 캘린더 대신 '날짜별
-        //      리스트/카드 뷰'로 자동 전환해 가독성과 터치 사용성을 높였습니다. PC는 기존
-        //      격자 캘린더를 그대로 유지합니다.
+        // [v6.21.0-stable] 정식 릴리즈 — v6.20.0-stable 기반 1건 개선
+        //   ① [직원 명부] 개별 계정 상태 초기화 버튼 신설
+        //      : 관리자가 Firebase Authentication 콘솔에서 계정을 '수동 삭제'하면,
+        //        Firestore(users) 문서에는 authStatus:'success'가 그대로 남아 화면에는
+        //        계속 '발급됨'으로 표시되고 [개별 발급] 버튼이 나타나지 않았습니다.
+        //        이제 각 직원 행의 [개별 계정 상태 초기화] 버튼으로
+        //        authStatus:'pending' / employeeId:'' / tempPw:'' 로 되돌릴 수 있어
+        //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.20.0-beta";
+        const SYSTEM_VERSION = "6.21.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
         const UPDATE_LOGS = [
-            { version: "6.20.0-beta", date: "2026-08-04", details: [
+            { version: "6.21.0-stable", date: "2026-08-06", details: [
+                "🔄 [직원 명부] 파이어베이스 콘솔에서 수동으로 계정을 삭제했을 때, 화면의 발급 상태를 다시 '미발급'으로 되돌려주는 [개별 계정 상태 초기화] 버튼을 추가했습니다. (이제 콘솔 삭제 후 재발급이 원활해집니다)"
+            ] },
+            { version: "6.20.0-stable", date: "2026-08-04", details: [
                 "\ud83d\udcd6 [\uc5c5\ub370\uc774\ud2b8 \uc54c\ub9bc\ucc3d \uac1c\uc120] \uc0c8 \ubc84\uc804 \uc548\ub0b4 \ub0b4\uc6a9\uc774 \uae38\uc5b4 [\ud655\uc778] \ubc84\ud2bc\uc774 \ud654\uba74 \ubc16\uc73c\ub85c \ubc00\ub824 \uc548 \ubcf4\uc774\ub358 \ubb38\uc81c\ub97c \ud574\uacb0\ud588\uc2b5\ub2c8\ub2e4. \uc548\ub0b4 \ud56d\ubaa9\uc774 \ub9ce\uc73c\uba74 \ucc98\uc74c\uc5d4 3\uac1c\ub9cc \ubcf4\uc5ec\uc8fc\uace0, \ub098\uba38\uc9c0\ub294 [\uc790\uc138\ud788 \ubcf4\uae30]\ub97c \ub20c\ub7ec \ud3bc\uccd0 \ubcfc \uc218 \uc788\uc2b5\ub2c8\ub2e4",
                 "\ud83d\udd18 [\ud655\uc778 \ubc84\ud2bc \ud56d\uc0c1 \ub178\ucd9c] \uc548\ub0b4\ucc3d \ubcf8\ubb38\uc5d0 \uc2a4\ud06c\ub864\uc744 \uc801\uc6a9\ud558\uace0 [\ud655\uc778] \ubc84\ud2bc\uc744 \ucc3d \ud558\ub2e8\uc5d0 \uace0\uc815\ud574, \uc5b4\ub5a4 \ud654\uba74 \ud06c\uae30\uc5d0\uc11c\ub3c4 \ubc84\ud2bc\uc774 \uc0ac\ub77c\uc9c0\uc9c0 \uc54a\uace0 \ud56d\uc0c1 \ub20c\ub7ec \ub2eb\uc744 \uc218 \uc788\uc2b5\ub2c8\ub2e4",
-                "\ud83d\udee1\ufe0f [\ub370\uc774\ud130 \ub85c\ub529 \uc548\uc815\ud654 \uacc4\uc2b9] \ucd08\uae30 \uc811\uc18d \uc2dc \uac04\ud5d0\uc801 \ubb34\ud55c \ub85c\ub529\uc744 \ub9c9\uae30 \uc704\ud574 \uc790\ub3d9 \uc7ac\uc2dc\ub3c4\u00b7[\ub2e4\uc2dc \uc2dc\ub3c4] \ubc84\ud2bc\uc744 \uc720\uc9c0\ud569\ub2c8\ub2e4",
-                "\ud83d\udcf1 [\ubaa8\ubc14\uc77c \uce98\ub9b0\ub354 \uacc4\uc2b9] \ub300\uc2dc\ubcf4\ub4dc \uc804\uc0ac \ud734\uac00 \uce98\ub9b0\ub354\ub294 \uc881\uc740 \ud654\uba74\uc5d0\uc11c \ub0a0\uc9dc\ubcc4 \ub9ac\uc2a4\ud2b8/\uce74\ub4dc \ubdf0\ub85c \uc790\ub3d9 \uc804\ud658\ub429\ub2c8\ub2e4",
-                "\ud83d\udee1\ufe0f [\ud638\ud658] \uc800\uc7a5\ub418\ub294 \ub370\uc774\ud130 \uad6c\uc870\u00b7\uc9d1\uacc4 \ubc29\uc2dd\uacfc \uae30\uc874 \uae30\ub2a5\uc740 \uc885\uc804\uacfc 100% \ub3d9\uc77c\ud569\ub2c8\ub2e4 (\ubca0\ud0c0 \ubc84\uc804 \u2014 \uc548\uc815\uc131 \ud655\uc778\uc6a9)"
+                "\ud83d\udee1\ufe0f [\ub370\uc774\ud130 \ub85c\ub529 \uc548\uc815\ud654] \ucc98\uc74c \uc811\uc18d\ud588\uc744 \ub54c \ub370\uc774\ud130\ub97c \ubabb \ubd88\ub7ec\uc640 \ud654\uba74\uc774 \uacc4\uc18d \ub3c4\ub294(\ubb34\ud55c \ub85c\ub529) \uac04\ud5d0\uc801 \ubb38\uc81c\ub97c \ud574\uacb0\ud588\uc2b5\ub2c8\ub2e4. \ud1b5\uc2e0\uc774 \uc7a0\uae50 \ub04a\uae30\uac70\ub098 \ub290\ub824\ub3c4 \uc2dc\uc2a4\ud15c\uc774 \uc2a4\uc2a4\ub85c \uba87 \ucc28\ub840 \ub2e4\uc2dc \uc2dc\ub3c4\ud558\uace0, \uadf8\ub798\ub3c4 \uc548 \ub418\uba74 [\ub2e4\uc2dc \uc2dc\ub3c4] \ubc84\ud2bc\uacfc \uc548\ub0b4 \ubb38\uad6c\ub97c \ubcf4\uc5ec\uc90d\ub2c8\ub2e4 (\uc5ec\ub7ec \ubc88 \uc0c8\ub85c\uace0\uce68\ud560 \ud544\uc694\uac00 \uc904\uc5b4\ub4ed\ub2c8\ub2e4)",
+                "\ud83d\udcf1 [\ubaa8\ubc14\uc77c \uce98\ub9b0\ub354 \uac1c\uc120] \ub300\uc2dc\ubcf4\ub4dc\uc758 \uc804\uc0ac \ud734\uac00 \uce98\ub9b0\ub354\uac00 \uc791\uc740 \ud734\ub300\ud3f0 \ud654\uba74\uc5d0\uc11c \uae00\uc790\uac00 \ub649\uac8c\uc9c0\ub358 \ubb38\uc81c\ub97c \uac1c\uc120\ud588\uc2b5\ub2c8\ub2e4. \uc881\uc740 \ud654\uba74\uc5d0\uc11c\ub294 \ub2ec\ub825 \uaca9\uc790 \ub300\uc2e0 \uadf8 \ub2ec\uc5d0 \ud734\uac00\uac00 \uc788\ub294 \ub0a0\uc9dc\ub9cc \uce74\ub4dc\ub85c \uc815\ub9ac\ud574 \ubcf4\uc5ec\uc8fc\ub294 \ub9ac\uc2a4\ud2b8 \ud615\ud0dc\ub85c \uc790\ub3d9 \uc804\ud658\ub418\uc5b4, \ub204\uac00 \uc5b8\uc81c \uc26c\ub294\uc9c0 \ud6e8\uc52c \ub610\ub838\ud558\uac8c \ud655\uc778\ud558\uace0 \ubc14\ub85c \uc218\uc815\u00b7\uc0ad\uc81c\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4 (PC \ud654\uba74\uc740 \uae30\uc874 \ub2ec\ub825 \uadf8\ub300\ub85c)",
+                "\ud83d\udee1\ufe0f [\ud638\ud658] \uc800\uc7a5\ub418\ub294 \ub370\uc774\ud130 \uad6c\uc870\u00b7\uc9d1\uacc4 \ubc29\uc2dd\uacfc \uad00\ub9ac\uc790 \ud0ed\u00b7\uc9c1\uc6d0 \ud398\uc774\uc9c0\u00b7\uc5d1\uc140 \ub300\uc870 \ub4f1 \uae30\uc874 \uae30\ub2a5\uc740 \uc885\uc804\uacfc 100% \ub3d9\uc77c\ud569\ub2c8\ub2e4"
             ] },
             { version: "6.19.0-beta", date: "2026-08-04", details: [
                 "🛡️ [데이터 로딩 안정화] 처음 접속했을 때 데이터를 못 불러와 화면이 계속 도는(무한 로딩) 간헐적 문제를 해결했습니다. 이제 통신이 잠깐 끊기거나 느려도 시스템이 스스로 몇 차례 다시 시도하고, 그래도 안 되면 로딩만 계속하지 않고 [다시 시도] 버튼과 안내 문구를 보여줍니다 (여러 번 새로고침할 필요가 줄어듭니다)",
@@ -580,7 +584,8 @@
             Help: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
             Key: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
             Lock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-            Save: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+            UserX: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
         };
 
         // ------------------ 단순 모달 컴포넌트 ------------------
@@ -1451,9 +1456,8 @@
                                                 return (
                                                     // [v6.16.0] group: 마우스 오버 시 X 버튼 노출. 선택 모드에선 체크 표시.
                                                     // [v6.17.0] 미래 건은 점선 테두리 + '예정' 배지로 구분.
-                                                    <div key={l.id || i} onClick={(e) => { e.stopPropagation(); handleBlockClick(l); }} className={`group relative cursor-pointer hover:opacity-90 text-[11px] pl-1.5 pr-5 py-0.5 rounded-md truncate font-bold shadow-sm ${isPartial?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/40' : ''} ${checked ? 'ring-2 ring-slate-800' : ''}`} title={`${l.name} (${l.type})${future ? ' · 예정(미래)' : ''} - ${selectMode ? '눌러서 선택' : '클릭하여 수정'}`}>  
-
- {selectMode && <span className="mr-0.5">{checked ? '☑' : '☐'}</span>}
+                                                    <div key={l.id || i} onClick={(e) => { e.stopPropagation(); handleBlockClick(l); }} className={`group relative cursor-pointer hover:opacity-90 text-[11px] pl-1.5 pr-5 py-0.5 rounded-md truncate font-bold shadow-sm ${isPartial?'bg-orange-50 text-orange-700 border border-orange-200':'bg-blue-50 text-blue-700 border border-blue-200'} ${future ? 'ring-1 ring-dashed ring-slate-800/40' : ''} ${checked ? 'ring-2 ring-slate-800' : ''}`} title={`${l.name} (${l.type})${future ? ' · 예정(미래)' : ''} - ${selectMode ? '눌러서 선택' : '클릭하여 수정'}`}>
+                                                        {selectMode && <span className="mr-0.5">{checked ? '☑' : '☐'}</span>}
                                                         {future && <span className="mr-0.5 px-1 rounded-sm bg-slate-800 text-white text-[9px] font-black align-middle">예정</span>}
                                                         {l.name} <span className="font-normal opacity-75 ml-0.5 text-[10px] tracking-tighter">({l.type})</span>
                                                         {/* 개별 삭제 X 버튼 (선택 모드가 아닐 때만 표시) */}
@@ -2212,6 +2216,28 @@
                     showAlert(`✅ [${staff.name}] 재직 복구 완료!`);
                 } catch (err) { showAlert('복구 실패: ' + err.message); }
             });
+
+            // ============================================================================
+            // ★[v6.21.0 신규] 개별 계정 상태 초기화 (handleResetSingleAuthStatus)
+            //   관리자가 Firebase Authentication 콘솔에서 계정을 '수동으로 삭제'하면,
+            //   실제 로그인 계정은 사라졌는데 Firestore(users) 문서에는
+            //   authStatus:'success' 가 그대로 남아 화면에는 계속 '발급됨'으로 표시되고
+            //   [개별 발급] 버튼이 나타나지 않는 문제가 있었습니다.
+            //   이 함수는 그 표시 상태만 '미발급(pending)'으로 되돌립니다.
+            //     · authStatus : 'pending'  → 화면에 [개별 발급] 버튼이 다시 나타남
+            //     · employeeId : ''         → 예전 로그인 ID 흔적 제거
+            //     · tempPw     : ''         → 예전 임시 비밀번호 흔적 제거
+            //   ※ 연차 내역(leaveHistory)·인사 정보는 전혀 건드리지 않습니다.
+            // ============================================================================
+            const handleResetSingleAuthStatus = (staff) => {
+                showConfirm(`[${staff.name}] 직원의 계정 발급 상태를 '미발급'으로 초기화하시겠습니까?\n\n※ 파이어베이스 콘솔에서 계정을 수동으로 삭제하셨을 경우, 이 기능을 통해 화면의 발급 상태를 초기화해야 다시 [개별 발급]을 진행할 수 있습니다.\n(연차 데이터는 안전하게 보존됩니다.)`, async () => {
+                    try {
+                        await db.collection('users').doc(staff.id).update({ authStatus: 'pending', employeeId: '', tempPw: '' });
+                        showAlert(`✅ [${staff.name}] 계정 발급 상태를 '미발급'으로 초기화했습니다.\n\n이제 해당 직원 행의 [개별 발급] 버튼을 눌러 계정을 다시 발급할 수 있습니다.`);
+                    } catch (err) { showAlert('❌ 초기화 실패: ' + err.message); }
+                });
+            };
+
             const handleSelectAll = (e) => setSelectedIds(e.target.checked ? new Set(processedStaffList.map(s => s.id)) : new Set());
             const handleSelectOne = (id) => { const s = new Set(selectedIds); s.has(id) ? s.delete(id) : s.add(id); setSelectedIds(s); };
             const handleBulkDelete = () => {
@@ -2371,7 +2397,7 @@
                                     <th className="p-4 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('name')}><div className="flex items-center">이름 (상세보기) <SortIcon sortConfig={sortConfig} columnKey="name" /></div></th>
                                     <th className="p-4 text-center text-blue-600">발생(시간)</th><th className="p-4 text-center text-red-500">사용(시간)</th>
                                     <th className="p-4 text-center text-green-600 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여(시간) <SortIcon sortConfig={sortConfig} columnKey="remaining" /></div></th>
-                                    <th className="p-4 text-center bg-slate-100">계정 상태</th><th className="p-4 text-center w-36">관리</th>
+                                    <th className="p-4 text-center bg-slate-100">계정 상태</th><th className="p-4 text-center w-44">관리</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -2390,7 +2416,7 @@
                                                     <div className="flex flex-col items-center gap-1.5"><span className="bg-red-50 text-red-500 px-2 py-1 rounded text-[10px] font-bold animate-pulse border border-red-100 shadow-sm">미발급</span><button onClick={() => handleCreateSingleAuth(staff)} className="text-[11px] bg-slate-700 text-white px-2 py-1 rounded-md hover:bg-slate-800 transition w-full max-w-[70px] shadow-sm active:scale-95">개별 발급</button></div>
                                                 )}
                                             </td>
-                                            <td className="p-4 text-center"><div className="flex justify-center gap-2">{isRes && <button onClick={() => handleReactivate(staff)} title="재직 복구" className="p-2 bg-white border text-green-500 hover:bg-green-100 rounded-lg transition"><Icons.Refresh /></button>}<button onClick={() => setEditingStaff(staff)} title="정보 수정" className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleResetPassword(staff)} title="비밀번호 초기화 (123456)" className="p-2 bg-white border text-amber-500 hover:bg-amber-100 rounded-lg transition"><Icons.Key /></button><button onClick={() => handleDeleteOne(staff)} title="직원 삭제" className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
+                                            <td className="p-4 text-center"><div className="flex justify-center gap-2">{isRes && <button onClick={() => handleReactivate(staff)} title="재직 복구" className="p-2 bg-white border text-green-500 hover:bg-green-100 rounded-lg transition"><Icons.Refresh /></button>}<button onClick={() => setEditingStaff(staff)} title="정보 수정" className="p-2 bg-white border text-blue-500 hover:bg-blue-100 rounded-lg transition"><Icons.Edit /></button><button onClick={() => handleResetPassword(staff)} title="비밀번호 초기화 (123456)" className="p-2 bg-white border text-amber-500 hover:bg-amber-100 rounded-lg transition"><Icons.Key /></button>{/* ★[v6.21.0 신규] 개별 계정 상태 초기화 — 콘솔에서 계정을 수동 삭제했을 때 '미발급'으로 되돌립니다 */}<button onClick={() => handleResetSingleAuthStatus(staff)} title="개별 계정 상태 초기화 (미발급으로 되돌리기)" className="p-2 bg-white border text-slate-600 hover:bg-slate-200 rounded-lg transition"><Icons.UserX /></button><button onClick={() => handleDeleteOne(staff)} title="직원 삭제" className="p-2 bg-white border text-red-400 hover:bg-red-100 rounded-lg transition"><Icons.Trash /></button></div></td>
                                         </tr>
                                     );
                                 })}
