@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.23.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.24.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -79,6 +79,32 @@
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
         // ============================================================================
+        // [v6.24.0-beta1] 동시성 제어(Transaction) · 감사 이력 추적(Audit Trail) 도입
+        //   ① [processLeaveTransaction 신설 / recalcAndSave 완전 폐기]
+        //      : 종전 recalcAndSave 는 브라우저가 들고 있던 leaveHistory 배열 전체를
+        //        Firestore 에 '통째로 덮어쓰는' 방식이었습니다. 이 때문에 두 명의
+        //        관리자가 같은 직원을 동시에 편집하면, 나중에 저장 버튼을 누른 쪽이
+        //        먼저 저장된 변경 내용을 통째로 지워버리는 문제(Lost Update)가 있었습니다.
+        //      : 이제 모든 연차 추가/수정/삭제는 db.runTransaction() 안에서
+        //        '최신 user 문서를 다시 읽은 뒤' 그 최신 배열에만 조작을 적용합니다.
+        //        충돌이 나면 Firestore 가 자동으로 트랜잭션을 재시도합니다.
+        //   ② [audit_logs 컬렉션 신설]
+        //      : 연차 데이터가 바뀔 때마다 audit_logs 컬렉션에 문서가 1건 생성됩니다.
+        //        timestamp / targetStaffId / actionType('CREATE'|'UPDATE'|'DELETE') /
+        //        adminName / beforeData / afterData 필드가 기록되며,
+        //        user 문서 갱신과 '같은 트랜잭션'으로 커밋되므로
+        //        연차만 바뀌고 로그가 누락되는 경우가 원천적으로 없습니다.
+        //   ③ [결재 승인 원자화]
+        //      : 과거 연차 요청 [승인] 시 pendingRequests 제거 · leaveHistory 반영 ·
+        //        잔여 연차 재계산 · 감사 로그 기록이 모두 한 트랜잭션으로 묶였습니다.
+        //   ④ [전체 연차 초기화도 추적]
+        //      : 일괄 batch 삭제를 직원별 트랜잭션으로 바꿔, 초기화 역시 직원 1명당
+        //        audit_logs 문서가 1건씩 남습니다.
+        //   ※ UI 컴포넌트 / CSS / HTML 구조 / 연차 차감 시간 계산 로직(calcLeaveHours)은
+        //     단 한 글자도 변경하지 않았습니다. 잔여 연차 계산도 기존
+        //     calculateAnnualLeave · sumUsedHours 를 그대로 사용하므로 결과값이 동일합니다.
+        // ============================================================================
+        // ============================================================================
         // [v6.21.0-stable] 정식 릴리즈 — v6.20.0-stable 기반 1건 개선
         //   ① [직원 명부] 개별 계정 상태 초기화 버튼 신설
         //      : 관리자가 Firebase Authentication 콘솔에서 계정을 '수동 삭제'하면,
@@ -89,7 +115,7 @@
         //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.23.0-beta1";
+        const SYSTEM_VERSION = "6.24.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -102,6 +128,21 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.24.0-beta1 은 내부 데이터 안정성(동시성 제어 · 감사 이력) 강화가 핵심이라 관리자 항목 위주이며,
+            //   직원에게 체감되는 변화가 있어 staffDetails 도 함께 넣었습니다.
+            { version: "6.24.0-beta1", date: "2026-08-18", details: [
+                "🔐 [동시성 제어(트랜잭션) 전면 적용] 연차 등록·수정·삭제가 모두 Firestore 트랜잭션(db.runTransaction)으로 처리됩니다. 저장 직전에 서버의 '최신 연차 내역'을 다시 읽어 그 위에만 변경을 적용하므로, 두 명 이상이 같은 직원을 동시에 편집해도 먼저 저장된 내용이 사라지지 않습니다",
+                "🧾 [감사 이력(audit_logs) 컬렉션 신설] 연차 데이터가 추가·수정·삭제될 때마다 audit_logs 컬렉션에 기록 문서가 1건씩 반드시 생성됩니다. 기록 항목은 처리 시각(timestamp), 대상 직원(targetStaffId), 처리 유형(actionType: CREATE/UPDATE/DELETE), 처리자(adminName), 변경 전 데이터(beforeData), 변경 후 데이터(afterData)입니다",
+                "⚛️ [원자적 커밋 보장] 연차 문서 갱신과 감사 로그 기록이 같은 트랜잭션에 묶여 '전부 성공 또는 전부 실패'로만 끝납니다. 연차만 바뀌고 기록은 남지 않는 상황이 원천적으로 발생하지 않습니다",
+                "✅ [결재 승인 원자화] [결재 관리] 탭에서 과거 연차 요청을 [승인]할 때, 대기 목록(pendingRequests) 제거 · 연차 내역 반영 · 잔여 연차 재계산 · 감사 로그 기록이 한 번의 트랜잭션으로 함께 처리됩니다. 중간 단계에서 실패해 요청만 사라지는 문제가 해소되었습니다",
+                "🗑️ [전체 연차 초기화도 이력 추적] 종전 일괄 삭제 방식을 직원별 트랜잭션으로 변경하여, 초기화 작업도 직원 1명당 감사 로그가 1건씩 남습니다",
+                "🛡️ [중복 등록·유령 삭제 차단] 같은 연차 ID가 이미 있으면 중복 등록을 막고, 다른 사용자가 먼저 삭제한 내역을 수정·삭제하려 하면 명확한 안내 문구를 띄웁니다",
+                "🧮 [계산 로직 무변경] 연차 차감 시간 계산(calcLeaveHours)과 잔여 연차 산정(calculateAnnualLeave · sumUsedHours), 저장 데이터 구조(leaveHistory), 화면 구성은 종전과 100% 동일합니다"
+            ], staffDetails: [
+                "🔐 휴가 등록·수정·삭제가 더 안전해졌습니다. 관리자와 동시에 같은 화면을 고쳐도 내 변경 내용이 사라지지 않습니다",
+                "🧾 내 연차 내역이 언제, 누가, 어떻게 바꿨는지 기록이 자동으로 남습니다 (본인이 직접 처리한 건은 '본인(직원)'으로 기록됩니다)",
+                "🧮 휴가 시간 계산 방식과 화면 구성은 종전과 완전히 동일합니다"
+            ] },
             // ▼ v6.23.0-beta1 은 '과거 연차 승인 요청' 파이프라인 신설로, 직원용/관리자용 항목이 모두 있어 staffDetails 를 별도로 넣었습니다.
             { version: "6.23.0-beta1", date: "2026-08-14", details: [
                 "🆕 [과거 연차 승인 요청 파이프라인 신설] 이번 달 1일 이전(과거)의 연차는 직원이 더 이상 직접 등록할 수 없는 대신, [과거 연차 승인 요청] 버튼으로 관리자에게 '요청'을 보내고 관리자가 [승인]/[반려]하는 절차가 새로 생겼습니다. 요청 가능한 과거 범위는 최대 2개월 전까지입니다",
@@ -320,15 +361,215 @@
         // [공통화] 특정 산정기간 내 사용 시간 합계
         const sumUsedHours = (history, startDate, endDate) =>
             (history || []).reduce((acc, cur) => (cur.date >= startDate && cur.date <= endDate) ? acc + safeParseFloat(cur.days) : acc, 0);
-        // [공통화] 연차 내역 저장 + 사용시간 재계산을 한 번에 처리
-        const recalcAndSave = async (staffId, joinDate, newHistory) => {
-            const info = calculateAnnualLeave(joinDate);
-            await db.collection('users').doc(staffId).update({
-                annualLeaveUsed: sumUsedHours(newHistory, info.startDate, info.endDate),
-                annualLeaveTotal: info.total,
-                annualLeavePeriod: info.period,
-                leaveHistory: newHistory
+        // ============================================================================
+        // [v6.24.0-beta1 전면 개편] 동시성 제어(Transaction) + 감사 이력(Audit Trail) 코어
+        // ----------------------------------------------------------------------------
+        //  ▣ 종전 recalcAndSave(staffId, joinDate, newHistory) 는 완전히 제거되었습니다.
+        //     (클라이언트가 들고 있던 leaveHistory 배열을 '통째로 덮어쓰는' 방식이라,
+        //      두 관리자가 동시에 같은 직원을 편집하면 나중에 저장한 쪽이 앞선 변경을
+        //      통째로 날려버리는 Lost Update 문제가 있었습니다.)
+        //
+        //  ▣ 새 진입점 : processLeaveTransaction(staffId, adminName, actionPayload)
+        //     · db.runTransaction() 안에서 '최신 user 문서'를 다시 읽은 뒤(get),
+        //       그 최신 배열을 기준으로만 추가/수정/삭제를 수행합니다.
+        //     · 잔여 연차 재계산은 기존 calculateAnnualLeave / sumUsedHours 를
+        //       그대로 사용하므로 차감·집계 기준은 종전과 100% 동일합니다.
+        //     · user 문서 update() 와 audit_logs 문서 set() 이 같은 트랜잭션에서
+        //       원자적으로 커밋되므로, '연차만 바뀌고 로그는 안 남는' 상황이 없습니다.
+        //
+        //  ▣ actionPayload 규격
+        //     {
+        //       type    : 'ADD' | 'UPDATE' | 'DELETE'   (필수)
+        //       leaves  : [연차 레코드 배열]            (ADD/UPDATE 시 필수, DELETE 는 [] 가능)
+        //       targetId: '대상 ID' 또는 ['ID','ID'...] (UPDATE/DELETE 시 사용, 다건 허용)
+        //       // ── 이하 선택 항목 ──
+        //       extraUpdates : 같은 트랜잭션에서 함께 갱신할 user 문서 추가 필드.
+        //                      객체 또는 (최신문서) => 객체 형태의 함수 모두 허용.
+        //                      예) 결재 승인 시 pendingRequests 제거를 원자적으로 함께 처리
+        //       origin       : 어느 화면/함수에서 호출했는지 (감사 로그 추적용 문자열)
+        //       joinDate     : user 문서에 joinDate 가 없을 때만 쓰는 예비값
+        //     }
+        //
+        //  ▣ audit_logs 문서 규격 (요구 필드 + 조회 편의용 부가 필드)
+        //     · timestamp      : ISO 문자열 (new Date().toISOString())
+        //     · targetStaffId  : 대상 직원 문서 ID
+        //     · actionType     : 'CREATE' | 'UPDATE' | 'DELETE'
+        //     · adminName      : 처리자 이름 (직원 본인 처리 시 '본인(직원)')
+        //     · beforeData     : 변경 전 대상 레코드 배열 (CREATE 는 [])
+        //     · afterData      : 변경 후 대상 레코드 배열 (DELETE 는 [])
+        // ============================================================================
+        const AUDIT_COLLECTION = 'audit_logs';
+        // actionPayload.type → audit_logs.actionType 매핑 (ADD 는 CREATE 로 기록)
+        const ACTION_TYPE_MAP = { ADD: 'CREATE', UPDATE: 'UPDATE', DELETE: 'DELETE' };
+        // Firestore 는 undefined 값을 저장할 수 없으므로, 감사 로그에 넣기 전 안전하게 정리합니다.
+        const sanitizeForAudit = (value) => {
+            if (value === undefined || value === null) return null;
+            if (Array.isArray(value)) return value.map(v => sanitizeForAudit(v));
+            if (typeof value === 'object') {
+                const out = {};
+                Object.keys(value).forEach(k => {
+                    const v = value[k];
+                    if (v === undefined || typeof v === 'function') return;
+                    out[k] = (v !== null && typeof v === 'object') ? sanitizeForAudit(v) : v;
+                });
+                return out;
+            }
+            return value;
+        };
+        // targetId 는 문자열 1건 / 배열 다건을 모두 허용 → 항상 '문자열 배열'로 정규화
+        const normalizeTargetIds = (targetId) => {
+            if (targetId === undefined || targetId === null) return [];
+            if (Array.isArray(targetId)) return targetId.filter(v => v !== undefined && v !== null && String(v) !== '').map(String);
+            return String(targetId) === '' ? [] : [String(targetId)];
+        };
+        // [v6.24.0-beta1 신규] 연차 데이터 변경의 유일한 진입점 (트랜잭션 + 감사 로그)
+        const processLeaveTransaction = async (staffId, adminName, actionPayload) => {
+            // ---------- 0. 인자 방어 ----------
+            if (!staffId) throw new Error('처리 대상 직원 ID가 없습니다.');
+            const payload = actionPayload || {};
+            const rawType = String(payload.type || '').toUpperCase();
+            if (!ACTION_TYPE_MAP[rawType]) throw new Error(`알 수 없는 처리 유형입니다: ${payload.type}`);
+            const actorName = (adminName === undefined || adminName === null || String(adminName).trim() === '')
+                ? '알 수 없음' : String(adminName);
+            const inputLeaves = Array.isArray(payload.leaves)
+                ? payload.leaves.filter(Boolean)
+                : (payload.leaves ? [payload.leaves] : []);
+            const explicitTargetIds = normalizeTargetIds(payload.targetId);
+
+            const userRef = db.collection('users').doc(staffId);
+            // 트랜잭션은 충돌 시 자동으로 여러 번 재시도됩니다.
+            // 감사 로그가 재시도 횟수만큼 중복 생성되지 않도록, 문서 참조(=문서 ID)는
+            // 트랜잭션 '밖'에서 딱 한 번만 만들어 고정합니다.
+            const auditRef = db.collection(AUDIT_COLLECTION).doc();
+            let txResult = null;
+
+            await db.runTransaction(async (transaction) => {
+                // ---------- 1. 최신 user 문서 읽기 ----------
+                // (Firestore 트랜잭션 규칙: 모든 읽기는 반드시 모든 쓰기보다 먼저 수행)
+                const snap = await transaction.get(userRef);
+                if (!snap.exists) throw new Error('대상 직원 문서를 찾을 수 없습니다. (이미 삭제되었을 수 있습니다)');
+                const freshData = snap.data() || {};
+                const beforeHistory = Array.isArray(freshData.leaveHistory)
+                    ? freshData.leaveHistory.map(h => ({ ...h }))
+                    : [];
+                const joinDate = freshData.joinDate || payload.joinDate || '';
+
+                // ---------- 2. actionPayload 유형별 leaveHistory 조작 ----------
+                let afterHistory = [];
+                let beforeData = [];
+                let afterData = [];
+                let affectedIds = [];
+
+                if (rawType === 'ADD') {
+                    const added = inputLeaves.map((rec, i) => ({
+                        ...rec,
+                        id: (rec && rec.id !== undefined && rec.id !== null && String(rec.id) !== '')
+                            ? String(rec.id)
+                            : (Date.now().toString() + '_' + i + '_' + Math.random().toString(36).slice(2, 6))
+                    }));
+                    if (!added.length) throw new Error('등록할 연차 내역이 없습니다.');
+                    // 같은 id 가 이미 들어가 있으면(중복 클릭·재시도) 두 번 쌓이지 않도록 걸러 냅니다.
+                    const existingIds = new Set(beforeHistory.map(h => String(h.id)));
+                    const netAdded = added.filter(r => !existingIds.has(String(r.id)));
+                    if (!netAdded.length) throw new Error('이미 등록된 연차 내역입니다. (중복 등록이 차단되었습니다)');
+                    afterHistory = [...beforeHistory, ...netAdded];
+                    beforeData = [];
+                    afterData = netAdded;
+                    affectedIds = netAdded.map(r => String(r.id));
+                } else if (rawType === 'UPDATE') {
+                    // 수정 패치 맵 구성 : 각 leaves 항목의 id 를 키로 사용
+                    const updateMap = new Map();
+                    inputLeaves.forEach((rec) => {
+                        const key = (rec && rec.id !== undefined && rec.id !== null && String(rec.id) !== '') ? String(rec.id) : '';
+                        if (key) updateMap.set(key, rec);
+                    });
+                    // leaves 에 id 가 없고 targetId 만 넘어온 단건 수정 보정
+                    if (!updateMap.size && explicitTargetIds.length === 1 && inputLeaves.length === 1) {
+                        updateMap.set(explicitTargetIds[0], inputLeaves[0]);
+                    }
+                    // targetId 가 지정됐다면 그 대상으로만 한정 (오조작 방지)
+                    if (explicitTargetIds.length) {
+                        const allow = new Set(explicitTargetIds);
+                        Array.from(updateMap.keys()).forEach(k => { if (!allow.has(k)) updateMap.delete(k); });
+                    }
+                    if (!updateMap.size) throw new Error('수정 대상 연차 ID를 확인할 수 없습니다.');
+                    const hit = [];
+                    afterHistory = beforeHistory.map(h => {
+                        const key = String(h.id);
+                        if (!updateMap.has(key)) return h;
+                        const patch = updateMap.get(key) || {};
+                        // 최신 레코드(h)를 기준으로 변경분(patch)만 덮어씁니다.
+                        const merged = { ...h, ...patch, id: key };
+                        hit.push({ before: { ...h }, after: { ...merged } });
+                        return merged;
+                    });
+                    if (!hit.length) throw new Error('수정하려는 연차 내역이 존재하지 않습니다. (다른 사용자가 먼저 삭제했을 수 있습니다)');
+                    beforeData = hit.map(x => x.before);
+                    afterData = hit.map(x => x.after);
+                    affectedIds = hit.map(x => String(x.after.id));
+                } else { // DELETE
+                    const deleteIds = new Set([
+                        ...explicitTargetIds,
+                        ...inputLeaves.map(r => (r && r.id !== undefined && r.id !== null) ? String(r.id) : '').filter(Boolean)
+                    ]);
+                    if (!deleteIds.size) throw new Error('삭제 대상 연차 ID가 지정되지 않았습니다.');
+                    const removed = beforeHistory.filter(h => deleteIds.has(String(h.id)));
+                    afterHistory = beforeHistory.filter(h => !deleteIds.has(String(h.id)));
+                    if (!removed.length) throw new Error('삭제하려는 연차 내역이 존재하지 않습니다. (다른 사용자가 먼저 삭제했을 수 있습니다)');
+                    beforeData = removed;
+                    afterData = [];
+                    affectedIds = removed.map(h => String(h.id));
+                }
+
+                // ---------- 3. 잔여 연차 재계산 (기존 로직 100% 그대로 사용) ----------
+                const info = calculateAnnualLeave(joinDate);
+                const beforeUsed = sumUsedHours(beforeHistory, info.startDate, info.endDate);
+                const afterUsed = sumUsedHours(afterHistory, info.startDate, info.endDate);
+                const userUpdates = {
+                    annualLeaveUsed: afterUsed,
+                    annualLeaveTotal: info.total,
+                    annualLeavePeriod: info.period,
+                    leaveHistory: afterHistory
+                };
+                // (선택) 같은 트랜잭션에서 함께 반영해야 하는 추가 필드
+                if (payload.extraUpdates) {
+                    const extra = (typeof payload.extraUpdates === 'function')
+                        ? payload.extraUpdates(freshData)
+                        : payload.extraUpdates;
+                    if (extra && typeof extra === 'object') Object.assign(userUpdates, extra);
+                }
+
+                // ---------- 4. 쓰기 : user 문서 update + audit_logs 문서 set ----------
+                // 두 쓰기는 같은 트랜잭션에 묶여 '전부 성공 또는 전부 실패'로만 끝납니다.
+                transaction.update(userRef, userUpdates);
+                transaction.set(auditRef, {
+                    // ── 요구 필드 ──
+                    timestamp: new Date().toISOString(),
+                    targetStaffId: staffId,
+                    actionType: ACTION_TYPE_MAP[rawType],
+                    adminName: actorName,
+                    beforeData: sanitizeForAudit(beforeData),
+                    afterData: sanitizeForAudit(afterData),
+                    // ── 조회/추적 편의를 위한 부가 필드 ──
+                    targetStaffName: freshData.name || '',
+                    targetIds: affectedIds,
+                    changedCount: Math.max(beforeData.length, afterData.length),
+                    annualLeaveUsedBefore: beforeUsed,
+                    annualLeaveUsedAfter: afterUsed,
+                    annualLeavePeriod: info.period || '-',
+                    origin: payload.origin || '',
+                    systemVersion: SYSTEM_VERSION
+                });
+                txResult = {
+                    auditLogId: auditRef.id,
+                    actionType: ACTION_TYPE_MAP[rawType],
+                    affectedIds,
+                    beforeUsed,
+                    afterUsed,
+                    historyCount: afterHistory.length
+                };
             });
+            return txResult;
         };
         // [공통화] 엑셀 헤더 자동 탐색 (직원명부 / 퇴사자명부 / 대조 엔진 공용)
         const findColumns = (jsonData, needs, scanRows = 10) => {
@@ -1370,8 +1611,10 @@
         //     ① 개별 삭제 : 각 휴가 블록 위에 상시 표시되는 작은 X 버튼 → 그 1건만 삭제
         //     ② 여러 개 삭제 : [여러 개 삭제] 버튼으로 '선택 모드'에 진입 → 블록을 눌러
         //                       여러 건을 체크한 뒤 [선택 삭제]로 한 번에 삭제
-        //   ▷ 삭제는 기존 recalcAndSave(직원별로 leaveHistory에서 해당 id 제거 후 재계산)를
-        //     그대로 사용하므로 데이터 구조·집계 방식은 종전과 100% 동일합니다.
+        //   ▷ [v6.24.0-beta1] 삭제는 processLeaveTransaction(type:'DELETE')을 사용합니다.
+        //     트랜잭션 내부에서 최신 leaveHistory를 다시 읽어 해당 id만 제거하므로
+        //     데이터 구조·집계 방식은 종전과 100% 동일하면서 동시 편집에도 안전합니다.
+        //     삭제 1건마다 audit_logs 문서가 반드시 1개 생성됩니다.
         //   ▷ 전사 캘린더는 여러 직원의 휴가가 섞여 있으므로, 삭제 시 직원(staffId)별로
         //     묶어서 각 직원 문서를 한 번씩만 갱신합니다.
         //
@@ -1381,7 +1624,7 @@
         //     · PC(md 이상)는 종전과 동일한 격자 캘린더를 유지합니다.
         //     · 리스트 뷰에서도 기존과 동일하게 수정·개별삭제·다중삭제가 가능합니다.
         // ============================================================================
-        const CalendarView = ({ staffList, onEditClick, showConfirm, showAlert }) => {
+        const CalendarView = ({ staffList, onEditClick, showConfirm, showAlert, adminName }) => {
             const [currentDate, setCurrentDate] = useState(new Date());
             // [v6.16.0] 선택 모드 및 체크된 항목(id) 목록
             const [selectMode, setSelectMode] = useState(false);
@@ -1417,8 +1660,13 @@
                     const staff = staffList.find(s => s.id === staffId);
                     if (!staff) continue;
                     const idSet = byStaff[staffId];
-                    const newHistory = (staff.leaveHistory || []).filter(h => !idSet.has(h.id));
-                    await recalcAndSave(staffId, staff.joinDate, newHistory);
+                    // [v6.24.0-beta1] 트랜잭션 기반 삭제 — 직원 1명당 트랜잭션 1회 + 감사 로그 1건
+                    await processLeaveTransaction(staffId, adminName || '관리자', {
+                        type: 'DELETE',
+                        leaves: [],
+                        targetId: Array.from(idSet),
+                        origin: 'CalendarView.deleteRecords'
+                    });
                 }
             };
             // ① 개별 삭제 (X 버튼)
@@ -1822,8 +2070,13 @@
             // ---- 장바구니 전체 등록 ----
             const doRegisterCart = async () => {
                 try {
-                    const newHistory = [...(selectedStaff.leaveHistory || []), ...buildRecords(cart)];
-                    await recalcAndSave(selectedStaffId, selectedStaff.joinDate, newHistory);
+                    // [v6.24.0-beta1] 클라이언트 배열 통째 덮어쓰기 → 트랜잭션 기반 '추가(ADD)' 로 전환
+                    await processLeaveTransaction(selectedStaffId, adminName || '관리자', {
+                        type: 'ADD',
+                        leaves: buildRecords(cart),
+                        targetId: null,
+                        origin: 'LeaveActionModal.doRegisterCart'
+                    });
                     setMsg('✅ 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 900);
                 } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
             };
@@ -1831,24 +2084,39 @@
             const doRegisterSingle = async () => {
                 try {
                     const singleItem = [{ dates: validDates, deductHours, inputMode, startTime, endTime, breakStart, breakEnd, reason }];
-                    const newHistory = [...(selectedStaff.leaveHistory || []), ...buildRecords(singleItem)];
-                    await recalcAndSave(selectedStaffId, selectedStaff.joinDate, newHistory);
+                    // [v6.24.0-beta1] 트랜잭션 기반 '추가(ADD)'
+                    await processLeaveTransaction(selectedStaffId, adminName || '관리자', {
+                        type: 'ADD',
+                        leaves: buildRecords(singleItem),
+                        targetId: null,
+                        origin: 'LeaveActionModal.doRegisterSingle'
+                    });
                     setMsg('✅ 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 900);
                 } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
             };
             // ---- 기존 내역 '수정' 저장 ----
             const doSaveEdit = async () => {
                 try {
-                    const newHistory = [...(selectedStaff.leaveHistory || [])];
-                    const idx = newHistory.findIndex(h => h.id === initialData.id);
-                    if (idx !== -1) {
-                        const tText = hourLabel(deductHours);
-                        const rec = { ...newHistory[idx], date: safeDate(validDates[0] || initialData.date), days: deductHours, type: tText, reason, addedBy: adminName, updatedAt: new Date().toISOString() };
-                        if (inputMode === 'time') { rec.startTime = startTime; rec.endTime = endTime; rec.breakStart = breakStart; rec.breakEnd = breakEnd; }
-                        else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; }
-                        newHistory[idx] = rec;
-                    }
-                    await recalcAndSave(selectedStaffId, selectedStaff.joinDate, newHistory);
+                    // [v6.24.0-beta1] 전체 배열을 만들어 덮어쓰지 않고, '바뀐 필드(patch)'만 넘깁니다.
+                    //   → 트랜잭션 내부에서 최신 레코드에 patch 를 병합하므로 동시 수정에도 안전합니다.
+                    const tText = hourLabel(deductHours);
+                    const patch = {
+                        id: initialData.id,
+                        date: safeDate(validDates[0] || initialData.date),
+                        days: deductHours,
+                        type: tText,
+                        reason,
+                        addedBy: adminName,
+                        updatedAt: new Date().toISOString()
+                    };
+                    if (inputMode === 'time') { patch.startTime = startTime; patch.endTime = endTime; patch.breakStart = breakStart; patch.breakEnd = breakEnd; }
+                    else { patch.startTime = ''; patch.endTime = ''; patch.breakStart = ''; patch.breakEnd = ''; }
+                    await processLeaveTransaction(selectedStaffId, adminName || '관리자', {
+                        type: 'UPDATE',
+                        leaves: [patch],
+                        targetId: initialData.id,
+                        origin: 'LeaveActionModal.doSaveEdit'
+                    });
                     setMsg('✅ 수정 완료!'); setTimeout(() => { setMsg(''); onClose(); }, 900);
                 } catch (err) { setMsg('❌ 오류 발생'); showAlert('오류: ' + err.message); }
             };
@@ -2121,10 +2389,25 @@
             const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(new Date().getFullYear() - 1); };
             const handleResetAllLeaveHistory = () => {
                 showConfirm('모든 직원의 연차 사용 내역을 완전히 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.', async () => {
+                    // [v6.24.0-beta1] 일괄 batch 덮어쓰기 → 직원별 트랜잭션(DELETE)으로 전환.
+                    //   직원 1명당 audit_logs 문서가 1건씩 생성되어, 초기화도 전부 추적됩니다.
                     try {
-                        const batch = db.batch();
-                        staffList.forEach(s => batch.update(db.collection('users').doc(s.id), { leaveHistory: [], annualLeaveUsed: 0 }));
-                        await batch.commit(); showAlert('전체 연차 내역이 초기화되었습니다.');
+                        let done = 0, skipped = 0; const failed = [];
+                        for (const s of staffList) {
+                            const ids = (s.leaveHistory || []).map(h => h.id).filter(id => id !== undefined && id !== null && String(id) !== '');
+                            if (!ids.length) { skipped++; continue; }
+                            try {
+                                await processLeaveTransaction(s.id, adminName || '관리자', {
+                                    type: 'DELETE',
+                                    leaves: [],
+                                    targetId: ids,
+                                    origin: 'LeaveManagementTab.handleResetAllLeaveHistory'
+                                });
+                                done++;
+                            } catch (inner) { failed.push(`${s.name || s.id}: ${inner.message}`); }
+                        }
+                        const tail = failed.length ? `\n\n⚠️ 실패 ${failed.length}건\n· ${failed.slice(0, 5).join('\n· ')}` : '';
+                        showAlert(`전체 연차 내역이 초기화되었습니다.\n(처리 ${done}명 · 내역 없음 ${skipped}명)${tail}`);
                     } catch (e) { showAlert('오류: ' + e.message); }
                 });
             };
@@ -2171,7 +2454,15 @@
             const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
             const handleDeleteLeave = (data, leaveId) => {
                 showConfirm('이 휴가 내역을 삭제하시겠습니까?', async () => {
-                    try { await recalcAndSave(data.id, data.joinDate, (data.leaveHistory || []).filter(h => h.id !== leaveId)); }
+                    // [v6.24.0-beta1] 트랜잭션 기반 삭제 + audit_logs 자동 기록
+                    try {
+                        await processLeaveTransaction(data.id, adminName || '관리자', {
+                            type: 'DELETE',
+                            leaves: [],
+                            targetId: leaveId,
+                            origin: 'LeaveManagementTab.handleDeleteLeave'
+                        });
+                    }
                     catch (err) { showAlert('오류: ' + err.message); }
                 });
             };
@@ -2965,8 +3256,11 @@
         // ============================================================================
         // [v6.23.0-beta1 신규] 관리자 '결재 관리' 탭 (ApprovalManagementTab)
         //   · 전 직원 중 pendingRequests에 데이터가 1건이라도 있는 직원의 요청 내역을 모아 보여줍니다.
-        //   · [승인] : 해당 요청을 pendingRequests에서 제거하고 leaveHistory에 추가한 뒤,
-        //              기존 recalcAndSave 함수를 호출하여 잔여 연차를 정상 차감시킵니다.
+        //   · [승인] : [v6.24.0-beta1] processLeaveTransaction(type:'ADD') 한 번으로
+        //              ① pendingRequests 제거 ② leaveHistory 추가 ③ 잔여 연차 재계산
+        //              ④ audit_logs 기록 을 '하나의 트랜잭션'으로 원자 처리합니다.
+        //              (종전에는 pendingRequests 갱신과 연차 반영이 분리돼 있어,
+        //               중간에 실패하면 요청만 사라지고 연차는 반영되지 않을 수 있었습니다.)
         //   · [반려] : 관리자에게 반려 사유를 입력받는 프롬프트 창을 띄운 뒤,
         //              pendingRequests에서 제거하고 rejectReason을 포함해 rejectedRequests에 보관합니다.
         // ============================================================================
@@ -2989,7 +3283,6 @@
                     try {
                         const staff = staffList.find(s => s.id === row.staffId);
                         if (!staff) { showAlert('❌ 대상 직원 정보를 찾을 수 없습니다.'); return; }
-                        const newPending = (staff.pendingRequests || []).filter(r => r.id !== row.req.id);
                         const newHistoryRec = {
                             id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
                             date: row.req.date, days: row.req.days, type: row.req.type, reason: row.req.reason || '',
@@ -2997,11 +3290,18 @@
                             startTime: row.req.startTime || '', endTime: row.req.endTime || '', breakStart: row.req.breakStart || '', breakEnd: row.req.breakEnd || '',
                             approvedFrom: 'pastLeaveRequest', originalRequestId: row.req.id
                         };
-                        const newHistory = [...(staff.leaveHistory || []), newHistoryRec];
-                        // pendingRequests 필드 자체는 recalcAndSave가 건드리지 않으므로 별도로 반영합니다.
-                        await db.collection('users').doc(row.staffId).update({ pendingRequests: newPending });
-                        // [지시사항] 기존 recalcAndSave 함수를 그대로 호출하여 잔여 연차를 정상 차감시킵니다.
-                        await recalcAndSave(row.staffId, staff.joinDate, newHistory);
+                        // [v6.24.0-beta1] pendingRequests 제거 + 연차 반영 + 감사 로그를 단일 트랜잭션으로 처리.
+                        //   extraUpdates 에 함수를 넘기면 '트랜잭션 안에서 방금 읽은 최신 문서'를 인자로 받으므로,
+                        //   다른 관리자가 그 사이에 다른 요청을 처리했더라도 그 결과가 유실되지 않습니다.
+                        await processLeaveTransaction(row.staffId, adminName || '관리자', {
+                            type: 'ADD',
+                            leaves: [newHistoryRec],
+                            targetId: null,
+                            origin: 'ApprovalManagementTab.handleApprove',
+                            extraUpdates: (freshData) => ({
+                                pendingRequests: (freshData.pendingRequests || []).filter(r => r.id !== row.req.id)
+                            })
+                        });
                         showAlert(`✅ [${row.staffName}] 요청을 승인했습니다.\n연차 내역에 반영되고 잔여 연차가 차감되었습니다.`);
                     } catch (err) { showAlert('❌ 오류: ' + err.message); }
                     finally { setProcessingId(''); }
@@ -3329,7 +3629,8 @@
             const removeFromCart = (key) => setCart(prev => prev.filter(it => it.key !== key));
             const doRegisterCart = async () => {
                 try {
-                    const newHistory = [...(userData.leaveHistory || [])];
+                    // [v6.24.0-beta1] 새로 추가할 레코드만 모아 트랜잭션에 넘깁니다(전체 배열 덮어쓰기 없음).
+                    const newRecords = [];
                     cart.forEach((item, ci) => {
                         const tText = hourLabel(item.deductHours);
                         item.dates.forEach((d, idx) => {
@@ -3344,10 +3645,16 @@
                             };
                             if (item.useTimeInput) { rec.startTime = item.startTime; rec.endTime = item.endTime; rec.breakStart = item.breakStart; rec.breakEnd = item.breakEnd; }
                             else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; rec.fullDay = true; }
-                            newHistory.push(rec);
+                            newRecords.push(rec);
                         });
                     });
-                    await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                    // 직원 본인이 처리하는 경로이므로 adminName 은 '본인(직원)' 으로 기록합니다.
+                    await processLeaveTransaction(userData.id, '본인(직원)', {
+                        type: 'ADD',
+                        leaves: newRecords,
+                        targetId: null,
+                        origin: 'StaffPage.doRegisterCart'
+                    });
                     showAlert('✅ 휴가 등록 완료! (총 ' + cartTotalDays + '일 · ' + cart.length + '건)');
                     setCart([]); setReason(''); setSelectedDates([]); setForceTimeInput(false);
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
@@ -3373,7 +3680,8 @@
             };
             const doRegisterSingle = async () => {
                 try {
-                    const newHistory = [...(userData.leaveHistory || [])];
+                    // [v6.24.0-beta1] 추가분만 모아 트랜잭션으로 등록
+                    const newRecords = [];
                     const tText = hourLabel(deductHours);
                     validDates.forEach((d, idx) => {
                         const rec = {
@@ -3387,9 +3695,14 @@
                         };
                         if (useTimeInput) { rec.startTime = startTime; rec.endTime = endTime; rec.breakStart = breakStart; rec.breakEnd = breakEnd; }
                         else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; rec.fullDay = true; }
-                        newHistory.push(rec);
+                        newRecords.push(rec);
                     });
-                    await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                    await processLeaveTransaction(userData.id, '본인(직원)', {
+                        type: 'ADD',
+                        leaves: newRecords,
+                        targetId: null,
+                        origin: 'StaffPage.doRegisterSingle'
+                    });
                     showAlert('✅ 휴가 등록 완료! (' + validDates.length + '일 · 각 ' + fmt(deductHours) + '시간)');
                     setReason(''); setSelectedDates([]); setForceTimeInput(false);
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
@@ -3401,8 +3714,13 @@
                 if (isPastLockedForStaff(rec.date)) { showAlert('🔒 ' + LOCK_MSG); return; }
                 showConfirm(`${rec.date} (${rec.type}) 휴가 내역을 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
                     try {
-                        const newHistory = (userData.leaveHistory || []).filter(h => h.id !== rec.id);
-                        await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                        // [v6.24.0-beta1] 트랜잭션 기반 삭제 (adminName: '본인(직원)')
+                        await processLeaveTransaction(userData.id, '본인(직원)', {
+                            type: 'DELETE',
+                            leaves: [],
+                            targetId: rec.id,
+                            origin: 'StaffPage.handleDeleteOwnLeave'
+                        });
                         setDetailRec(null);
                         showAlert('🗑️ 삭제 완료! 잔여 연차가 복구되었습니다.');
                     } catch (err) { showAlert('❌ 오류: ' + err.message); }
@@ -3417,9 +3735,13 @@
                 const more = recs.length > 8 ? `\n… 외 ${recs.length - 8}건` : '';
                 showConfirm(`선택한 ${recs.length}건의 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.\n\n${preview}${more}`, async () => {
                     try {
-                        const ids = new Set(recs.map(r => r.id));
-                        const newHistory = (userData.leaveHistory || []).filter(h => !ids.has(h.id));
-                        await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                        // [v6.24.0-beta1] 다건 삭제도 트랜잭션 1회로 처리 (targetId 배열 허용)
+                        await processLeaveTransaction(userData.id, '본인(직원)', {
+                            type: 'DELETE',
+                            leaves: [],
+                            targetId: recs.map(r => r.id),
+                            origin: 'StaffPage.handleBulkDeleteOwnLeave'
+                        });
                         if (onDone) onDone();
                         showAlert(`🗑️ ${recs.length}건 삭제 완료! 잔여 연차가 복구되었습니다.`);
                     } catch (err) { showAlert('❌ 오류: ' + err.message); }
@@ -3430,12 +3752,19 @@
                 const orig = (userData.leaveHistory || []).find(h => h.id === updated.id);
                 if ((orig && isPastLockedForStaff(orig.date)) || isPastLockedForStaff(updated.date)) { showAlert('🔒 ' + LOCK_MSG); return; }
                 try {
-                    const newHistory = (userData.leaveHistory || []).map(h => h.id === updated.id
-                        ? { ...h, date: safeDate(updated.date), days: updated.days, type: updated.type, reason: updated.reason,
-                            startTime: updated.startTime, endTime: updated.endTime, breakStart: updated.breakStart, breakEnd: updated.breakEnd,
-                            addedBy: '본인(직원)', updatedAt: new Date().toISOString() }
-                        : h);
-                    await recalcAndSave(userData.id, userData.joinDate, newHistory);
+                    // [v6.24.0-beta1] 바뀐 필드(patch)만 넘기고, 병합은 트랜잭션 내부에서 최신 레코드 기준으로 수행
+                    const patch = {
+                        id: updated.id,
+                        date: safeDate(updated.date), days: updated.days, type: updated.type, reason: updated.reason,
+                        startTime: updated.startTime, endTime: updated.endTime, breakStart: updated.breakStart, breakEnd: updated.breakEnd,
+                        addedBy: '본인(직원)', updatedAt: new Date().toISOString()
+                    };
+                    await processLeaveTransaction(userData.id, '본인(직원)', {
+                        type: 'UPDATE',
+                        leaves: [patch],
+                        targetId: updated.id,
+                        origin: 'StaffPage.handleSaveEditOwnLeave'
+                    });
                     setDetailRec(null);
                     showAlert('✅ 수정 완료!');
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
@@ -3953,7 +4282,7 @@
                                         </div>
                                     </div>
                                     <div className="mt-8">
-                                        <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} showConfirm={showConfirm} showAlert={showAlert} />
+                                        <CalendarView staffList={activeStaffs} onEditClick={handleEditLeave} showConfirm={showConfirm} showAlert={showAlert} adminName={adminName} />
                                     </div>
                                 </div>
                             )}
