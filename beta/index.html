@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.28.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.28.0-beta3)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -177,7 +177,7 @@
         //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.28.0-beta1";
+        const SYSTEM_VERSION = "6.28.0-beta3";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -190,6 +190,28 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.28.0-beta3 은 미사용 연차를 넘겨 계획할 수 없도록 제한을 추가한 버전입니다.
+            { version: "6.28.0-beta3", date: "2026-08-19", details: [
+                "🚫 [미사용 연차 초과 선택 차단] 직원이 연차 사용 계획서를 작성할 때, 본인의 미사용 연차 시간을 넘겨서는 날짜·시간을 선택할 수 없게 했습니다. 한도를 다 쓰면 달력에서 날짜를 눌러도 선택되지 않으며, 이유가 화면에 표시됩니다",
+                "📊 [배정 가능 한도 표시] 달력 위에 '배정 가능 한도 ○○시간 중 남은 시간 ○○시간'이 진행 막대와 함께 표시되어, 얼마나 더 계획할 수 있는지 한눈에 보입니다. 한도를 다 쓰면 막대가 붉게 바뀝니다",
+                "🔒 [구분·시간 선택 제한] 남은 한도를 넘는 구분은 드롭다운에서 '한도 초과'로 표시되며 선택할 수 없습니다. [시휴]의 시간 목록도 남은 한도 이내의 시간만 나타납니다",
+                "🤖 [자동 구분 배정] 달력에서 날짜를 고르면 남은 한도 안에서 가능한 가장 큰 구분이 자동으로 지정됩니다 (한도가 8시간 이상이면 연차, 4시간 이상이면 반차, 그보다 적으면 남은 시간만큼 시휴)",
+                "🛡️ [호환] 연차 계산·차감 로직, 트랜잭션 처리, 감사 로그, 기존 화면 구성은 v6.28.0-beta2 와 100% 동일합니다"
+            ], staffDetails: [
+                "🚫 계획서를 쓸 때 내 미사용 연차보다 많이 선택할 수 없습니다. 한도를 다 쓰면 달력에서 날짜가 더 이상 선택되지 않습니다",
+                "📊 달력 위에 '남은 시간'이 표시되어 얼마나 더 계획할 수 있는지 바로 확인할 수 있습니다",
+                "🤖 날짜를 고르면 남은 시간에 맞춰 연차·반차·시휴가 자동으로 정해집니다"
+            ] },
+            // ▼ v6.28.0-beta2 는 인쇄 시 문서가 잘리던 문제를 바로잡은 수정 버전입니다.
+            { version: "6.28.0-beta2", date: "2026-08-19", details: [
+                "🖨️ [인쇄 잘림 문제 해결] 미리보기 창에서 [인쇄]를 눌렀을 때 문서 위쪽에 큰 여백이 생기고 아래쪽(합계·서명란·안내문)이 잘려 나가던 문제를 바로잡았습니다. 이제 통지서와 계획서가 A4 한 장 맨 위에서부터 끝까지 온전히 출력됩니다",
+                "🔧 [원인] 종전에는 인쇄할 때 화면의 나머지 요소를 '보이지 않게'만 처리했는데, 이 방식은 요소가 차지하던 자리(높이)는 그대로 남깁니다. 그만큼 빈 공간이 문서를 아래로 밀어내 페이지를 넘겨 잘렸습니다. 이제 출력용 문서를 문서 최상단으로 분리해 붙이고, 인쇄 시 나머지는 자리까지 완전히 제거합니다",
+                "📐 [좌우 잘림 방지] 출력 문서의 가로 폭을 A4 인쇄 가능 폭(180mm)으로 고정해, 표 오른쪽 끝이 잘리지 않도록 했습니다",
+                "🎨 [표 음영 인쇄] 표 머리글의 회색 음영이 인쇄물에도 그대로 나오도록 처리했으며, 표의 한 줄이 페이지 경계에서 쪼개지지 않게 했습니다",
+                "🛡️ [호환] 기능·데이터 구조는 v6.28.0-beta1 과 100% 동일합니다"
+            ], staffDetails: [
+                "🖨️ 계획서 미리보기에서 [인쇄]를 눌렀을 때 아래쪽이 잘려 나오던 문제를 해결했습니다. 이제 한 장에 온전히 인쇄됩니다"
+            ] },
             // ▼ v6.28.0-beta1 은 '시휴(시간 단위 휴가)' 신설과 통보서 시간 우선 표기가 핵심입니다.
             { version: "6.28.0-beta1", date: "2026-08-19", details: [
                 "⏱️ [통보서 표기 순서 변경] 서식1 통지서와 직원용 작성 마법사 1단계 표에서 [발생 / 사용 / 미사용 연차]가 '128시간 (16일)'처럼 시간을 먼저, 환산 일수를 괄호로 뒤에 표기합니다. 본 기관이 연차를 시간 단위로 관리하는 방식과 표기 순서를 일치시켰습니다",
@@ -3833,19 +3855,63 @@
         //     이 모달이 열려 있는 동안에만 유효한 @media print 규칙을 컴포넌트 안에서
         //     주입합니다. 전역 <style> 블록은 건드리지 않으며, 모달을 닫으면 규칙도 사라집니다.
         // ============================================================================
+        // ----------------------------------------------------------------------------
+        // [v6.28.0-beta2 수정] 인쇄 시 문서가 아래로 밀려 잘리던 문제 해결
+        //   · 종전에는 visibility:hidden 으로 나머지를 감췄는데, visibility 는 '보이지만
+        //     않게' 할 뿐 자리(높이)는 그대로 차지합니다. 그래서 화면 전체 높이만큼
+        //     빈 공간이 위에 생기고 통지서가 아래로 밀려 잘렸습니다.
+        //   · 이제 출력용 문서를 React 포털로 <body> 바로 아래에 붙이고,
+        //     인쇄할 때 body 의 나머지 자식을 display:none 으로 완전히 빼 버립니다.
+        //     (display:none 은 자리까지 사라지므로 문서가 항상 1페이지 맨 위에서 시작합니다)
+        // ----------------------------------------------------------------------------
         const PLAN_PRINT_CSS = `
 @media print {
-  body * { visibility: hidden !important; }
-  #plan-print-area, #plan-print-area * { visibility: visible !important; }
+  html, body {
+    margin: 0 !important; padding: 0 !important;
+    background: #fff !important; height: auto !important;
+  }
+  /* 출력용 문서를 제외한 나머지는 자리까지 완전히 제거 */
+  body > *:not(#plan-print-area) { display: none !important; }
   #plan-print-area {
+    display: block !important;
     position: static !important; left: auto !important; top: auto !important;
     width: 100% !important; margin: 0 !important; padding: 0 !important;
     overflow: visible !important; background: #fff !important;
   }
-  #plan-print-doc { width: 100% !important; min-height: 0 !important; padding: 0 !important; }
+  /* 폭은 문서 본래의 180mm 를 그대로 유지합니다.
+     (100% 로 늘리면 인쇄 가능 폭을 넘어가 좌우가 잘립니다) */
+  #plan-print-doc {
+    min-height: 0 !important;
+    margin: 0 auto !important; padding: 0 !important; box-shadow: none !important;
+    max-width: 100% !important;
+  }
+  /* 표 머리글 음영이 인쇄에서도 나오도록 */
+  #plan-print-doc, #plan-print-doc * {
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+  }
+  /* 표가 페이지 경계에서 어색하게 쪼개지지 않도록 */
+  #plan-print-doc table { page-break-inside: auto !important; }
+  #plan-print-doc tr { page-break-inside: avoid !important; }
 }
 @page { size: A4 portrait; margin: 12mm; }
 `;
+        // 출력용 문서를 <body> 바로 아래에 띄우는 포털 (화면에서는 보이지 않습니다)
+        const PlanPrintPortal = ({ plan }) => {
+            const [host] = useState(() => {
+                const el = document.createElement('div');
+                el.id = 'plan-print-area';
+                el.setAttribute('aria-hidden', 'true');
+                el.style.position = 'absolute';
+                el.style.left = '-99999px';
+                el.style.top = '0';
+                return el;
+            });
+            useEffect(() => {
+                document.body.appendChild(host);
+                return () => { try { document.body.removeChild(host); } catch (e) {} };
+            }, [host]);
+            return ReactDOM.createPortal(<SubmittedPlanDocument plan={plan} domId="plan-print-doc" />, host);
+        };
         const PlanPreviewModal = ({ plan, onClose, showAlert, viewerRole = 'staff' }) => {
             const [busy, setBusy] = useState(false);
             // 화면이 좁으면 기본 배율을 낮춰 문서 전체가 한눈에 들어오게 합니다.
@@ -3876,10 +3942,8 @@
             return (
                 <React.Fragment>
                     <style dangerouslySetInnerHTML={{ __html: PLAN_PRINT_CSS }} />
-                    {/* 출력 전용 원본 — 화면에서는 보이지 않고, 인쇄/PDF 저장 시에만 사용됩니다 */}
-                    <div id="plan-print-area" style={{ position: 'absolute', left: '-99999px', top: 0 }} aria-hidden="true">
-                        <SubmittedPlanDocument plan={plan} domId="plan-print-doc" />
-                    </div>
+                    {/* 출력 전용 원본 — <body> 바로 아래로 보내 인쇄 시 1페이지 맨 위에서 시작하게 합니다 */}
+                    <PlanPrintPortal plan={plan} />
                     {/* 화면 미리보기 모달 */}
                     <div className="fixed inset-0 bg-black/70 flex items-start md:items-center justify-center z-[520] animate-fade-in backdrop-blur-sm p-2 md:p-4 overflow-y-auto pt-14 md:pt-4">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative my-auto flex flex-col max-h-[94vh]">
@@ -4924,15 +4988,88 @@
                 return s;
             }, [userData]);
             const signatureOk = signature.trim() === String(userData.name || '').trim() && String(userData.name || '').trim() !== '';
+            // ────────────────────────────────────────────────────────────────
+            // [v6.28.0-beta3] 미사용 연차를 넘겨서는 계획을 세울 수 없도록 제한
+            //   · budgetHours   : 이번 통지로 계획할 수 있는 전체 한도(미사용 연차 시간)
+            //   · leftHours     : 아직 배정하지 않고 남은 시간
+            //   · rowMaxHours() : 특정 날짜 한 칸이 최대로 가져갈 수 있는 시간
+            //     (전체 한도에서 '그 칸을 뺀 나머지 합계'를 빼서 계산합니다)
+            //   한도를 넘는 선택지는 드롭다운에서 아예 비활성화되고,
+            //   달력에서도 더 넣을 자리가 없으면 날짜가 선택되지 않습니다.
+            // ────────────────────────────────────────────────────────────────
+            const MIN_PLAN_UNIT_HOURS = 0.5;   // 계획에 넣을 수 있는 최소 단위(시휴 최소 시간)
+            const budgetHours = Math.max(0, portionRemainingHours);
+            const leftHours = Math.round((budgetHours - plannedHours) * 100) / 100;
+            const halfHours = Math.round((dailyHours / 2) * 100) / 100;
+            const rowMaxHours = (item) => Math.round((budgetHours - (plannedHours - item.hours)) * 100) / 100;
+            // 남은 한도 안에서 고를 수 있는 '가장 큰' 구분을 자동으로 정합니다.
+            const pickUnitWithin = (left) => {
+                if (dailyHours <= left) return { unit: PLAN_UNIT_ANNUAL, hours: dailyHours };
+                if (halfHours <= left) return { unit: PLAN_UNIT_HALF, hours: halfHours };
+                const h = Math.floor(left / MIN_PLAN_UNIT_HOURS) * MIN_PLAN_UNIT_HOURS;
+                return h >= MIN_PLAN_UNIT_HOURS ? { unit: PLAN_UNIT_HOURLY, hours: Math.round(h * 100) / 100 } : null;
+            };
+            const [limitMsg, setLimitMsg] = useState('');
+            // 달력에서 날짜를 고를 때 — 한도를 넘는 날짜는 받아들이지 않습니다.
+            const handleDatesChange = (nextDates) => {
+                const currentSet = new Set(selectedDates);
+                const added = nextDates.filter(d => !currentSet.has(d)).sort();
+                if (!added.length) { setSelectedDates(nextDates); setLimitMsg(''); return; }
+                // 이번에 새로 추가된 날짜를 뺀 '기존 유지분'의 사용 시간부터 계산
+                const addedSet = new Set(added);
+                const keep = nextDates.filter(d => !addedSet.has(d));
+                let used = keep.reduce((sum, d) => {
+                    const u = unitMap[d] || PLAN_UNIT_ANNUAL;
+                    return sum + planUnitToHours(u, dailyHours, hourMap[d]);
+                }, 0);
+                const nextUnit = Object.assign({}, unitMap);
+                const nextHour = Object.assign({}, hourMap);
+                const accepted = []; let rejected = 0;
+                added.forEach(d => {
+                    const left = Math.round((budgetHours - used) * 100) / 100;
+                    const pick = pickUnitWithin(left);
+                    if (!pick) { rejected++; return; }
+                    nextUnit[d] = pick.unit;
+                    if (pick.unit === PLAN_UNIT_HOURLY) nextHour[d] = pick.hours;
+                    used = Math.round((used + pick.hours) * 100) / 100;
+                    accepted.push(d);
+                });
+                setUnitMap(nextUnit); setHourMap(nextHour);
+                setSelectedDates([...keep, ...accepted].sort());
+                setLimitMsg(rejected > 0
+                    ? (budgetHours <= 0
+                        ? '❌ 계획할 수 있는 미사용 연차가 없습니다.'
+                        : `❌ 미사용 연차 ${fmt(budgetHours)}시간을 모두 배정했습니다. ${rejected}일은 추가할 수 없어 선택이 취소되었습니다.`)
+                    : '');
+            };
             const setUnit = (date, val) => {
+                const item = planItems.find(x => x.date === date);
+                const max = item ? rowMaxHours(item) : budgetHours;
+                const need = planUnitToHours(val, dailyHours, hourMap[date] || MIN_PLAN_UNIT_HOURS);
+                if (need > max + 1e-9) {
+                    setLimitMsg(`❌ 남은 미사용 연차(${fmt(max)}시간)를 넘어 선택할 수 없습니다.`);
+                    return;
+                }
+                setLimitMsg('');
                 setUnitMap(prev => Object.assign({}, prev, { [date]: val }));
-                // 시휴로 바꿨는데 아직 시간을 안 골랐으면 기본값 1시간을 넣어 둡니다.
+                // 시휴로 바꿨는데 아직 시간을 안 골랐으면, 한도 안에서 넣을 수 있는 기본값을 채웁니다.
                 if (val === PLAN_UNIT_HOURLY) {
-                    setHourMap(prev => (prev[date] ? prev : Object.assign({}, prev, { [date]: hourlyOptions[1] || hourlyOptions[0] || 1 })));
+                    setHourMap(prev => {
+                        if (prev[date] && prev[date] <= max) return prev;
+                        const base = Math.min(1, Math.floor(max / MIN_PLAN_UNIT_HOURS) * MIN_PLAN_UNIT_HOURS) || MIN_PLAN_UNIT_HOURS;
+                        return Object.assign({}, prev, { [date]: Math.round(base * 100) / 100 });
+                    });
                 }
             };
-            const setHours = (date, val) => setHourMap(prev => Object.assign({}, prev, { [date]: safeParseFloat(val) }));
-            const removeDate = (date) => setSelectedDates(prev => prev.filter(d => d !== date));
+            const setHours = (date, val) => {
+                const item = planItems.find(x => x.date === date);
+                const max = item ? rowMaxHours(item) : budgetHours;
+                const h = safeParseFloat(val);
+                if (h > max + 1e-9) { setLimitMsg(`❌ 남은 미사용 연차(${fmt(max)}시간)를 넘어 선택할 수 없습니다.`); return; }
+                setLimitMsg('');
+                setHourMap(prev => Object.assign({}, prev, { [date]: h }));
+            };
+            const removeDate = (date) => { setLimitMsg(''); setSelectedDates(prev => prev.filter(d => d !== date)); };
 
             const handleFinalSubmit = () => {
                 if (!signatureOk || saving) return;
@@ -5055,7 +5192,23 @@
                                             <span className="block mt-0.5 font-normal">이 기간(내 연차 산정기간) 밖의 날짜는 선택할 수 없습니다.</span>
                                         </p>
                                     </div>
-                                    <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={userData.offDays}
+                                    {/* [v6.28.0-beta3] 미사용 연차 한도 표시 — 남은 시간이 0이면 더 고를 수 없습니다 */}
+                                    <div className={`rounded-xl px-4 py-2.5 mb-3 border ${leftHours <= 0 ? 'bg-red-50 border-red-300' : 'bg-emerald-50 border-emerald-200'}`}>
+                                        <p className={`text-[11px] md:text-xs font-black leading-relaxed ${leftHours <= 0 ? 'text-red-700' : 'text-emerald-800'}`}>
+                                            {budgetHours <= 0
+                                                ? '⛔ 계획할 수 있는 미사용 연차가 없습니다. 날짜를 선택할 수 없습니다.'
+                                                : (leftHours <= 0
+                                                    ? `⛔ 미사용 연차 ${fmt(budgetHours)}시간을 모두 배정했습니다. 더 이상 날짜를 추가할 수 없습니다.`
+                                                    : `✅ 배정 가능 한도 ${fmt(budgetHours)}시간 중 남은 시간 ${fmt(leftHours)}시간`)}
+                                        </p>
+                                        {budgetHours > 0 && (
+                                            <div className="mt-1.5 h-1.5 w-full bg-white/70 rounded-full overflow-hidden border border-black/5">
+                                                <div className={`h-full rounded-full transition-all ${leftHours <= 0 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                                                    style={{ width: `${Math.min(100, Math.round((plannedHours / budgetHours) * 100))}%` }}></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <MiniCalendar value={selectedDates} onChange={handleDatesChange} offDays={userData.offDays}
                                         takenDates={alreadyTaken} minDate={leaveInfo.startDate} maxDate={leaveInfo.endDate} initialViewDate={initialView} />
                                     <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400">
                                         <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 휴가가 등록된 날
@@ -5076,14 +5229,19 @@
                                                         {/* [v6.28.0-beta1] 구분 선택 : 연차 / 반차 / 시휴 */}
                                                         <select value={it.unit} onChange={(e) => setUnit(it.date, e.target.value)}
                                                             className="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer shrink-0">
-                                                            {PLAN_UNIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                            {PLAN_UNIT_OPTIONS.map(o => {
+                                                                // [v6.28.0-beta3] 남은 한도를 넘는 구분은 고를 수 없게 막습니다
+                                                                const need = planUnitToHours(o.value, dailyHours, MIN_PLAN_UNIT_HOURS);
+                                                                const over = need > rowMaxHours(it) + 1e-9;
+                                                                return <option key={o.value} value={o.value} disabled={over}>{o.label}{over ? ' — 한도 초과' : ''}</option>;
+                                                            })}
                                                         </select>
                                                         {/* 시휴를 고르면 그 자리에서 사용 시간을 지정합니다 */}
                                                         {it.unit === PLAN_UNIT_HOURLY ? (
                                                             <select value={it.hours} onChange={(e) => setHours(it.date, e.target.value)}
                                                                 className="bg-white border-2 border-blue-400 rounded-lg px-2 py-1.5 text-xs font-black text-blue-700 outline-none focus:border-blue-600 cursor-pointer shrink-0"
                                                                 title="사용할 시간을 선택하세요">
-                                                                {hourlyOptions.map(h => <option key={h} value={h}>{fmt(h)}시간</option>)}
+                                                                {hourlyOptions.filter(h => h <= rowMaxHours(it) + 1e-9).map(h => <option key={h} value={h}>{fmt(h)}시간</option>)}
                                                             </select>
                                                         ) : (
                                                             <span className="text-[11px] font-black text-slate-400 shrink-0 w-[52px] text-right">{fmt(it.hours)}시간</span>
@@ -5097,11 +5255,13 @@
                                             💡 <b>시휴</b>는 하루나 반일이 아닌 <b>시간 단위</b>로 쓰는 휴가입니다. 구분에서 [시휴]를 고르면 옆에 시간 선택칸이 생깁니다.
                                             <span className="block mt-0.5 text-slate-400 font-normal">연차 = {fmt(dailyHours)}시간 · 반차 = {fmt(Math.round((dailyHours / 2) * 100) / 100)}시간 (본인 소정근로시간 기준)</span>
                                         </p>
-                                        {plannedHours > 0 && portionRemainingHours > 0 && plannedHours !== portionRemainingHours && (
-                                            <p className={`text-[11px] font-bold mt-2 px-3 py-2 rounded-lg border ${plannedHours > portionRemainingHours ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-700 bg-amber-50 border-amber-200'}`}>
-                                                {plannedHours > portionRemainingHours
-                                                    ? `⚠️ 계획 시간(${fmt(plannedHours)}시간)이 미사용 연차(${fmt(portionRemainingHours)}시간)보다 많습니다. 그래도 제출할 수는 있지만, 관리자 확인이 필요할 수 있습니다.`
-                                                    : `ℹ️ 미사용 연차 ${fmt(portionRemainingHours)}시간 중 ${fmt(plannedHours)}시간만 계획했습니다. 남은 ${fmt(Math.round((portionRemainingHours - plannedHours) * 100) / 100)}시간도 함께 계획하는 것을 권장합니다.`}
+                                        {/* [v6.28.0-beta3] 한도 초과 시도 안내 (선택이 취소된 경우) */}
+                                        {limitMsg && (
+                                            <p className="text-[11px] font-black mt-2 px-3 py-2 rounded-lg border text-red-600 bg-red-50 border-red-300 animate-fade-in">{limitMsg}</p>
+                                        )}
+                                        {plannedHours > 0 && leftHours > 0 && (
+                                            <p className="text-[11px] font-bold mt-2 px-3 py-2 rounded-lg border text-amber-700 bg-amber-50 border-amber-200">
+                                                {`ℹ️ 미사용 연차 ${fmt(budgetHours)}시간 중 ${fmt(plannedHours)}시간만 계획했습니다. 남은 ${fmt(leftHours)}시간도 함께 계획하는 것을 권장합니다.`}
                                             </p>
                                         )}
                                     </div>
