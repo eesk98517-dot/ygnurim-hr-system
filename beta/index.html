@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.26.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.27.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -177,7 +177,7 @@
         //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.26.0-beta1";
+        const SYSTEM_VERSION = "6.27.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -190,6 +190,29 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.27.0-beta1 은 통보서·계획서를 직원도 직접 출력할 수 있게 한 기능 추가 버전입니다.
+            { version: "6.27.0-beta1", date: "2026-08-19", details: [
+                "🖨️ [직원 출력 기능 신설] 직원이 연차 사용 계획서를 제출하면 곧바로 미리보기 창이 열려, 실제 출력되는 문서를 확인하고 [인쇄] 또는 [PDF 저장]으로 보관할 수 있습니다. 통보서는 근로자에게도 전달·보관되어야 하는 문서이므로, 관리자를 거치지 않고 본인이 직접 받을 수 있게 했습니다",
+                "🔍 [이력에서 다시 출력] 직원 화면 [연차 사용 계획] 탭의 '내가 제출한 계획서' 목록에 [미리보기 · 인쇄 / PDF 저장] 버튼이 추가되어, 예전에 제출한 계획서도 언제든 다시 열어 출력할 수 있습니다",
+                "👁️ [관리자 미리보기] 관리자의 [제출된 사용 계획서 관리] 목록에도 [미리보기] 버튼이 생겼습니다. PDF로 내려받기 전에 출력물을 화면에서 먼저 확인할 수 있습니다",
+                "🔎 [배율 조절] 미리보기 창에서 [− / +] 버튼으로 35%~130% 사이에서 배율을 조절할 수 있어, 작은 화면에서도 문서 전체를 한눈에 볼 수 있습니다",
+                "📐 [출력 품질 보장] 화면 미리보기와 별개로 A4 원본 크기의 출력 전용 문서를 따로 유지합니다. 화면 배율을 줄여 보더라도 인쇄물과 PDF는 항상 A4 원본 그대로 나옵니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 트랜잭션 처리, 감사 로그, 기존 화면 구성은 v6.26.0-beta2 와 100% 동일합니다"
+            ], staffDetails: [
+                "🖨️ 연차 사용 계획서를 제출하면 미리보기 창이 바로 열립니다. [인쇄]로 종이에 뽑거나 [PDF 저장]으로 파일을 보관하세요",
+                "🔍 [연차 사용 계획] 탭의 '내가 제출한 계획서'에서 [미리보기 · 인쇄 / PDF 저장] 버튼을 누르면 예전에 낸 계획서도 다시 출력할 수 있습니다",
+                "💡 인쇄창에서 '대상'을 [PDF로 저장]으로 바꿔도 파일로 남길 수 있습니다"
+            ] },
+            // ▼ v6.26.0-beta2 는 v6.26.0-beta1 의 서식 표기만 다듬은 베타 차수 갱신입니다.
+            //   기능 추가·변경이 없어 직원 화면에도 문서 표기 외의 변화가 없습니다.
+            { version: "6.26.0-beta2", date: "2026-08-19", details: [
+                "⏱️ [통지서 · 계획서에 시간 병기] 연차 사용 계획서 PDF와 직원용 작성 마법사 1단계의 표에서 제목이 [발생 연차(시간)] · [사용 연차(시간)] · [미사용 연차(시간)]으로 바뀌었습니다. 본 기관은 연차를 시간 단위로 관리하므로, 값도 '16일 (128시간)'처럼 일수와 시간을 함께 표기해 오해가 없도록 했습니다",
+                "🔖 [직인 날인 대비] 통지서 하단의 '(사)장애인의양지누림 대표 (인)' 문구에서 '대표'와 '(인)' 사이 간격을 좁혔습니다. index.html 과 같은 폴더에 stamp.png(직인 이미지) 파일을 넣으면 그 자리에 직인이 자동으로 찍혀 나오고, 파일이 없으면 종전처럼 손으로 날인할 수 있습니다",
+                "📄 [오프라인 서식 동시 개정] 홈페이지 공지사항에 올리는 오프라인 제출 서식(.hwpx / .pdf / .docx)도 같은 내용으로 함께 개정했습니다. 빈칸의 흐린 안내 글자를 없애 손으로 적기 편하게 했고, [구분] 칸은 [연차 / 반차 / 시휴] 세 가지로 구성했습니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 트랜잭션 처리, 감사 로그, 화면 구성 등 기능은 v6.26.0-beta1 과 100% 동일합니다"
+            ], staffDetails: [
+                "⏱️ 연차 사용 계획서 화면과 출력 문서에서 발생·사용·미사용 연차가 '일수 (시간)' 형태로 함께 표시됩니다"
+            ] },
             // ▼ v6.26.0-beta1 은 직원 화면에 새 탭이 생기는 큰 변화라 staffDetails 를 충실히 넣었습니다.
             { version: "6.26.0-beta1", date: "2026-08-18", details: [
                 "🖱️ [대시보드 카드 팝업] 대시보드의 [금일 휴가자] · [연차 초과자] 카드를 누르면 탭을 이동하지 않고 그 자리에서 팝업으로 명단이 열립니다. 팝업 안에서 각 내역을 바로 [수정]·[삭제]할 수 있으며, 삭제는 기존 트랜잭션 방식을 그대로 사용해 감사 로그도 동일하게 남습니다",
@@ -3616,18 +3639,19 @@
                         <table className="w-full border-collapse border border-black" style={{ marginBottom: '8px' }}>
                             <thead>
                                 <tr>
-                                    <th className={cellTh} style={{ width: '40%' }}>연차 사용 대상 기간</th>
-                                    <th className={cellTh}>발생 연차</th>
-                                    <th className={cellTh}>사용 연차</th>
-                                    <th className={cellTh}>미사용 연차</th>
+                                    <th className={cellTh} style={{ width: '37%' }}>연차 사용 대상 기간</th>
+                                    {/* [v6.26.0-beta2] 본 기관은 연차를 '시간' 단위로 관리하므로 제목에 (시간)을 병기합니다 */}
+                                    <th className={cellTh}>발생 연차(시간)</th>
+                                    <th className={cellTh}>사용 연차(시간)</th>
+                                    <th className={cellTh}>미사용 연차(시간)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td className={cellTd}>{plan.period || `${plan.periodStart} ~ ${plan.periodEnd}`}</td>
-                                    <td className={cellTd + ' font-bold'}>{fmt(plan.totalDays)}일</td>
-                                    <td className={cellTd}>{fmt(plan.usedDays)}일</td>
-                                    <td className={cellTd + ' font-black'} style={{ color: '#dc2626' }}>{fmt(plan.remainingDays)}일</td>
+                                    <td className={cellTd + ' font-bold'}>{fmt(plan.totalDays)}일<br /><span style={{ fontSize: '10px', color: '#555' }}>({fmt(plan.totalHours)}시간)</span></td>
+                                    <td className={cellTd}>{fmt(plan.usedDays)}일<br /><span style={{ fontSize: '10px', color: '#555' }}>({fmt(plan.usedHours)}시간)</span></td>
+                                    <td className={cellTd + ' font-black'} style={{ color: '#dc2626' }}>{fmt(plan.remainingDays)}일<br /><span style={{ fontSize: '10px' }}>({fmt(plan.remainingHours)}시간)</span></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -3638,7 +3662,14 @@
                         </p>
                         <div className="text-center" style={{ marginBottom: '4px' }}>
                             <p className="font-bold" style={{ fontSize: '11px', marginBottom: '6px' }}>{toKoreanDate(submittedYmd)}</p>
-                            <p className="font-bold" style={{ fontSize: '12px' }}>{ORG_NAME}  대표 <span style={{ marginLeft: '28px' }}>(인)</span></p>
+                            {/* [v6.26.0-beta2] 직인(도장) 날인 예정 — '대표'와 '(인)' 사이 간격을 좁혔습니다.
+                                stamp.png 파일을 index.html 과 같은 폴더에 넣으면 직인 이미지가 자동으로 표시되고,
+                                파일이 없으면 아무 것도 표시되지 않아 종전처럼 손으로 날인할 수 있습니다. */}
+                            <p className="font-bold" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                <span>{ORG_NAME}  대표</span>
+                                <span>(인)</span>
+                                <img src="stamp.png" alt="" style={{ height: '34px', objectFit: 'contain', marginLeft: '2px' }} onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                            </p>
                         </div>
                     </div>
                     <div style={{ borderTop: '2px dashed #9ca3af', margin: '10px 0 12px 0' }}></div>
@@ -3707,15 +3738,135 @@
             );
         };
         // ============================================================================
+        // [v6.27.0-beta1 신규] 연차 사용 계획서 미리보기 · 인쇄 · PDF 저장 (직원/관리자 공용)
+        // ----------------------------------------------------------------------------
+        //  ▣ 왜 필요한가
+        //     통보서·계획서는 근로자 본인에게도 전달·보관되어야 하는 문서입니다.
+        //     종전에는 관리자만 PDF로 내려받을 수 있어, 직원은 자기가 낸 계획서를
+        //     화면에서 확인만 할 수 있었습니다. 이제 직원도 제출 직후와 이력 목록에서
+        //     실제 출력물 그대로 미리 보고, 인쇄하거나 PDF로 저장할 수 있습니다.
+        //
+        //  ▣ 문서를 두 벌 렌더링하는 이유
+        //     · plan-preview-doc : 모달 안에서 '보기용'. 화면 크기에 맞춰 축소(transform)됩니다.
+        //     · plan-print-doc   : 화면 밖(off-screen)에 원본 크기 그대로 두는 '출력용'.
+        //       인쇄와 PDF 저장은 모두 이 원본을 사용하므로, 화면 배율이나 모달의
+        //       스크롤 영역에 잘리지 않고 항상 A4 원본 그대로 나옵니다.
+        //
+        //  ▣ 인쇄 방식
+        //     이 모달이 열려 있는 동안에만 유효한 @media print 규칙을 컴포넌트 안에서
+        //     주입합니다. 전역 <style> 블록은 건드리지 않으며, 모달을 닫으면 규칙도 사라집니다.
+        // ============================================================================
+        const PLAN_PRINT_CSS = `
+@media print {
+  body * { visibility: hidden !important; }
+  #plan-print-area, #plan-print-area * { visibility: visible !important; }
+  #plan-print-area {
+    position: static !important; left: auto !important; top: auto !important;
+    width: 100% !important; margin: 0 !important; padding: 0 !important;
+    overflow: visible !important; background: #fff !important;
+  }
+  #plan-print-doc { width: 100% !important; min-height: 0 !important; padding: 0 !important; }
+}
+@page { size: A4 portrait; margin: 12mm; }
+`;
+        const PlanPreviewModal = ({ plan, onClose, showAlert, viewerRole = 'staff' }) => {
+            const [busy, setBusy] = useState(false);
+            // 화면이 좁으면 기본 배율을 낮춰 문서 전체가 한눈에 들어오게 합니다.
+            const [scale, setScale] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 900) ? 0.5 : 0.9);
+            useEscClose(onClose, !busy);
+            const fileName = `연차사용계획서_${plan.staffName || ''}_${String(plan.submittedAt || '').substring(0, 10)}.pdf`;
+            const handlePrint = () => {
+                // 브라우저 인쇄창 → 사용자가 '대상: PDF로 저장'을 골라도 됩니다.
+                setTimeout(() => { try { window.print(); } catch (e) { showAlert('인쇄창을 열지 못했습니다: ' + e.message); } }, 60);
+            };
+            const handleSavePdf = async () => {
+                if (!window.html2pdf) { showAlert('PDF 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+                const el = document.getElementById('plan-print-doc');
+                if (!el) { showAlert('출력할 문서를 찾지 못했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.'); return; }
+                setBusy(true);
+                try {
+                    await window.html2pdf().from(el).set({
+                        margin: 10, filename: fileName,
+                        image: { type: 'jpeg', quality: 1.0 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: 'avoid-all' }
+                    }).save();
+                } catch (e) { showAlert('PDF 생성 중 오류가 발생했습니다: ' + e.message); }
+                finally { setBusy(false); }
+            };
+            const zoom = (delta) => setScale(s => Math.min(1.3, Math.max(0.35, Math.round((s + delta) * 100) / 100)));
+            return (
+                <React.Fragment>
+                    <style dangerouslySetInnerHTML={{ __html: PLAN_PRINT_CSS }} />
+                    {/* 출력 전용 원본 — 화면에서는 보이지 않고, 인쇄/PDF 저장 시에만 사용됩니다 */}
+                    <div id="plan-print-area" style={{ position: 'absolute', left: '-99999px', top: 0 }} aria-hidden="true">
+                        <SubmittedPlanDocument plan={plan} domId="plan-print-doc" />
+                    </div>
+                    {/* 화면 미리보기 모달 */}
+                    <div className="fixed inset-0 bg-black/70 flex items-start md:items-center justify-center z-[520] animate-fade-in backdrop-blur-sm p-2 md:p-4 overflow-y-auto pt-14 md:pt-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative my-auto flex flex-col max-h-[94vh]">
+                            <div className="flex items-start justify-between gap-3 px-4 md:px-6 py-3.5 border-b border-slate-100">
+                                <div className="min-w-0">
+                                    <h3 className="font-black text-slate-800 text-base md:text-lg truncate">연차 사용 계획서 미리보기</h3>
+                                    <p className="text-[11px] md:text-xs font-bold text-slate-500 mt-0.5 truncate">
+                                        {plan.staffName} · {plan.promoType} · 제출 {String(plan.submittedAt || '').replace('T', ' ').substring(0, 16)}
+                                    </p>
+                                </div>
+                                <button type="button" onClick={onClose} disabled={busy} className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40 shrink-0"><Icons.X /></button>
+                            </div>
+                            {viewerRole === 'staff' && (
+                                <div className="px-4 md:px-6 py-2.5 bg-blue-50 border-b border-blue-100">
+                                    <p className="text-[11px] md:text-xs font-bold text-blue-800 leading-relaxed">
+                                        📄 아래가 실제로 출력되는 문서입니다. <b>[인쇄]</b>로 종이에 뽑거나 <b>[PDF 저장]</b>으로 파일을 보관하세요.
+                                        <span className="block mt-0.5 font-normal text-blue-600">인쇄창에서 '대상'을 <b>PDF로 저장</b>으로 바꿔도 파일로 남길 수 있습니다.</span>
+                                    </p>
+                                </div>
+                            )}
+                            <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-2 border-b border-slate-100 bg-slate-50">
+                                <div className="flex items-center gap-1.5">
+                                    <button type="button" onClick={() => zoom(-0.1)} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-100 transition" title="축소">−</button>
+                                    <span className="text-[11px] font-black text-slate-500 w-12 text-center">{Math.round(scale * 100)}%</span>
+                                    <button type="button" onClick={() => zoom(0.1)} className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-600 font-black hover:bg-slate-100 transition" title="확대">+</button>
+                                </div>
+                                <p className="text-[10px] font-bold text-slate-400 hidden sm:block">A4 세로 1장 · 서식1 통지서 + 서식2 계획서</p>
+                            </div>
+                            <div className="overflow-auto custom-scrollbar bg-slate-200 flex-1 p-3 md:p-5">
+                                <div style={{ transform: `scale(${scale})`, transformOrigin: 'top center', width: '180mm', margin: '0 auto' }}>
+                                    <div className="shadow-xl bg-white">
+                                        <SubmittedPlanDocument plan={plan} domId="plan-preview-doc" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="px-4 md:px-6 py-3 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
+                                <button type="button" onClick={onClose} disabled={busy} className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40">닫기</button>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={handlePrint} disabled={busy} className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-black text-white bg-slate-700 hover:bg-slate-800 transition shadow-lg shadow-slate-300 disabled:bg-slate-300 disabled:shadow-none flex items-center justify-center gap-1.5">
+                                        🖨️ 인쇄
+                                    </button>
+                                    <button type="button" onClick={handleSavePdf} disabled={busy} className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-black text-white bg-red-500 hover:bg-red-600 transition shadow-lg shadow-red-200 disabled:bg-slate-300 disabled:shadow-none flex items-center justify-center gap-1.5">
+                                        <Icons.Download /> {busy ? '생성 중…' : 'PDF 저장'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </React.Fragment>
+            );
+        };
+        // ============================================================================
         // [v6.26.0-beta1 신규] 관리자 — [제출된 사용 계획서 관리] 뷰
         //   전 직원의 submittedPlans 를 한 목록으로 모아 보여주고, 건별로 위 2단 서식을
         //   PDF 로 내려받을 수 있게 합니다.
+        //   · [v6.27.0-beta1] 목록에서 [미리보기] 버튼으로 출력물을 먼저 확인할 수 있습니다.
         // ============================================================================
         const SubmittedPlansView = ({ staffList, showAlert }) => {
             const [search, setSearch] = useState('');
             const [categoryFilter, setCategoryFilter] = useState('all'); // all | over1 | under1
             const [busyId, setBusyId] = useState('');
             const [openId, setOpenId] = useState('');
+            // [v6.27.0-beta1] 미리보기 모달에 넘길 계획서 (null 이면 닫힘)
+            const [previewPlan, setPreviewPlan] = useState(null);
             const allPlans = useMemo(() => {
                 const list = [];
                 (staffList || []).forEach(staff => {
@@ -3755,6 +3906,7 @@
             };
             return (
                 <div className="space-y-4 animate-fade-in">
+                    {previewPlan && <PlanPreviewModal plan={previewPlan} onClose={() => setPreviewPlan(null)} showAlert={showAlert} viewerRole="admin" />}
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
                         <div>
                             <h3 className="font-black text-slate-800 text-base flex items-center gap-2"><Icons.FileText /> 제출된 사용 계획서 관리</h3>
@@ -3801,6 +3953,10 @@
                                                 <button type="button" onClick={() => setOpenId(prev => prev === plan.domId ? '' : plan.domId)}
                                                     className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
                                                     {openId === plan.domId ? '접기' : '상세 보기'}
+                                                </button>
+                                                <button type="button" onClick={() => setPreviewPlan(plan)}
+                                                    className="px-3 py-2 rounded-xl text-xs font-black bg-slate-700 text-white hover:bg-slate-800 transition shadow-sm flex items-center gap-1.5">
+                                                    🔍 미리보기
                                                 </button>
                                                 <button type="button" onClick={() => handlePdf(plan)} disabled={busyId === plan.id}
                                                     className="px-4 py-2 rounded-xl text-xs font-black bg-red-500 text-white hover:bg-red-600 transition shadow-sm shadow-red-200 flex items-center gap-1.5 disabled:bg-slate-300 disabled:shadow-none">
@@ -4716,8 +4872,9 @@
                                 submittedPlans: [...(Array.isArray(fresh.submittedPlans) ? fresh.submittedPlans : []), planRecord]
                             })
                         });
-                        showAlert('✅ 연차 사용 계획서가 제출되었습니다.\n관리자 화면에 즉시 반영되며, 계획서 제출 완료로 자동 처리되었습니다.');
-                        if (onSubmitted) onSubmitted();
+                        showAlert('✅ 연차 사용 계획서가 제출되었습니다.\n이어서 열리는 미리보기 창에서 인쇄하거나 PDF로 저장해 보관하세요.');
+                        // [v6.27.0-beta1] 방금 제출한 계획서를 부모로 넘겨 곧바로 미리보기를 띄웁니다.
+                        if (onSubmitted) onSubmitted(planRecord);
                         onClose();
                     } catch (err) { showAlert('❌ 제출 실패: ' + err.message); }
                     finally { setSaving(false); }
@@ -4767,15 +4924,15 @@
                                                 <td className="border border-slate-300 p-3 font-bold text-slate-800 text-xs md:text-sm">{leaveInfo.period || `${leaveInfo.startDate} ~ ${leaveInfo.endDate}`}</td>
                                             </tr>
                                             <tr>
-                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 text-xs">발생 연차</th>
+                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 text-xs">발생 연차(시간)</th>
                                                 <td className="border border-slate-300 p-3 font-black text-blue-600">{fmt(totalDays)}일 <span className="text-[11px] font-bold text-slate-400">({fmt(totalHours)}시간)</span></td>
                                             </tr>
                                             <tr>
-                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 text-xs">사용 연차</th>
+                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 text-xs">사용 연차(시간)</th>
                                                 <td className="border border-slate-300 p-3 font-black text-slate-700">{fmt(usedDays)}일 <span className="text-[11px] font-bold text-slate-400">({fmt(usedHours)}시간)</span></td>
                                             </tr>
                                             <tr>
-                                                <th className="border border-slate-300 bg-red-50 p-3 text-left font-black text-red-600 text-xs">미사용 연차</th>
+                                                <th className="border border-slate-300 bg-red-50 p-3 text-left font-black text-red-600 text-xs">미사용 연차(시간)</th>
                                                 <td className="border border-slate-300 p-3 font-black text-red-600 text-base">{fmt(remainingDays)}일 <span className="text-[11px] font-bold text-slate-400">({fmt(remainingHours)}시간)</span></td>
                                             </tr>
                                             {status.promoCategory === 'under1' && (
@@ -4921,7 +5078,7 @@
         //   · 오프라인(수기) 제출 서식도 내려받을 수 있지만, 시스템 제출이 원칙임을
         //     적색으로 분명히 강조합니다.
         // ============================================================================
-        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan }) => {
+        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan, onPreview }) => {
             const isUnder1 = promoList.length > 0 && promoList[0].promoCategory === 'under1';
             const hasTarget = promoList.length > 0;
             const submittedKeys = useMemo(() => new Set((submittedPlans || []).map(p => p.promoPlanKey)), [submittedPlans]);
@@ -5049,6 +5206,11 @@
                                         <p className="text-[11px] font-bold text-slate-400 mt-1 break-all">
                                             {(p.items || []).map(it => `${it.date}(${it.days === 0.5 ? '반차' : '연차'})`).join(', ')}
                                         </p>
+                                        {/* [v6.27.0-beta1] 제출한 계획서를 다시 열어 인쇄하거나 PDF로 저장 */}
+                                        <button type="button" onClick={() => onPreview && onPreview(p)}
+                                            className="mt-2.5 w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-black bg-slate-700 text-white hover:bg-slate-800 transition shadow-sm flex items-center justify-center gap-1.5">
+                                            🔍 미리보기 · 인쇄 / PDF 저장
+                                        </button>
                                     </div>
                                 ))}
                             </div>
@@ -5079,6 +5241,8 @@
             const [staffView, setStaffView] = useState('home');
             // [v6.26.0-beta1 신규] 계획서 작성 마법사에 넘길 촉진 대상 정보 (null 이면 닫힘)
             const [planTarget, setPlanTarget] = useState(null);
+            // [v6.27.0-beta1 신규] 미리보기 모달에 넘길 제출 계획서 (null 이면 닫힘)
+            const [previewPlan, setPreviewPlan] = useState(null);
             useEffect(() => {
                 const unsub = db.collection('users').doc(user.email).onSnapshot(doc => {
                     if (doc.exists) setUserData({ id: doc.id, ...doc.data() });
@@ -5353,8 +5517,14 @@
                     {/* [v6.26.0-beta1 신규] 연차 사용 계획서 작성 마법사 (1 통지 → 2 계획 → 3 서명) */}
                     {planTarget && (
                         <StaffPlanWizardModal userData={userData} status={planTarget} leaveInfo={planTarget.leaveInfo}
-                            dailyHours={dailyHours} onClose={() => setPlanTarget(null)} onSubmitted={() => setStaffView('plan')}
+                            dailyHours={dailyHours} onClose={() => setPlanTarget(null)}
+                            onSubmitted={(rec) => { setStaffView('plan'); setPreviewPlan(rec); }}
                             showAlert={showAlert} showConfirm={showConfirm} />
+                    )}
+                    {/* [v6.27.0-beta1 신규] 제출 직후 / 이력에서 다시 열기 — 미리보기 · 인쇄 · PDF 저장 */}
+                    {previewPlan && (
+                        <PlanPreviewModal plan={previewPlan} onClose={() => setPreviewPlan(null)}
+                            showAlert={showAlert} viewerRole="staff" />
                     )}
                     <nav className="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-3"><img src="logo.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} /><h1 className="text-2xl font-black text-blue-600 tracking-tighter md:hidden">양지누림</h1><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase hidden sm:block">Employee Portal</span></div>
@@ -5397,7 +5567,8 @@
                         </div>
                         {staffView === 'plan' && (
                             <StaffPlanTab userData={userData} dailyHours={dailyHours} promoList={myPromoList}
-                                submittedPlans={mySubmittedPlans} onStartPlan={(st) => setPlanTarget(st)} />
+                                submittedPlans={mySubmittedPlans} onStartPlan={(st) => setPlanTarget(st)}
+                                onPreview={(p) => setPreviewPlan(p)} />
                         )}
                         {staffView === 'home' && (<React.Fragment>
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-bold text-slate-500">({leaveStats.period})</span></h2>
