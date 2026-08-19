@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.25.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.26.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -79,6 +79,36 @@
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
         // ============================================================================
+        // [v6.26.0-beta1] 연차 사용 계획서 전자 제출 파이프라인 구축
+        //   ① [대시보드 카드 팝업]
+        //      : [금일 휴가자] / [연차 초과자] 카드를 누르면 탭을 이동하지 않고 팝업으로
+        //        상세 내역을 보여 주며, 그 안에서 바로 수정·삭제까지 끝낼 수 있습니다.
+        //        수정은 기존 LeaveActionModal 을 그대로 재사용하고, 삭제는 v6.24.0-beta1 의
+        //        processLeaveTransaction 을 그대로 경유하므로 감사 로그도 동일하게 남습니다.
+        //   ② [직원용 '연차 사용 계획' 탭 신설]
+        //      : 직원 포털이 [내 연차 현황] / [연차 사용 계획] 두 탭으로 나뉩니다.
+        //        getPromotionStatusList 로 본인이 촉진 대상인지 판정해 붉은 배지를 띄우고,
+        //        근속기간에 따라 1년 이상 / 1년 미만 안내를 구분해 보여 줍니다.
+        //        오프라인 서식도 받을 수 있지만 '시스템 제출이 원칙'임을 적색으로 강조합니다.
+        //   ③ [3단계 계획서 작성 마법사]
+        //      : 1단계 미사용 일수 통지(표 자동 계산) → 2단계 MiniCalendar 로 사용 계획 작성
+        //        (산정기간 밖 날짜는 클릭 불가 · 날짜별 연차/반차 선택) →
+        //        3단계 전자 서명(본인 이름을 정확히 입력해야 [최종 제출] 활성화).
+        //   ④ [1차 제출 자동화]
+        //      : 제출 시 submittedPlans 배열 저장과 promoPlanKey=true 처리가
+        //        processPromotionPlanTransaction 한 번으로 원자적으로 함께 반영됩니다.
+        //        (이를 위해 해당 함수에 선택 인자 extraUpdates 를 추가했습니다 — 기존 호출부 영향 없음)
+        //   ⑤ [관리자 계획서 관리 + 법정 2단 서식 PDF]
+        //      : PromotionTab 상단에 [촉진 대상 통보 관리] / [제출된 사용 계획서 관리]
+        //        전환 버튼이 생겼고, 제출 목록에서 [서식1 통지서 + 서식2 사용 계획서]가
+        //        한 페이지에 담긴 PDF를 건별로 내려받을 수 있습니다.
+        //   ⑥ ['양지누림' 데모 계정]
+        //      : 이름이 '양지누림' 인 계정은 입사일·잔여 연차와 무관하게 항상
+        //        1년 이상 1차 + 1년 미만 9일분 1차 대상으로 판정되어 화면 점검이 가능합니다.
+        //   ※ processLeaveTransaction / audit_logs / CSS / 시간 계산 로직(calcLeaveHours)·
+        //     연차 산정 로직(calculateAnnualLeave · sumUsedHours)은 일절 변경하지 않았습니다.
+        // ============================================================================
+        // ============================================================================
         // [v6.25.0-beta1] 미사용 연차 촉진 관리(PromotionTab) 고도화
         //   ① [촉진 판정 엔진 개편 — getPromotionStatusList 신설]
         //      : 종전 엔진은 1년 미만 직원에게 '1차 촉진' 1건만 알려 주었습니다.
@@ -147,7 +177,7 @@
         //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.25.0-beta1";
+        const SYSTEM_VERSION = "6.26.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -160,6 +190,25 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.26.0-beta1 은 직원 화면에 새 탭이 생기는 큰 변화라 staffDetails 를 충실히 넣었습니다.
+            { version: "6.26.0-beta1", date: "2026-08-18", details: [
+                "🖱️ [대시보드 카드 팝업] 대시보드의 [금일 휴가자] · [연차 초과자] 카드를 누르면 탭을 이동하지 않고 그 자리에서 팝업으로 명단이 열립니다. 팝업 안에서 각 내역을 바로 [수정]·[삭제]할 수 있으며, 삭제는 기존 트랜잭션 방식을 그대로 사용해 감사 로그도 동일하게 남습니다",
+                "📄 [직원용 연차 사용 계획 탭 신설] 직원 화면이 [내 연차 현황] / [연차 사용 계획] 두 탭으로 나뉘었습니다. 촉진 대상인 직원에게는 탭에 붉은색 알림 배지로 처리할 건수가 표시됩니다",
+                "🧭 [근속기간별 안내 분기] 계획 탭에는 근속 1년 이상이면 '1차(만료 6개월 전) → 2차(만료 2개월 전)' 안내가, 1년 미만이면 '9일분 / 2일분' 각각의 일정 안내가 자동으로 구분되어 표시됩니다",
+                "✍️ [3단계 계획서 작성 마법사] ① 미사용 연차 일수 통지(대상기간·발생·사용·미사용 자동 계산표) → ② 달력에서 사용할 날짜 선택 후 날짜별 [연차(1일)/반차(0.5일)] 지정 → ③ 본인 이름을 정확히 입력하는 전자 서명 순으로 제출합니다. 달력은 본인의 연차 산정기간 밖 날짜가 아예 눌리지 않도록 잠겨 있습니다",
+                "🔐 [전자 서명 방어 로직] 종이 서식의 '작성자 (인)' 날인을 대신하여, 본인 이름과 한 글자도 다르지 않게 입력해야만 [최종 제출] 버튼이 활성화됩니다",
+                "⚡ [제출 자동화] 계획서를 제출하면 제출 내용 저장과 '계획서 제출 완료' 체크가 하나의 트랜잭션으로 동시에 처리됩니다. 관리자가 따로 체크할 필요가 없으며, 중간에 실패해 한쪽만 반영되는 일이 없습니다",
+                "🗂️ [관리자 · 제출된 계획서 관리] [연차 촉진] 탭 상단에 [촉진 대상 통보 관리] / [제출된 사용 계획서 관리] 전환 버튼이 생겼습니다. 직원이 제출한 계획서를 이름·유형별로 조회하고 상세 내역을 펼쳐볼 수 있습니다",
+                "🖨️ [법정 2단 서식 PDF 출력] 제출된 계획서마다 [PDF 출력] 버튼이 있으며, [서식1 미사용 연차유급휴가 일수 통지서]와 [서식2 연차유급휴가 사용 계획서]가 한 페이지에 담긴 형태로 출력됩니다. 전자 서명 값과 제출 일시·문서번호가 함께 기재되어 증빙으로 사용할 수 있습니다",
+                "🧪 ['양지누림' 데모 계정] 이름이 '양지누림'인 계정은 입사일이나 잔여 연차와 상관없이 항상 촉진 대상으로 표시되어, 실제 직원 데이터를 건드리지 않고 화면과 서식을 점검할 수 있습니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 감사 로그, 기존 트랜잭션 처리, 다른 탭 구성은 종전과 100% 동일합니다"
+            ], staffDetails: [
+                "📄 [연차 사용 계획] 탭이 새로 생겼습니다. 화면 위쪽에서 [내 연차 현황] / [연차 사용 계획]을 눌러 오갈 수 있습니다",
+                "🔔 회사가 연차 사용을 촉진하는 시기가 되면 [연차 사용 계획] 탭에 빨간색 숫자 배지가 뜹니다. 배지가 보이면 계획서를 제출해주세요",
+                "✍️ [계획서 작성하기]를 누르면 ① 내 미사용 연차가 며칠인지 확인 → ② 달력에서 사용할 날짜를 고르고 날짜마다 연차(1일)/반차(0.5일) 선택 → ③ 본인 이름을 입력해 서명하는 순서로 간단히 제출됩니다",
+                "🗓️ 달력에서는 내 연차 산정기간 안의 날짜만 선택할 수 있어, 잘못된 날짜를 고를 걱정이 없습니다",
+                "📥 부득이하게 시스템을 쓸 수 없다면 오프라인 서식도 내려받을 수 있지만, <b>시스템 제출이 원칙</b>입니다"
+            ] },
             // ▼ v6.25.0-beta1 은 관리자 전용 '연차 촉진' 탭 개편이라 직원 화면 변화가 없어 staffDetails 를 넣지 않았습니다.
             { version: "6.25.0-beta1", date: "2026-08-18", details: [
                 "🗂️ [촉진 탭 분리] [연차 촉진] 화면 상단에 [1년 이상 정기 촉진] / [1년 미만 신입 촉진] 전환 버튼이 생겼습니다. 각 버튼에는 조회 기간에 잡힌 대상 건수가 함께 표시되어, 어느 쪽에 처리할 일이 남았는지 한눈에 보입니다",
@@ -666,14 +715,30 @@
                 }
                 beforeValue = beforeValue === true;
 
-                // 이미 원하는 값이면 쓰기 자체를 생략합니다 (중복 클릭·새로고침 지연 대비).
-                if (beforeValue === nextValue) {
+                // [v6.26.0-beta1 추가] 같은 트랜잭션에서 함께 반영할 user 문서 추가 필드.
+                //   · 객체 또는 (최신문서) => 객체 형태의 함수 모두 허용합니다.
+                //   · 직원이 연차 사용 계획서를 제출할 때, submittedPlans 배열 저장과
+                //     promoPlanKey=true 처리를 '하나의 트랜잭션'으로 묶기 위해 신설했습니다.
+                //     (분리 저장하면 중간 실패 시 '계획서는 저장됐는데 제출 체크는 안 된' 상태가 생깁니다)
+                //   · 이 옵션을 넘기지 않으면 v6.25.0-beta1 과 동작이 100% 동일합니다.
+                let extraUpdates = null;
+                if (payload.extraUpdates) {
+                    const computed = (typeof payload.extraUpdates === 'function')
+                        ? payload.extraUpdates(freshData)
+                        : payload.extraUpdates;
+                    if (computed && typeof computed === 'object' && Object.keys(computed).length) extraUpdates = computed;
+                }
+                const needsFlagWrite = (beforeValue !== nextValue);
+
+                // 바꿀 것이 아무 것도 없으면 쓰기 자체를 생략합니다 (중복 클릭·새로고침 지연 대비).
+                if (!needsFlagWrite && !extraUpdates) {
                     txResult = { skipped: true, planKey, value: nextValue };
                     return;
                 }
 
                 const userUpdates = {};
-                userUpdates[planKey] = nextValue;
+                if (needsFlagWrite) userUpdates[planKey] = nextValue;
+                if (extraUpdates) Object.assign(userUpdates, extraUpdates);
                 transaction.update(userRef, userUpdates);
                 transaction.set(auditRef, {
                     // ── audit_logs 공통 필드 ──
@@ -682,7 +747,7 @@
                     actionType: 'UPDATE',
                     adminName: actorName,
                     beforeData: sanitizeForAudit([{ field: planKey, value: beforeValue, inheritedFrom: inheritedFrom || null }]),
-                    afterData: sanitizeForAudit([{ field: planKey, value: nextValue }]),
+                    afterData: sanitizeForAudit([{ field: planKey, value: needsFlagWrite ? nextValue : beforeValue }]),
                     // ── 촉진 전용 부가 필드 ──
                     domain: 'PROMOTION_PLAN',
                     targetStaffName: freshData.name || '',
@@ -693,10 +758,11 @@
                     promoPortion: payload.portion || '',
                     promoStep: payload.step || 0,
                     promoBaseYear: payload.baseYear || 0,
+                    extraFields: extraUpdates ? Object.keys(extraUpdates) : [],
                     origin: payload.origin || '',
                     systemVersion: SYSTEM_VERSION
                 });
-                txResult = { skipped: false, planKey, value: nextValue, auditLogId: auditRef.id, previous: beforeValue };
+                txResult = { skipped: false, planKey, value: nextValue, auditLogId: auditRef.id, previous: beforeValue, extraApplied: !!extraUpdates };
             });
             return txResult;
         };
@@ -793,12 +859,83 @@
             d.setDate(d.getDate() + days);
             return d;
         };
+        // ============================================================================
+        // [v6.26.0-beta1] 연차 사용 계획서 관련 공통 상수
+        // ============================================================================
+        //  · DEMO_PROMO_ACCOUNT_NAME : 촉진 화면 점검용 데모 계정 이름.
+        //    이 이름과 정확히 일치하는 계정만 촉진 대상으로 강제 판정됩니다.
+        //  · OFFLINE_PLAN_FORM_URL   : 오프라인(수기) 제출용 법정 서식 다운로드 주소.
+        //  · ORG_NAME                : 통지서·계획서에 찍히는 기관명.
+        const DEMO_PROMO_ACCOUNT_NAME = '양지누림';
+        const OFFLINE_PLAN_FORM_URL = 'https://ygnurim.org/%ea%b3%b5%ec%a7%80%ec%82%ac%ed%95%ad/?mod=document&uid=490';
+        const ORG_NAME = '(사)장애인의양지누림';
+        // 계획서 1건의 사용 구분 (연차 1일 / 반차 0.5일)
+        const PLAN_UNIT_OPTIONS = [
+            { value: 1, label: '연차 (1일)' },
+            { value: 0.5, label: '반차 (0.5일)' }
+        ];
+        // 날짜 문자열을 'YYYY년 M월 D일' 형태로 (통지서·계획서 서명란 표기용)
+        const toKoreanDate = (ymd) => {
+            const s = safeDate(ymd);
+            if (!s || s.length < 10) return '';
+            const [y, m, d] = s.split('-').map(Number);
+            return `${y}년 ${m}월 ${d}일`;
+        };
         // [v6.25.0-beta1 신규] 해당 연/월에 해당하는 '모든' 촉진 의무를 배열로 반환합니다.
         //   한 직원이 같은 달에 여러 건(예: 9일분 2차 + 2일분 1차)을 동시에 가질 수 있으므로
         //   단건이 아닌 배열로 돌려주는 것이 이 함수의 핵심입니다.
         const getPromotionStatusList = (staff, checkYear, checkMonth) => {
             const out = [];
-            if (!staff || !staff.joinDate) return out;
+            if (!staff) return out;
+            // ────────────────────────────────────────────────────────────────
+            // [v6.26.0-beta1] '양지누림' 데모/테스트 계정 예외 처리
+            //   화면과 통보서, 직원용 계획서 마법사를 언제든 점검할 수 있도록,
+            //   이름이 정확히 '양지누림' 인 계정은 입사일·잔여 연차와 무관하게
+            //   '1년 이상 정기 1차' + '1년 미만 9일분 1차' 두 건을 항상 반환합니다.
+            //   ※ 실제 직원 데이터에는 전혀 영향이 없습니다(이름 완전 일치 시에만 동작).
+            //   ※ 운영 배포 시 이 블록만 삭제하면 원래 판정 로직으로 즉시 되돌아갑니다.
+            // ────────────────────────────────────────────────────────────────
+            if (String(staff.name || '').trim() === DEMO_PROMO_ACCOUNT_NAME) {
+                const realInfo = calculateAnnualLeave(staff.joinDate);
+                const usable = (realInfo && realInfo.startDate && !realInfo.notJoined && (realInfo.total || 0) > 0);
+                // 실데이터가 쓸 만하면 그대로, 아니면 화면 점검용 가상 산정기간을 만들어 씁니다.
+                const demoInfo = usable ? realInfo : {
+                    total: 15, notJoined: false, yearsWorked: 1,
+                    startDate: `${checkYear}-01-01`, endDate: `${checkYear}-12-31`,
+                    period: `${checkYear}-01-01 ~ ${checkYear}-12-31`
+                };
+                const demoBase = parseInt(String(demoInfo.startDate).substring(0, 4), 10) || checkYear;
+                const anchor = (() => {
+                    const [ey, em, ed] = String(demoInfo.endDate).split('-').map(Number);
+                    return new Date(ey, (em || 1) - 1, ed || 1);
+                })();
+                return [
+                    {
+                        leaveInfo: demoInfo, baseYear: demoBase, endDate: demoInfo.endDate, legacyPlanKey: null,
+                        promoCategory: 'over1', portion: 'regular', step: 1, order: 1,
+                        type: '1차 촉진', msg: '만료 6개월 전 (데모 계정 고정)',
+                        color: 'bg-blue-100 text-blue-700',
+                        noticeDate: toLocalYMD(addMonthsSafe(anchor, -6)),
+                        deadlineDate: toLocalYMD(addDaysSafe(addMonthsSafe(anchor, -6), 10)),
+                        windowText: '기준일부터 10일 이내 서면 촉구',
+                        promoPlanKey: 'promoPlan_' + demoBase,
+                        isDemo: true
+                    },
+                    {
+                        leaveInfo: demoInfo, baseYear: demoBase, endDate: demoInfo.endDate,
+                        legacyPlanKey: 'promoPlan_' + demoBase,
+                        promoCategory: 'under1', portion: '9days', step: 1, order: 1,
+                        type: '9일분 1차', msg: '1년 도래 3개월 전 (데모 계정 고정)',
+                        color: 'bg-purple-100 text-purple-700',
+                        noticeDate: toLocalYMD(addMonthsSafe(anchor, -3)),
+                        deadlineDate: toLocalYMD(addDaysSafe(addMonthsSafe(anchor, -3), 10)),
+                        windowText: '기준일부터 10일 이내 서면 촉구',
+                        promoPlanKey: 'promoPlan_under1_9days_' + demoBase,
+                        isDemo: true
+                    }
+                ];
+            }
+            if (!staff.joinDate) return out;
             const joinStr = safeDate(staff.joinDate);
             if (!joinStr || joinStr.length < 10) return out;
             const [jYear] = joinStr.split('-').map(Number);
@@ -3166,6 +3303,171 @@
             );
         };
         // ============================================================================
+        // ============================================================================
+        // [v6.26.0-beta1 신규] 대시보드 카드 클릭 팝업 — 공통 뼈대
+        // ----------------------------------------------------------------------------
+        //   대시보드의 [금일 휴가자] / [연차 초과자] 카드를 눌렀을 때, 탭을 이동하지 않고
+        //   그 자리에서 상세 내역을 확인하고 바로 수정·삭제까지 끝낼 수 있게 합니다.
+        //   · 수정 : 기존 LeaveActionModal 을 그대로 재사용합니다(onEditClick 으로 위임).
+        //   · 삭제 : v6.24.0-beta1 의 processLeaveTransaction(type:'DELETE')을 그대로 사용해
+        //            트랜잭션 + 감사 로그가 동일하게 남습니다.
+        // ============================================================================
+        const DashboardModalShell = ({ title, subtitle, accent, count, countLabel, onClose, children }) => {
+            useEscClose(onClose, true);
+            return (
+                <div className="fixed inset-0 bg-black/60 flex items-start md:items-center justify-center z-[480] animate-fade-in backdrop-blur-sm p-3 md:p-4 overflow-y-auto pt-16 md:pt-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative my-auto flex flex-col max-h-[88vh]">
+                        <div className={`flex items-start justify-between gap-3 px-5 md:px-6 py-4 border-b rounded-t-2xl ${accent}`}>
+                            <div className="min-w-0">
+                                <h3 className="font-black text-slate-800 text-base md:text-lg truncate">{title}</h3>
+                                <p className="text-[11px] md:text-xs font-bold text-slate-500 mt-0.5">{subtitle}</p>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <span className="text-sm font-black text-slate-700 whitespace-nowrap">{count}<span className="text-[11px] font-bold text-slate-400 ml-0.5">{countLabel}</span></span>
+                                <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 transition"><Icons.X /></button>
+                            </div>
+                        </div>
+                        <div className="overflow-y-auto custom-scrollbar px-5 md:px-6 py-4 flex-1">{children}</div>
+                        <div className="px-5 md:px-6 py-3 border-t border-slate-100 flex justify-end">
+                            <button type="button" onClick={onClose} className="bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-900 transition">닫기</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        // ── 개별 연차 1건을 보여주는 공통 행 (수정 / 삭제 버튼 포함) ──
+        const DashboardLeaveRow = ({ rec, staffName, dailyHours, onEdit, onDelete, busy }) => (
+            <div className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+                <div className="min-w-0">
+                    <p className="font-bold text-slate-800 text-sm truncate">
+                        {staffName && <span className="text-blue-600 mr-1.5">{staffName}</span>}
+                        {rec.date}
+                        <span className="text-red-500 font-black ml-2">{fmt(rec.days)}시간</span>
+                        {dailyHours > 0 && <span className="text-[11px] font-bold text-slate-400 ml-1">({fmt(Math.round((safeParseFloat(rec.days) / dailyHours) * 100) / 100)}일)</span>}
+                        {isFutureLeave(rec.date) && <span className="ml-2 text-[10px] font-black text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded">예정</span>}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-bold mt-0.5 truncate">
+                        {rec.type || '-'}
+                        {rec.startTime && rec.endTime ? ` · ${rec.startTime}~${rec.endTime}` : ''}
+                        {rec.reason ? ` · ${rec.reason}` : ''}
+                        {rec.addedBy ? ` · 등록 ${rec.addedBy}` : ''}
+                    </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <button type="button" disabled={busy} onClick={onEdit} className="p-2 bg-white border border-slate-200 text-blue-600 rounded-lg hover:bg-blue-50 transition disabled:opacity-40" title="이 내역 수정"><Icons.Edit /></button>
+                    <button type="button" disabled={busy} onClick={onDelete} className="p-2 bg-white border border-slate-200 text-red-500 rounded-lg hover:bg-red-50 transition disabled:opacity-40" title="이 내역 삭제"><Icons.Trash /></button>
+                </div>
+            </div>
+        );
+        // ── ① [금일 휴가자] 팝업 ──
+        const TodayLeaveModal = ({ staffList, adminName, onEditClick, onClose, showAlert, showConfirm }) => {
+            const [busy, setBusy] = useState('');
+            const todayStr = toLocalYMD(new Date());
+            const rows = useMemo(() => {
+                const list = [];
+                (staffList || []).forEach(staff => {
+                    (staff.leaveHistory || []).forEach((rec, index) => {
+                        if (rec.date === todayStr) list.push({ rec, index, staff });
+                    });
+                });
+                return list.sort((a, b) => String(a.staff.name || '').localeCompare(String(b.staff.name || '')));
+            }, [staffList, todayStr]);
+            const handleDelete = (row) => {
+                showConfirm(`${row.staff.name} 직원의 ${row.rec.date} (${row.rec.type}) 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
+                    setBusy(row.rec.id);
+                    try {
+                        await processLeaveTransaction(row.staff.id, adminName || '관리자', {
+                            type: 'DELETE', leaves: [], targetId: row.rec.id, origin: 'Dashboard.TodayLeaveModal'
+                        });
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                    finally { setBusy(''); }
+                });
+            };
+            return (
+                <DashboardModalShell title="금일 휴가자" subtitle={`${todayStr} 기준 · 여기서 바로 수정·삭제할 수 있습니다`}
+                    accent="bg-teal-50 border-teal-100" count={rows.length} countLabel="건" onClose={onClose}>
+                    {rows.length === 0
+                        ? <p className="text-center text-slate-400 font-bold py-12 text-sm">오늘 휴가를 사용하는 직원이 없습니다.</p>
+                        : <div className="space-y-2">
+                            {rows.map(row => (
+                                <DashboardLeaveRow key={row.staff.id + '_' + row.rec.id} rec={row.rec} staffName={row.staff.name}
+                                    dailyHours={safeParseFloat(row.staff.workHours) || 8} busy={busy === row.rec.id}
+                                    onEdit={() => { onEditClick(row.staff.id, row.index, row.rec); onClose(); }}
+                                    onDelete={() => handleDelete(row)} />
+                            ))}
+                        </div>}
+                </DashboardModalShell>
+            );
+        };
+        // ── ② [연차 초과자] 팝업 ──
+        const OverLimitModal = ({ staffList, adminName, onEditClick, onClose, showAlert, showConfirm }) => {
+            const [busy, setBusy] = useState('');
+            const [openId, setOpenId] = useState('');
+            const rows = useMemo(() => {
+                const list = [];
+                (staffList || []).forEach(staff => {
+                    const li = calculateAnnualLeave(staff.joinDate);
+                    const dh = safeParseFloat(staff.workHours) || 8;
+                    const totalHours = (li.total || 0) * dh;
+                    const usedHours = sumUsedHours(staff.leaveHistory, li.startDate, li.endDate);
+                    const remainingHours = totalHours - usedHours;
+                    if (remainingHours >= 0) return;
+                    const history = (staff.leaveHistory || [])
+                        .map((rec, index) => ({ rec, index }))
+                        .filter(x => x.rec.date >= li.startDate && x.rec.date <= li.endDate)
+                        .sort((a, b) => String(b.rec.date).localeCompare(String(a.rec.date)));
+                    list.push({ staff, li, dh, totalHours, usedHours, remainingHours, history });
+                });
+                return list.sort((a, b) => a.remainingHours - b.remainingHours);
+            }, [staffList]);
+            const handleDelete = (staff, rec) => {
+                showConfirm(`${staff.name} 직원의 ${rec.date} (${rec.type}) 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
+                    setBusy(rec.id);
+                    try {
+                        await processLeaveTransaction(staff.id, adminName || '관리자', {
+                            type: 'DELETE', leaves: [], targetId: rec.id, origin: 'Dashboard.OverLimitModal'
+                        });
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                    finally { setBusy(''); }
+                });
+            };
+            return (
+                <DashboardModalShell title="연차 초과자" subtitle="현재 산정기간 기준으로 잔여 연차가 마이너스인 직원입니다"
+                    accent="bg-red-50 border-red-100" count={rows.length} countLabel="명" onClose={onClose}>
+                    {rows.length === 0
+                        ? <p className="text-center text-slate-400 font-bold py-12 text-sm">연차를 초과 사용한 직원이 없습니다.</p>
+                        : <div className="space-y-2">
+                            {rows.map(row => (
+                                <div key={row.staff.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                                    <button type="button" onClick={() => setOpenId(prev => prev === row.staff.id ? '' : row.staff.id)}
+                                        className="w-full flex items-center justify-between gap-3 px-3 py-3 hover:bg-slate-50 transition text-left">
+                                        <div className="min-w-0">
+                                            <p className="font-black text-slate-800 text-sm truncate">{row.staff.name}
+                                                <span className="text-[11px] font-bold text-slate-400 ml-2">{row.li.period}</span></p>
+                                            <p className="text-[11px] font-bold text-slate-500 mt-0.5">
+                                                발생 {fmt(row.totalHours)}h · 사용 <span className="text-red-500">{fmt(row.usedHours)}h</span> · 잔여 <span className="text-red-600 font-black">{fmt(row.remainingHours)}h</span>
+                                                <span className="text-slate-400 ml-1">({fmt(Math.round((row.remainingHours / row.dh) * 10) / 10)}일)</span>
+                                            </p>
+                                        </div>
+                                        <span className="text-[11px] font-black text-slate-400 shrink-0">{openId === row.staff.id ? '내역 접기 ▲' : `내역 보기 ▼ (${row.history.length})`}</span>
+                                    </button>
+                                    {openId === row.staff.id && (
+                                        <div className="px-3 pb-3 space-y-2 bg-slate-50/60 border-t border-slate-100 pt-3 animate-fade-in">
+                                            {row.history.length === 0
+                                                ? <p className="text-center text-slate-400 font-bold py-4 text-xs">이 산정기간에 등록된 내역이 없습니다.</p>
+                                                : row.history.map(x => (
+                                                    <DashboardLeaveRow key={x.rec.id} rec={x.rec} staffName="" dailyHours={row.dh} busy={busy === x.rec.id}
+                                                        onEdit={() => { onEditClick(row.staff.id, x.index, x.rec); onClose(); }}
+                                                        onDelete={() => handleDelete(row.staff, x.rec)} />
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>}
+                </DashboardModalShell>
+            );
+        };
         // [v6.25.0-beta1 신규] 촉진 절차 스마트 가이드 패널
         //   관리자가 근로기준법 제61조의 '1차 → (미제출자만) → 2차' 흐름을 화면에서
         //   바로 이해할 수 있도록, 선택한 탭에 맞는 절차도를 카드 형태로 보여 줍니다.
@@ -3270,6 +3572,275 @@
                 </div>
             );
         };
+        // ============================================================================
+        // [v6.26.0-beta1 신규] 제출된 연차 사용 계획서 — 법정 2단 서식 PDF 템플릿
+        // ----------------------------------------------------------------------------
+        //   한 페이지(A4) 안에 아래 두 서식이 위아래로 배치됩니다.
+        //     · [서식 1] 미사용 연차유급휴가 일수 통지서  (사용자 → 근로자)
+        //     · [서식 2] 연차유급휴가 사용 계획서         (근로자 → 사용자)
+        //   화면에는 보이지 않는 영역에 렌더링해 두었다가, html2pdf 가 이 DOM을
+        //   그대로 캡처해 PDF로 만듭니다. (기존 통보서 출력과 동일한 방식)
+        // ============================================================================
+        const SubmittedPlanDocument = ({ plan, domId }) => {
+            const items = Array.isArray(plan.items) ? plan.items : [];
+            // 서식 2의 표는 최소 10줄을 유지해 서식 형태가 무너지지 않게 합니다.
+            const rows = [...items];
+            while (rows.length < 10) rows.push(null);
+            const submittedYmd = String(plan.submittedAt || '').substring(0, 10);
+            const cellTh = 'border border-black p-1.5 bg-gray-100 font-bold text-center';
+            const cellTd = 'border border-black p-1.5 text-center';
+            return (
+                <div id={domId} className="bg-white text-black text-left font-sans"
+                    style={{ width: '180mm', minHeight: '260mm', padding: '8px', boxSizing: 'border-box', fontSize: '11px' }}>
+                    {/* ══════════════ [서식 1] 미사용 연차유급휴가 일수 통지서 ══════════════ */}
+                    <div className="avoid-break" style={{ marginBottom: '14px' }}>
+                        <p className="font-bold" style={{ fontSize: '10px', marginBottom: '2px' }}>[서식 1]</p>
+                        <h1 className="text-center font-black tracking-widest" style={{ fontSize: '17px', marginBottom: '4px' }}>미사용 연차유급휴가 일수 통지서</h1>
+                        <p className="text-center font-bold" style={{ fontSize: '10px', marginBottom: '10px' }}>&lt; 근로기준법 제61조(연차 유급휴가의 사용 촉진) 관련 &gt;</p>
+                        <table className="w-full border-collapse border border-black" style={{ marginBottom: '8px' }}>
+                            <tbody>
+                                <tr>
+                                    <th className={cellTh} style={{ width: '18%' }}>소속</th>
+                                    <td className={cellTd} style={{ width: '32%' }}>{ORG_NAME}</td>
+                                    <th className={cellTh} style={{ width: '18%' }}>성명</th>
+                                    <td className={cellTd + ' font-bold'} style={{ width: '32%' }}>{plan.staffName}</td>
+                                </tr>
+                                <tr>
+                                    <th className={cellTh}>직위</th>
+                                    <td className={cellTd}>근로지원인</td>
+                                    <th className={cellTh}>입사일</th>
+                                    <td className={cellTd}>{plan.joinDate || '-'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <table className="w-full border-collapse border border-black" style={{ marginBottom: '8px' }}>
+                            <thead>
+                                <tr>
+                                    <th className={cellTh} style={{ width: '40%' }}>연차 사용 대상 기간</th>
+                                    <th className={cellTh}>발생 연차</th>
+                                    <th className={cellTh}>사용 연차</th>
+                                    <th className={cellTh}>미사용 연차</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className={cellTd}>{plan.period || `${plan.periodStart} ~ ${plan.periodEnd}`}</td>
+                                    <td className={cellTd + ' font-bold'}>{fmt(plan.totalDays)}일</td>
+                                    <td className={cellTd}>{fmt(plan.usedDays)}일</td>
+                                    <td className={cellTd + ' font-black'} style={{ color: '#dc2626' }}>{fmt(plan.remainingDays)}일</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p className="leading-relaxed" style={{ fontSize: '11px', marginBottom: '10px' }}>
+                            「근로기준법」 제61조에 따라 위와 같이 귀하의 <b>미사용 연차유급휴가 일수를 통지</b>하오니,
+                            해당 연차유급휴가의 <b>사용 시기를 정하여 통보</b>하여 주시기 바랍니다.
+                            {plan.promoCategory === 'under1' && <span> (계속근로 1년 미만자 · {plan.portion === '9days' ? '9일분' : '2일분'} 촉진 대상)</span>}
+                        </p>
+                        <div className="text-center" style={{ marginBottom: '4px' }}>
+                            <p className="font-bold" style={{ fontSize: '11px', marginBottom: '6px' }}>{toKoreanDate(submittedYmd)}</p>
+                            <p className="font-bold" style={{ fontSize: '12px' }}>{ORG_NAME}  대표 <span style={{ marginLeft: '28px' }}>(인)</span></p>
+                        </div>
+                    </div>
+                    <div style={{ borderTop: '2px dashed #9ca3af', margin: '10px 0 12px 0' }}></div>
+                    {/* ══════════════ [서식 2] 연차유급휴가 사용 계획서 ══════════════ */}
+                    <div className="avoid-break">
+                        <p className="font-bold" style={{ fontSize: '10px', marginBottom: '2px' }}>[서식 2]</p>
+                        <h1 className="text-center font-black tracking-widest" style={{ fontSize: '17px', marginBottom: '4px' }}>연차유급휴가 사용 계획서</h1>
+                        <p className="text-center font-bold" style={{ fontSize: '10px', marginBottom: '10px' }}>&lt; 근로자가 사용 시기를 지정하여 제출하는 서식 &gt;</p>
+                        <table className="w-full border-collapse border border-black" style={{ marginBottom: '8px' }}>
+                            <tbody>
+                                <tr>
+                                    <th className={cellTh} style={{ width: '18%' }}>성명</th>
+                                    <td className={cellTd + ' font-bold'} style={{ width: '32%' }}>{plan.staffName}</td>
+                                    <th className={cellTh} style={{ width: '18%' }}>소속</th>
+                                    <td className={cellTd} style={{ width: '32%' }}>{ORG_NAME}</td>
+                                </tr>
+                                <tr>
+                                    <th className={cellTh}>대상 기간</th>
+                                    <td className={cellTd} colSpan="3">{plan.period || `${plan.periodStart} ~ ${plan.periodEnd}`}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <table className="w-full border-collapse border border-black" style={{ marginBottom: '8px' }}>
+                            <thead>
+                                <tr>
+                                    <th className={cellTh} style={{ width: '12%' }}>연번</th>
+                                    <th className={cellTh}>사용 일자</th>
+                                    <th className={cellTh} style={{ width: '20%' }}>구분</th>
+                                    <th className={cellTh} style={{ width: '18%' }}>사용 일수</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows.map((it, i) => (
+                                    <tr key={i}>
+                                        <td className={cellTd} style={{ height: '20px', color: it ? '#000' : '#d1d5db' }}>{i + 1}</td>
+                                        <td className={cellTd + (it ? ' font-bold' : '')} style={{ color: it ? '#000' : '#d1d5db' }}>{it ? it.date : '년   월   일'}</td>
+                                        <td className={cellTd} style={{ color: it ? '#000' : '#d1d5db' }}>{it ? (it.days === 0.5 ? '반차' : '연차') : '연차 / 반차'}</td>
+                                        <td className={cellTd + (it ? ' font-bold' : '')} style={{ color: it ? '#000' : '#d1d5db' }}>{it ? `${fmt(it.days)}일` : '일'}</td>
+                                    </tr>
+                                ))}
+                                <tr>
+                                    <td className={cellTh} colSpan="3">합  계</td>
+                                    <td className={cellTd + ' font-black'}>{fmt(plan.plannedDays)}일</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p className="leading-relaxed" style={{ fontSize: '11px', marginBottom: '10px' }}>
+                            본인은 「근로기준법」 제61조에 따라 통지받은 미사용 연차유급휴가에 대하여,
+                            위와 같이 <b>연차유급휴가 사용 시기를 지정하여 제출</b>합니다.
+                        </p>
+                        <div className="text-center">
+                            <p className="font-bold" style={{ fontSize: '11px', marginBottom: '6px' }}>{toKoreanDate(submittedYmd)}</p>
+                            <p className="font-bold" style={{ fontSize: '12px' }}>
+                                작성자 : <span className="font-black" style={{ margin: '0 6px' }}>{plan.staffName}</span>
+                                <span style={{ display: 'inline-block', border: '1px solid #2563eb', borderRadius: '4px', padding: '1px 6px', color: '#2563eb', fontSize: '10px', marginLeft: '4px' }}>
+                                    전자서명 「{plan.signature}」
+                                </span>
+                            </p>
+                            <p style={{ fontSize: '9px', color: '#6b7280', marginTop: '5px' }}>
+                                ※ 본 문서는 양지누림 연차 관리 시스템에서 본인 확인을 거쳐 전자적으로 제출되었습니다.
+                                (제출 일시 {String(plan.submittedAt || '').replace('T', ' ').substring(0, 19)} · 문서번호 {plan.id})
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        // ============================================================================
+        // [v6.26.0-beta1 신규] 관리자 — [제출된 사용 계획서 관리] 뷰
+        //   전 직원의 submittedPlans 를 한 목록으로 모아 보여주고, 건별로 위 2단 서식을
+        //   PDF 로 내려받을 수 있게 합니다.
+        // ============================================================================
+        const SubmittedPlansView = ({ staffList, showAlert }) => {
+            const [search, setSearch] = useState('');
+            const [categoryFilter, setCategoryFilter] = useState('all'); // all | over1 | under1
+            const [busyId, setBusyId] = useState('');
+            const [openId, setOpenId] = useState('');
+            const allPlans = useMemo(() => {
+                const list = [];
+                (staffList || []).forEach(staff => {
+                    (Array.isArray(staff.submittedPlans) ? staff.submittedPlans : []).forEach(plan => {
+                        list.push(Object.assign({}, plan, {
+                            staffId: plan.staffId || staff.id,
+                            staffName: plan.staffName || staff.name || '',
+                            staffPhone: staff.phone || '',
+                            domId: `plan-pdf-${String(staff.id).replace(/[^a-zA-Z0-9]/g, '_')}-${plan.id}`
+                        }));
+                    });
+                });
+                return list.sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')));
+            }, [staffList]);
+            const filtered = useMemo(() => allPlans.filter(p => {
+                if (categoryFilter !== 'all' && p.promoCategory !== categoryFilter) return false;
+                if (search && !String(p.staffName || '').includes(search)) return false;
+                return true;
+            }), [allPlans, categoryFilter, search]);
+            const handlePdf = async (plan) => {
+                if (!window.html2pdf) { showAlert('PDF 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+                const el = document.getElementById(plan.domId);
+                if (!el) { showAlert('출력할 문서를 찾지 못했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.'); return; }
+                setBusyId(plan.id);
+                try {
+                    const opt = {
+                        margin: 10,
+                        filename: `연차사용계획서_${plan.staffName}_${String(plan.submittedAt || '').substring(0, 10)}.pdf`,
+                        image: { type: 'jpeg', quality: 1.0 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: 'avoid-all' }
+                    };
+                    await window.html2pdf().from(el).set(opt).save();
+                } catch (e) { showAlert('PDF 생성 중 오류가 발생했습니다: ' + e.message); }
+                finally { setBusyId(''); }
+            };
+            return (
+                <div className="space-y-4 animate-fade-in">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div>
+                            <h3 className="font-black text-slate-800 text-base flex items-center gap-2"><Icons.FileText /> 제출된 사용 계획서 관리</h3>
+                            <p className="text-[11px] md:text-xs font-bold text-slate-500 mt-0.5">직원이 시스템으로 제출한 연차 사용 계획서입니다. 법정 2단 서식으로 출력할 수 있습니다.</p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex bg-slate-50 rounded-xl border border-slate-200 p-1">
+                                {[{ k: 'all', l: '전체' }, { k: 'over1', l: '1년 이상' }, { k: 'under1', l: '1년 미만' }].map(o => (
+                                    <button key={o.k} type="button" onClick={() => setCategoryFilter(o.k)}
+                                        className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition ${categoryFilter === o.k ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{o.l}</button>
+                                ))}
+                            </div>
+                            <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="이름 검색..."
+                                className="w-full md:w-36 px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-500" />
+                        </div>
+                    </div>
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                        <div className="px-4 py-3 border-b border-slate-100">
+                            <p className="text-xs font-bold text-slate-500">총 <span className="text-blue-600">{filtered.length}건</span>{allPlans.length !== filtered.length && <span className="text-slate-400"> / 전체 {allPlans.length}건</span>}</p>
+                        </div>
+                        {filtered.length === 0 ? (
+                            <p className="text-center text-slate-400 font-bold py-16 text-sm">
+                                제출된 계획서가 없습니다.
+                                <span className="block text-xs font-bold text-slate-300 mt-2">직원이 [연차 사용 계획] 탭에서 제출하면 이곳에 자동으로 나타납니다.</span>
+                            </p>
+                        ) : (
+                            <div className="divide-y divide-slate-100">
+                                {filtered.map(plan => (
+                                    <div key={plan.domId} className="p-4">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                                    <span className="font-black text-slate-800 text-sm">{plan.staffName}</span>
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${plan.promoCategory === 'under1' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{plan.promoType}</span>
+                                                    <span className="text-[11px] font-bold text-slate-400">{plan.period}</span>
+                                                </div>
+                                                <p className="text-[11px] font-bold text-slate-500">
+                                                    제출 {String(plan.submittedAt || '').replace('T', ' ').substring(0, 16)} · 지정 {(plan.items || []).length}일 ·
+                                                    <span className="text-blue-600 font-black ml-1">합계 {fmt(plan.plannedDays)}일</span> ·
+                                                    <span className="ml-1">미사용 {fmt(plan.remainingDays)}일</span> · 서명 <b className="text-slate-700">{plan.signature}</b>
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button type="button" onClick={() => setOpenId(prev => prev === plan.domId ? '' : plan.domId)}
+                                                    className="px-3 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+                                                    {openId === plan.domId ? '접기' : '상세 보기'}
+                                                </button>
+                                                <button type="button" onClick={() => handlePdf(plan)} disabled={busyId === plan.id}
+                                                    className="px-4 py-2 rounded-xl text-xs font-black bg-red-500 text-white hover:bg-red-600 transition shadow-sm shadow-red-200 flex items-center gap-1.5 disabled:bg-slate-300 disabled:shadow-none">
+                                                    <Icons.Download /> {busyId === plan.id ? '생성 중…' : 'PDF 출력'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {openId === plan.domId && (
+                                            <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-3 animate-fade-in">
+                                                <table className="w-full text-xs border-collapse">
+                                                    <thead>
+                                                        <tr className="text-slate-500 font-black border-b border-slate-200">
+                                                            <th className="p-1.5 text-left w-12">연번</th><th className="p-1.5 text-left">사용 일자</th><th className="p-1.5 text-center w-20">구분</th><th className="p-1.5 text-center w-20">일수</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {(plan.items || []).map((it, i) => (
+                                                            <tr key={it.date + i} className="border-b border-slate-100">
+                                                                <td className="p-1.5 text-slate-400 font-bold">{i + 1}</td>
+                                                                <td className="p-1.5 font-bold text-slate-700">{it.date}</td>
+                                                                <td className="p-1.5 text-center font-bold text-slate-600">{it.days === 0.5 ? '반차' : '연차'}</td>
+                                                                <td className="p-1.5 text-center font-black text-blue-600">{fmt(it.days)}일</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    {/* 화면 밖 PDF 원본 — html2pdf 가 이 DOM 을 그대로 캡처합니다 */}
+                    <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+                        {filtered.map(plan => <SubmittedPlanDocument key={plan.domId} plan={plan} domId={plan.domId} />)}
+                    </div>
+                </div>
+            );
+        };
         // [v6.25.0-beta1] 1년 미만 연차(최대 11일)를 9일분 / 2일분으로 나눠 잔여를 계산합니다.
         //   연차는 먼저 발생한 것부터 사용된다고 보아(선입선출), 9일분을 먼저 소진한 것으로 계산합니다.
         const splitUnder1Portion = (totalDays, remainingDays) => {
@@ -3293,6 +3864,12 @@
             const [endMonth, setEndMonth] = useState(defaultMonth);
             const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
             const [showAuditModal, setShowAuditModal] = useState(false);
+            // [v6.26.0-beta1] 상위 뷰 : 'notice'(촉진 대상 통보 관리) | 'plans'(제출된 사용 계획서 관리)
+            const [mainView, setMainView] = useState('notice');
+            // 제출된 계획서 총 건수 — 상위 뷰 버튼의 배지에 사용
+            const submittedPlanCount = useMemo(() =>
+                (allStaffList || staffList || []).reduce((sum, s) => sum + (Array.isArray(s.submittedPlans) ? s.submittedPlans.length : 0), 0),
+            [allStaffList, staffList]);
             // [v6.25.0-beta1] 촉진 유형 탭 : 'over1'(1년 이상 정기) | 'under1'(1년 미만 신입)
             const [promoView, setPromoView] = useState('over1');
             const [guideOpen, setGuideOpen] = useState(true);
@@ -3469,6 +4046,22 @@
                         </div>
                     )}
                     {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={true} />}
+                    {/* ═══ [v6.26.0-beta1 신규] 상위 뷰 전환 : 통보 관리 ↔ 제출된 계획서 관리 ═══ */}
+                    <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-2">
+                        <button type="button" onClick={() => setMainView('notice')}
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition ${mainView === 'notice' ? 'bg-slate-800 text-white shadow-lg shadow-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                            <Icons.Megaphone /> 촉진 대상 통보 관리
+                        </button>
+                        <button type="button" onClick={() => setMainView('plans')}
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition ${mainView === 'plans' ? 'bg-slate-800 text-white shadow-lg shadow-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                            <Icons.FileText /> 제출된 사용 계획서 관리
+                            {submittedPlanCount > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${mainView === 'plans' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'}`}>{submittedPlanCount}건</span>
+                            )}
+                        </button>
+                    </div>
+                    {mainView === 'plans' && <SubmittedPlansView staffList={allStaffList || staffList} showAlert={showAlert} />}
+                    {mainView === 'notice' && (<React.Fragment>
                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div><h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 관리</h3><p className="text-xs md:text-sm text-slate-500">촉진 대상자 검색, 계획서 제출 여부 체크 및 통보서를 출력합니다.</p></div>
                         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
@@ -3594,6 +4187,7 @@
                             );
                         })}
                     </div>
+                    </React.Fragment>)}
                 </div>
             );
         };
@@ -4031,6 +4625,438 @@
                 </div>
             );
         };
+        // ============================================================================
+        // [v6.26.0-beta1 신규] 직원용 연차 사용 계획서 작성 마법사 (3단계 모달)
+        // ----------------------------------------------------------------------------
+        //  1단계 · 미사용 연차휴가 일수 통지
+        //         회사가 알려야 할 [대상 기간 / 발생연차 / 사용연차 / 미사용 연차]를
+        //         표로 자동 계산해 보여 줍니다. 직원이 내용을 확인해야 다음으로 넘어갑니다.
+        //  2단계 · 사용 계획서 작성
+        //         기존 MiniCalendar 를 그대로 재사용하되, minDate/maxDate 를 본인의
+        //         연차 산정기간(leaveInfo.startDate ~ endDate)으로 묶어 그 밖의 날짜는
+        //         아예 클릭되지 않게 합니다. 고른 날짜는 아래 목록에 나타나며,
+        //         날짜마다 [연차(1일) / 반차(0.5일)]를 선택할 수 있습니다.
+        //  3단계 · 전자 서명 및 최종 제출
+        //         종이 서식의 '작성자 (인)' 을 대신하여, 본인 이름을 정확히 똑같이
+        //         입력해야만 [최종 제출] 버튼이 활성화됩니다.
+        //
+        //  ※ 제출 시 submittedPlans 배열 저장과 promoPlanKey=true 처리가
+        //    processPromotionPlanTransaction 한 번으로 원자적으로 함께 반영됩니다.
+        // ============================================================================
+        const StaffPlanWizardModal = ({ userData, status, leaveInfo, dailyHours, onClose, onSubmitted, showAlert, showConfirm }) => {
+            const [step, setStep] = useState(1);
+            const [selectedDates, setSelectedDates] = useState([]);
+            const [unitMap, setUnitMap] = useState({});     // { 'YYYY-MM-DD': 1 | 0.5 }
+            const [signature, setSignature] = useState('');
+            const [saving, setSaving] = useState(false);
+            useEscClose(onClose, !saving);
+
+            const totalDays = leaveInfo.total || 0;
+            const totalHours = totalDays * dailyHours;
+            const usedHours = sumUsedHours(userData.leaveHistory, leaveInfo.startDate, leaveInfo.endDate);
+            const remainingHours = totalHours - usedHours;
+            const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
+            const remainingDays = dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0;
+            // 1년 미만은 이번 통지가 다루는 몫(9일분/2일분)만 대상 일수로 씁니다.
+            const portionRemainingDays = useMemo(() => {
+                if (status.promoCategory !== 'under1') return remainingDays;
+                const split = splitUnder1Portion(totalDays, remainingDays);
+                return status.portion === '9days' ? split.nineRemaining : split.twoRemaining;
+            }, [status, totalDays, remainingDays]);
+
+            // 달력이 처음 열릴 때 보여줄 달 — 오늘이 산정기간 안이면 오늘, 아니면 기간 시작월
+            const initialView = useMemo(() => {
+                const t = toLocalYMD(new Date());
+                if (t < leaveInfo.startDate) return leaveInfo.startDate;
+                if (t > leaveInfo.endDate) return leaveInfo.endDate;
+                return t;
+            }, [leaveInfo]);
+            const sortedDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
+            const planItems = useMemo(() => sortedDates.map(d => ({ date: d, days: unitMap[d] === 0.5 ? 0.5 : 1 })), [sortedDates, unitMap]);
+            const plannedTotal = useMemo(() => Math.round(planItems.reduce((a, c) => a + c.days, 0) * 10) / 10, [planItems]);
+            const alreadyTaken = useMemo(() => {
+                const s = new Set();
+                (userData.leaveHistory || []).forEach(h => { if (h.date) s.add(h.date); });
+                return s;
+            }, [userData]);
+            const signatureOk = signature.trim() === String(userData.name || '').trim() && String(userData.name || '').trim() !== '';
+            const setUnit = (date, val) => setUnitMap(prev => Object.assign({}, prev, { [date]: val }));
+            const removeDate = (date) => setSelectedDates(prev => prev.filter(d => d !== date));
+
+            const handleFinalSubmit = () => {
+                if (!signatureOk || saving) return;
+                if (!planItems.length) { showAlert('❌ 사용할 날짜를 최소 1일 이상 선택해주세요.'); return; }
+                showConfirm(`총 ${fmt(plannedTotal)}일의 연차 사용 계획을 최종 제출합니다.\n제출 후에는 관리자 화면에 즉시 반영되며, 수정이 필요하면 관리자에게 문의해야 합니다.\n\n제출하시겠습니까?`, async () => {
+                    setSaving(true);
+                    try {
+                        const nowIso = new Date().toISOString();
+                        const planRecord = {
+                            id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+                            submittedAt: nowIso,
+                            staffId: userData.id, staffName: userData.name || '', signature: signature.trim(),
+                            promoPlanKey: status.promoPlanKey, promoType: status.type,
+                            promoCategory: status.promoCategory, portion: status.portion,
+                            step: status.step, baseYear: status.baseYear,
+                            periodStart: leaveInfo.startDate, periodEnd: leaveInfo.endDate, period: leaveInfo.period || '',
+                            joinDate: safeDate(userData.joinDate), dailyHours,
+                            totalDays, usedDays, remainingDays, portionRemainingDays,
+                            totalHours, usedHours, remainingHours,
+                            items: planItems, plannedDays: plannedTotal,
+                            status: 'submitted', systemVersion: SYSTEM_VERSION
+                        };
+                        // submittedPlans 저장 + promoPlanKey=true 를 하나의 트랜잭션으로 처리
+                        await processPromotionPlanTransaction(userData.id, '본인(직원)', {
+                            promoPlanKey: status.promoPlanKey,
+                            legacyPlanKey: status.legacyPlanKey,
+                            nextValue: true,
+                            promoType: status.type, promoCategory: status.promoCategory,
+                            portion: status.portion, step: status.step, baseYear: status.baseYear,
+                            origin: 'StaffPlanWizardModal.submit',
+                            extraUpdates: (fresh) => ({
+                                submittedPlans: [...(Array.isArray(fresh.submittedPlans) ? fresh.submittedPlans : []), planRecord]
+                            })
+                        });
+                        showAlert('✅ 연차 사용 계획서가 제출되었습니다.\n관리자 화면에 즉시 반영되며, 계획서 제출 완료로 자동 처리되었습니다.');
+                        if (onSubmitted) onSubmitted();
+                        onClose();
+                    } catch (err) { showAlert('❌ 제출 실패: ' + err.message); }
+                    finally { setSaving(false); }
+                });
+            };
+
+            const StepDot = ({ n, label }) => (
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${step === n ? 'bg-blue-600 text-white' : step > n ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>{step > n ? '✓' : n}</span>
+                    <span className={`text-[11px] font-black truncate ${step === n ? 'text-blue-700' : 'text-slate-400'}`}>{label}</span>
+                </div>
+            );
+            return (
+                <div className="fixed inset-0 bg-black/60 flex items-start md:items-center justify-center z-[500] animate-fade-in backdrop-blur-sm p-3 md:p-4 overflow-y-auto pt-16 md:pt-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative my-auto flex flex-col max-h-[90vh]">
+                        {/* ── 헤더 + 단계 표시 ── */}
+                        <div className="px-5 md:px-6 py-4 border-b border-slate-100">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="min-w-0">
+                                    <h3 className="font-black text-slate-800 text-base md:text-lg">연차 사용 계획서 작성</h3>
+                                    <p className="text-[11px] md:text-xs font-bold text-slate-500 mt-0.5">{status.type} · 근로기준법 제61조에 따른 절차입니다</p>
+                                </div>
+                                <button type="button" onClick={onClose} disabled={saving} className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40 shrink-0"><Icons.X /></button>
+                            </div>
+                            <div className="flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar">
+                                <StepDot n={1} label="미사용 일수 통지" />
+                                <span className="text-slate-300 font-black shrink-0">›</span>
+                                <StepDot n={2} label="사용 계획 작성" />
+                                <span className="text-slate-300 font-black shrink-0">›</span>
+                                <StepDot n={3} label="서명 및 제출" />
+                            </div>
+                        </div>
+                        <div className="overflow-y-auto custom-scrollbar px-5 md:px-6 py-4 flex-1">
+                            {/* ══════════ 1단계 : 미사용 연차휴가 일수 통지 ══════════ */}
+                            {step === 1 && (
+                                <div className="animate-fade-in">
+                                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-4">
+                                        <p className="text-[12px] font-bold text-blue-800 leading-relaxed">
+                                            📢 <b>{userData.name}</b> 님의 <b>미사용 연차휴가 일수</b>를 아래와 같이 알려드립니다.
+                                            내용을 확인하신 뒤, 남은 연차를 <b>언제 사용할지 계획</b>을 세워 제출해주세요.
+                                        </p>
+                                    </div>
+                                    <table className="w-full text-sm border-collapse border border-slate-300 mb-4">
+                                        <tbody>
+                                            <tr>
+                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 w-2/5 text-xs">연차 사용 대상 기간</th>
+                                                <td className="border border-slate-300 p-3 font-bold text-slate-800 text-xs md:text-sm">{leaveInfo.period || `${leaveInfo.startDate} ~ ${leaveInfo.endDate}`}</td>
+                                            </tr>
+                                            <tr>
+                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 text-xs">발생 연차</th>
+                                                <td className="border border-slate-300 p-3 font-black text-blue-600">{fmt(totalDays)}일 <span className="text-[11px] font-bold text-slate-400">({fmt(totalHours)}시간)</span></td>
+                                            </tr>
+                                            <tr>
+                                                <th className="border border-slate-300 bg-slate-50 p-3 text-left font-black text-slate-600 text-xs">사용 연차</th>
+                                                <td className="border border-slate-300 p-3 font-black text-slate-700">{fmt(usedDays)}일 <span className="text-[11px] font-bold text-slate-400">({fmt(usedHours)}시간)</span></td>
+                                            </tr>
+                                            <tr>
+                                                <th className="border border-slate-300 bg-red-50 p-3 text-left font-black text-red-600 text-xs">미사용 연차</th>
+                                                <td className="border border-slate-300 p-3 font-black text-red-600 text-base">{fmt(remainingDays)}일 <span className="text-[11px] font-bold text-slate-400">({fmt(remainingHours)}시간)</span></td>
+                                            </tr>
+                                            {status.promoCategory === 'under1' && (
+                                                <tr>
+                                                    <th className="border border-slate-300 bg-purple-50 p-3 text-left font-black text-purple-700 text-xs">이번 통지 대상 ({status.portion === '9days' ? '9일분' : '2일분'})</th>
+                                                    <td className="border border-slate-300 p-3 font-black text-purple-700">{fmt(portionRemainingDays)}일</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                    <p className="text-[11px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 leading-relaxed">
+                                        ※ 위 수치는 현재 시스템에 등록된 연차 내역을 기준으로 자동 계산된 값입니다.
+                                        실제와 다르다면 계획서를 제출하기 전에 관리자에게 먼저 확인해주세요.
+                                    </p>
+                                </div>
+                            )}
+                            {/* ══════════ 2단계 : 사용 계획서 작성 ══════════ */}
+                            {step === 2 && (
+                                <div className="animate-fade-in">
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-3">
+                                        <p className="text-[11px] md:text-xs font-bold text-amber-800 leading-relaxed">
+                                            🗓️ 선택 가능 기간: <b>{leaveInfo.startDate} ~ {leaveInfo.endDate}</b>
+                                            <span className="block mt-0.5 font-normal">이 기간(내 연차 산정기간) 밖의 날짜는 선택할 수 없습니다.</span>
+                                        </p>
+                                    </div>
+                                    <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={userData.offDays}
+                                        takenDates={alreadyTaken} minDate={leaveInfo.startDate} maxDate={leaveInfo.endDate} initialViewDate={initialView} />
+                                    <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 휴가가 등록된 날
+                                    </div>
+                                    <div className="mt-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-xs font-black text-slate-700">선택한 날짜별 사용 구분 <span className="text-slate-400 font-bold">({planItems.length}일)</span></p>
+                                            <p className="text-xs font-black text-blue-600">계획 합계 {fmt(plannedTotal)}일</p>
+                                        </div>
+                                        {planItems.length === 0 ? (
+                                            <p className="text-center text-slate-400 font-bold py-8 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">위 달력에서 사용할 날짜를 눌러주세요.</p>
+                                        ) : (
+                                            <div className="space-y-2 max-h-56 overflow-y-auto custom-scrollbar pr-1">
+                                                {planItems.map((it, i) => (
+                                                    <div key={it.date} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+                                                        <span className="text-[11px] font-black text-slate-400 w-5 shrink-0">{i + 1}</span>
+                                                        <span className="font-bold text-slate-800 text-sm flex-1 min-w-0 truncate">{it.date}</span>
+                                                        <select value={it.days} onChange={(e) => setUnit(it.date, parseFloat(e.target.value))}
+                                                            className="bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer shrink-0">
+                                                            {PLAN_UNIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                        </select>
+                                                        <button type="button" onClick={() => removeDate(it.date)} className="p-1.5 bg-white border border-slate-200 text-red-400 hover:bg-red-50 rounded-lg transition shrink-0" title="이 날짜 빼기"><Icons.Trash /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {plannedTotal > 0 && portionRemainingDays > 0 && plannedTotal !== portionRemainingDays && (
+                                            <p className={`text-[11px] font-bold mt-2 px-3 py-2 rounded-lg border ${plannedTotal > portionRemainingDays ? 'text-red-600 bg-red-50 border-red-200' : 'text-amber-700 bg-amber-50 border-amber-200'}`}>
+                                                {plannedTotal > portionRemainingDays
+                                                    ? `⚠️ 계획 일수(${fmt(plannedTotal)}일)가 미사용 연차(${fmt(portionRemainingDays)}일)보다 많습니다. 그래도 제출할 수는 있지만, 관리자 확인이 필요할 수 있습니다.`
+                                                    : `ℹ️ 미사용 연차 ${fmt(portionRemainingDays)}일 중 ${fmt(plannedTotal)}일만 계획했습니다. 남은 ${fmt(Math.round((portionRemainingDays - plannedTotal) * 10) / 10)}일도 함께 계획하는 것을 권장합니다.`}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                            {/* ══════════ 3단계 : 전자 서명 및 최종 제출 ══════════ */}
+                            {step === 3 && (
+                                <div className="animate-fade-in">
+                                    <p className="text-xs font-black text-slate-700 mb-2">제출할 계획 내용</p>
+                                    <table className="w-full text-sm border-collapse border border-slate-300 mb-4">
+                                        <thead>
+                                            <tr className="bg-slate-50">
+                                                <th className="border border-slate-300 p-2 text-xs font-black text-slate-600 w-12">연번</th>
+                                                <th className="border border-slate-300 p-2 text-xs font-black text-slate-600">사용 일자</th>
+                                                <th className="border border-slate-300 p-2 text-xs font-black text-slate-600 w-24">구분</th>
+                                                <th className="border border-slate-300 p-2 text-xs font-black text-slate-600 w-20">일수</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {planItems.map((it, i) => (
+                                                <tr key={it.date}>
+                                                    <td className="border border-slate-300 p-2 text-center text-xs font-bold text-slate-500">{i + 1}</td>
+                                                    <td className="border border-slate-300 p-2 text-center font-bold text-slate-800 text-xs">{it.date}</td>
+                                                    <td className="border border-slate-300 p-2 text-center text-xs font-bold text-slate-600">{it.days === 0.5 ? '반차' : '연차'}</td>
+                                                    <td className="border border-slate-300 p-2 text-center font-black text-blue-600 text-xs">{fmt(it.days)}일</td>
+                                                </tr>
+                                            ))}
+                                            <tr className="bg-slate-50">
+                                                <td className="border border-slate-300 p-2 text-center text-xs font-black text-slate-600" colSpan="3">합계</td>
+                                                <td className="border border-slate-300 p-2 text-center font-black text-blue-600 text-xs">{fmt(plannedTotal)}일</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <div className="bg-slate-50 border-2 border-slate-300 rounded-xl p-4">
+                                        <p className="text-xs font-black text-slate-700 mb-1">✍️ 전자 서명</p>
+                                        <p className="text-[11px] font-bold text-slate-500 mb-3 leading-relaxed">
+                                            종이 서식의 <b>'작성자 (인)'</b> 날인을 대신합니다.
+                                            아래 칸에 본인 이름 <b className="text-blue-700">{userData.name}</b> 을(를) <b>정확히 똑같이</b> 입력해주세요.
+                                        </p>
+                                        <input type="text" value={signature} onChange={(e) => setSignature(e.target.value)}
+                                            placeholder={`여기에 '${userData.name}' 입력`} autoComplete="off"
+                                            className={`w-full px-4 py-3 border-2 rounded-xl text-center text-lg font-black tracking-widest outline-none transition ${signature.length === 0 ? 'border-slate-300 text-slate-800' : signatureOk ? 'border-green-500 bg-green-50 text-green-700' : 'border-red-400 bg-red-50 text-red-600'}`} />
+                                        <p className={`text-[11px] font-black mt-2 text-center ${signature.length === 0 ? 'text-slate-400' : signatureOk ? 'text-green-600' : 'text-red-500'}`}>
+                                            {signature.length === 0 ? '이름을 입력하면 제출 버튼이 활성화됩니다' : signatureOk ? '✅ 본인 확인 완료 — 이제 제출할 수 있습니다' : '❌ 이름이 일치하지 않습니다'}
+                                        </p>
+                                    </div>
+                                    <p className="text-[11px] font-bold text-slate-500 mt-3 leading-relaxed bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
+                                        위와 같이 연차유급휴가 사용 계획을 제출합니다.<br />
+                                        제출일: <b>{toKoreanDate(toLocalYMD(new Date()))}</b> · 작성자: <b>{userData.name}</b>
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                        {/* ── 하단 버튼 ── */}
+                        <div className="px-5 md:px-6 py-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                            <button type="button" onClick={() => step === 1 ? onClose() : setStep(step - 1)} disabled={saving}
+                                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40">
+                                {step === 1 ? '취소' : '이전'}
+                            </button>
+                            {step === 1 && (
+                                <button type="button" onClick={() => setStep(2)}
+                                    className="flex-1 md:flex-none px-5 py-2.5 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                                    확인 및 사용 계획 작성하기 →
+                                </button>
+                            )}
+                            {step === 2 && (
+                                <button type="button" onClick={() => setStep(3)} disabled={planItems.length === 0}
+                                    className="flex-1 md:flex-none px-5 py-2.5 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:bg-slate-300 disabled:shadow-none">
+                                    서명하고 제출하기 →
+                                </button>
+                            )}
+                            {step === 3 && (
+                                <button type="button" onClick={handleFinalSubmit} disabled={!signatureOk || saving}
+                                    className="flex-1 md:flex-none px-5 py-2.5 rounded-xl text-sm font-black text-white bg-green-600 hover:bg-green-700 transition shadow-lg shadow-green-200 disabled:bg-slate-300 disabled:shadow-none">
+                                    {saving ? '제출 중…' : '최종 제출'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        // ============================================================================
+        // [v6.26.0-beta1 신규] 직원용 [연차 사용 계획] 탭 본문
+        //   · 촉진 대상이면 근속기간에 맞는 안내(1년 이상 / 1년 미만)를 보여 줍니다.
+        //   · 오프라인(수기) 제출 서식도 내려받을 수 있지만, 시스템 제출이 원칙임을
+        //     적색으로 분명히 강조합니다.
+        // ============================================================================
+        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan }) => {
+            const isUnder1 = promoList.length > 0 && promoList[0].promoCategory === 'under1';
+            const hasTarget = promoList.length > 0;
+            const submittedKeys = useMemo(() => new Set((submittedPlans || []).map(p => p.promoPlanKey)), [submittedPlans]);
+            return (
+                <div className="space-y-4 md:space-y-5 animate-fade-in">
+                    {/* ── 상단 상태 배너 ── */}
+                    <div className={`rounded-2xl border p-4 md:p-5 ${hasTarget ? 'bg-gradient-to-br from-red-50 via-white to-orange-50 border-red-200' : 'bg-gradient-to-br from-green-50 via-white to-teal-50 border-green-200'}`}>
+                        <div className="flex items-start gap-3">
+                            <span className="text-2xl shrink-0">{hasTarget ? '📢' : '✅'}</span>
+                            <div className="min-w-0">
+                                <h3 className="font-black text-slate-800 text-base md:text-lg">
+                                    {hasTarget ? '연차 사용 계획서 제출 대상입니다' : '지금은 제출할 계획서가 없습니다'}
+                                </h3>
+                                <p className="text-[12px] md:text-sm font-bold text-slate-600 mt-1 leading-relaxed">
+                                    {hasTarget
+                                        ? '회사가 근로기준법 제61조에 따라 미사용 연차 사용을 촉진하고 있습니다. 아래에서 계획서를 작성해 제출해주세요.'
+                                        : '촉진 대상 기간이 되면 이 화면에 알림이 표시됩니다. 그때 계획서를 제출하시면 됩니다.'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {/* ── 촉진 대상 카드 목록 ── */}
+                    {hasTarget && (
+                        <div className="space-y-3">
+                            {promoList.map((st, i) => {
+                                const done = submittedKeys.has(st.promoPlanKey) || resolvePlanSubmitted(userData, st).submitted;
+                                return (
+                                    <div key={st.promoPlanKey + '_' + st.step + '_' + i} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-5">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                                                    <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${st.color}`}>{st.type}</span>
+                                                    <span className="text-[11px] font-bold text-slate-500">{st.msg}</span>
+                                                    {done && <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-green-100 text-green-700">제출 완료</span>}
+                                                </div>
+                                                <p className="text-[12px] font-bold text-slate-600">
+                                                    대상 기간 <b className="text-slate-800">{st.leaveInfo.period}</b>
+                                                </p>
+                                                <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+                                                    통보 기준일 {st.noticeDate} · 처리 기한 {st.deadlineDate} ({st.windowText})
+                                                </p>
+                                            </div>
+                                            <button type="button" onClick={() => onStartPlan(st)}
+                                                className={`shrink-0 px-5 py-3 rounded-xl text-sm font-black transition shadow-lg active:scale-95 ${done ? 'bg-slate-100 text-slate-500 shadow-none border border-slate-200' : 'bg-red-500 text-white hover:bg-red-600 shadow-red-200'}`}>
+                                                {done ? '다시 작성하기' : '계획서 작성하기'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                    {/* ── 근속기간별 안내 (1년 이상 / 1년 미만) ── */}
+                    {isUnder1 ? (
+                        <div className="bg-white rounded-2xl shadow-sm border border-purple-200 p-4 md:p-5">
+                            <h4 className="font-black text-slate-800 text-sm mb-1 flex items-center gap-2">🐣 1년 미만 근로자 안내</h4>
+                            <p className="text-[12px] font-bold text-slate-600 leading-relaxed mb-3">
+                                입사 1년이 되지 않은 기간에는 <b className="text-purple-700">한 달을 개근할 때마다 연차가 1일씩</b> 생겨 최대 11일이 됩니다.
+                                이 11일은 생긴 시기에 따라 <b className="text-purple-700">9일분</b>과 <b className="text-purple-700">2일분</b>으로 나뉘며, 촉진 일정도 서로 다릅니다.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                <div className="bg-purple-50 border border-purple-200 rounded-xl p-3">
+                                    <p className="text-[11px] font-black text-purple-700 mb-1">9일분 (입사 후 1~9개월차 발생)</p>
+                                    <p className="text-[11px] font-bold text-slate-600 leading-relaxed">1차: 1년 도래 <b>3개월 전</b><br />2차: 1년 도래 <b>1개월 전까지</b> (미제출자만)</p>
+                                </div>
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                                    <p className="text-[11px] font-black text-amber-700 mb-1">2일분 (입사 후 10~11개월차 발생)</p>
+                                    <p className="text-[11px] font-bold text-slate-600 leading-relaxed">1차: 1년 도래 <b>1개월 전</b><br />2차: 1년 도래 <b>10일 전까지</b> (미제출자만)</p>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-2xl shadow-sm border border-blue-200 p-4 md:p-5">
+                            <h4 className="font-black text-slate-800 text-sm mb-1 flex items-center gap-2">📘 1년 이상 근로자 안내</h4>
+                            <p className="text-[12px] font-bold text-slate-600 leading-relaxed mb-3">
+                                입사 1년이 지나면 <b className="text-blue-700">연차가 15일 이상 한 번에</b> 발생합니다.
+                                회사는 아래 두 단계로 연차 사용을 촉진하며, 절차가 모두 지켜지면 남은 연차에 대한 금전 보상 의무가 사라집니다.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                                    <p className="text-[11px] font-black text-blue-700 mb-1">1차 촉진 — 만료 6개월 전</p>
+                                    <p className="text-[11px] font-bold text-slate-600 leading-relaxed">회사가 미사용 일수를 알려주면, 근로자가 <b>10일 안에</b> 사용 계획을 제출합니다.</p>
+                                </div>
+                                <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                                    <p className="text-[11px] font-black text-red-700 mb-1">2차 촉진 — 만료 2개월 전까지</p>
+                                    <p className="text-[11px] font-bold text-slate-600 leading-relaxed">1차에서 계획서를 내지 않으면, <b>회사가 사용 날짜를 직접 지정</b>해 통보합니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* ── 제출 방법 안내 (시스템 제출 원칙 강조 + 오프라인 서식) ── */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5">
+                        <h4 className="font-black text-slate-800 text-sm mb-2">📝 제출 방법</h4>
+                        <div className="bg-red-50 border-2 border-red-300 rounded-xl px-4 py-3 mb-3">
+                            <p className="text-[12px] md:text-sm font-black text-red-600 leading-relaxed">
+                                ⚠️ 연차 사용 계획서는 <span className="underline underline-offset-2">본 시스템을 통한 제출이 원칙</span>입니다.
+                            </p>
+                            <p className="text-[11px] font-bold text-red-500 mt-1.5 leading-relaxed">
+                                시스템으로 제출하면 제출 시각과 내용이 자동으로 기록되어 별도의 확인 절차가 필요 없습니다.
+                                아래 오프라인 서식은 <b>부득이하게 시스템을 이용할 수 없는 경우에만</b> 사용해주세요.
+                            </p>
+                        </div>
+                        <a href={OFFLINE_PLAN_FORM_URL} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 border border-slate-300 text-xs font-bold hover:bg-slate-200 transition">
+                            <Icons.Download /> 오프라인 제출 양식 다운로드
+                        </a>
+                        <p className="text-[10px] font-bold text-slate-400 mt-2">양지누림 홈페이지 공지사항으로 이동합니다 (새 창)</p>
+                    </div>
+                    {/* ── 내가 제출한 계획서 이력 ── */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 md:p-5">
+                        <h4 className="font-black text-slate-800 text-sm mb-3 flex items-center gap-2"><Icons.History /> 내가 제출한 계획서 ({(submittedPlans || []).length}건)</h4>
+                        {(submittedPlans || []).length === 0 ? (
+                            <p className="text-center text-slate-400 font-bold py-8 text-xs">아직 제출한 계획서가 없습니다.</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {[...(submittedPlans || [])].sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || ''))).map(p => (
+                                    <div key={p.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <p className="font-bold text-slate-800 text-sm">{p.promoType} <span className="text-[11px] font-normal text-slate-500 ml-1">{p.period}</span></p>
+                                            <span className="text-xs font-black text-blue-600">총 {fmt(p.plannedDays)}일</span>
+                                        </div>
+                                        <p className="text-[11px] font-bold text-slate-500 mt-1">
+                                            제출 {String(p.submittedAt || '').substring(0, 10)} · 서명 {p.signature} · {(p.items || []).length}일 지정
+                                        </p>
+                                        <p className="text-[11px] font-bold text-slate-400 mt-1 break-all">
+                                            {(p.items || []).map(it => `${it.date}(${it.days === 0.5 ? '반차' : '연차'})`).join(', ')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
         const StaffPortal = ({ user, onLogout, showAlert, showConfirm }) => {
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
@@ -4049,6 +5075,10 @@
             const [cart, setCart] = useState([]);
             // [v6.23.0-beta1 신규] 과거 연차 승인 요청 모달 노출 여부
             const [showPastRequestModal, setShowPastRequestModal] = useState(false);
+            // [v6.26.0-beta1 신규] 직원 포털 상단 탭 ('home' = 내 연차 현황 / 'plan' = 연차 사용 계획)
+            const [staffView, setStaffView] = useState('home');
+            // [v6.26.0-beta1 신규] 계획서 작성 마법사에 넘길 촉진 대상 정보 (null 이면 닫힘)
+            const [planTarget, setPlanTarget] = useState(null);
             useEffect(() => {
                 const unsub = db.collection('users').doc(user.email).onSnapshot(doc => {
                     if (doc.exists) setUserData({ id: doc.id, ...doc.data() });
@@ -4084,6 +5114,33 @@
                     futureDays: dailyHours > 0 ? Math.round((futureHours / dailyHours) * 10) / 10 : 0,
                     displayHistory: [...activeHistory].sort((a, b) => b.date.localeCompare(a.date)) };
             }, [userData, dailyHours]);
+            // ────────────────────────────────────────────────────────────────
+            // [v6.26.0-beta1 신규] 내가 지금 촉진 대상인지 판정
+            //   관리자 화면과 '완전히 같은' getPromotionStatusList 를 사용하되,
+            //   직원 입장에서는 '이번 달에 딱 걸리는 건'만 보면 되므로
+            //   앞뒤 1개월(총 3개월)을 훑어 놓친 건이 없게 합니다.
+            //   → 대상이 1건이라도 있으면 탭에 붉은색 알림 배지를 띄웁니다.
+            // ────────────────────────────────────────────────────────────────
+            const myPromoList = useMemo(() => {
+                if (!userData || !userData.joinDate) return [];
+                const now = new Date();
+                const list = []; const seen = new Set();
+                for (let offset = -1; offset <= 1; offset++) {
+                    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+                    getPromotionStatusList(userData, d.getFullYear(), d.getMonth() + 1).forEach(st => {
+                        const key = `${st.baseYear}__${st.portion}__${st.step}`;
+                        if (seen.has(key)) return;
+                        seen.add(key); list.push(st);
+                    });
+                }
+                return list.sort((a, b) => (a.baseYear - b.baseYear) || (a.order - b.order));
+            }, [userData]);
+            const mySubmittedPlans = useMemo(() => (Array.isArray(userData?.submittedPlans) ? userData.submittedPlans : []), [userData]);
+            // 아직 계획서를 내지 않은 촉진 건수 — 탭 배지 숫자
+            const promoBadgeCount = useMemo(() => myPromoList.filter(st => {
+                const inSubmitted = mySubmittedPlans.some(p => p.promoPlanKey === st.promoPlanKey);
+                return !inSubmitted && !resolvePlanSubmitted(userData || {}, st).submitted;
+            }).length, [myPromoList, mySubmittedPlans, userData]);
             // [v6.23.0-beta1 신규] 승인 대기 중 / 반려된 내역 (최신순 정렬)
             const pendingRequestList = useMemo(() => [...(userData?.pendingRequests || [])].sort((a, b) => String(b.requestedAt || b.createdAt || '').localeCompare(String(a.requestedAt || a.createdAt || ''))), [userData]);
             const rejectedRequestList = useMemo(() => [...(userData?.rejectedRequests || [])].sort((a, b) => String(b.rejectedAt || '').localeCompare(String(a.rejectedAt || ''))), [userData]);
@@ -4293,6 +5350,12 @@
                     {showTour && <StaffTourOverlay onClose={() => setShowTour(false)} />}
                     {detailRec && <StaffLeaveDetailModal rec={detailRec} dailyHours={dailyHours} onClose={() => setDetailRec(null)} onSave={handleSaveEditOwnLeave} onDelete={handleDeleteOwnLeave} />}
                     {showPastRequestModal && <PastLeaveRequestModal userData={userData} onClose={() => setShowPastRequestModal(false)} showAlert={showAlert} showConfirm={showConfirm} />}
+                    {/* [v6.26.0-beta1 신규] 연차 사용 계획서 작성 마법사 (1 통지 → 2 계획 → 3 서명) */}
+                    {planTarget && (
+                        <StaffPlanWizardModal userData={userData} status={planTarget} leaveInfo={planTarget.leaveInfo}
+                            dailyHours={dailyHours} onClose={() => setPlanTarget(null)} onSubmitted={() => setStaffView('plan')}
+                            showAlert={showAlert} showConfirm={showConfirm} />
+                    )}
                     <nav className="bg-white shadow-sm px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-3"><img src="logo.png" alt="양지누림 로고" className="h-8 object-contain hidden md:block" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} /><h1 className="text-2xl font-black text-blue-600 tracking-tighter md:hidden">양지누림</h1><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase hidden sm:block">Employee Portal</span></div>
                         <div className="flex items-center gap-2 md:gap-4">
@@ -4316,6 +5379,27 @@
                         </div>
                     </nav>
                     <div className="max-w-5xl mx-auto p-3 sm:p-4 md:p-8 space-y-5 md:space-y-6 animate-fade-in">
+                        {/* ═══ [v6.26.0-beta1 신규] 직원 포털 상단 탭 ═══ */}
+                        <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex gap-2">
+                            <button type="button" onClick={() => setStaffView('home')}
+                                className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition ${staffView === 'home' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                                <Icons.Calendar /> 내 연차 현황
+                            </button>
+                            <button type="button" onClick={() => setStaffView('plan')}
+                                className={`relative flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition ${staffView === 'plan' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                                <Icons.FileText /> 연차 사용 계획
+                                {promoBadgeCount > 0 && (
+                                    <span className="absolute top-1.5 right-1.5 md:static md:ml-1 bg-red-500 text-white text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center animate-pulse shadow-md shadow-red-300">
+                                        {promoBadgeCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                        {staffView === 'plan' && (
+                            <StaffPlanTab userData={userData} dailyHours={dailyHours} promoList={myPromoList}
+                                submittedPlans={mySubmittedPlans} onStartPlan={(st) => setPlanTarget(st)} />
+                        )}
+                        {staffView === 'home' && (<React.Fragment>
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-bold text-slate-500">({leaveStats.period})</span></h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4" data-tour="stats">
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500"><div><p className="text-xs font-bold text-slate-600 mb-1">총 발생 연차</p><span className="text-xl md:text-2xl font-black text-slate-800">{fmt(leaveStats.totalHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.totalDays}일)</span></div></div>
@@ -4461,6 +5545,7 @@
                                 )}
                             </div>
                         )}
+                        </React.Fragment>)}
                     </div>
                 </div>
             );
@@ -4472,6 +5557,9 @@
             const [showLeaveModal, setShowLeaveModal] = useState(false);
             const [editingLeaveData, setEditingLeaveData] = useState(null);
             const [viewingStaffDetail, setViewingStaffDetail] = useState(null);
+            // [v6.26.0-beta1] 대시보드 카드 클릭 팝업 노출 여부
+            const [showTodayLeaveModal, setShowTodayLeaveModal] = useState(false);
+            const [showOverLimitModal, setShowOverLimitModal] = useState(false);
             const [showUpdateModal, setShowUpdateModal] = useState(false);
             const [adminName, setAdminName] = useState(localStorage.getItem('ygnurim_admin_name') || '');
             const [forceUpdateRequired, setForceUpdateRequired] = useState(false);
@@ -4716,6 +5804,9 @@
                     {alertData && <CustomAlertModal msg={alertData.msg} onClose={() => setAlertData(null)} />}
                     {confirmData && <CustomConfirmModal msg={confirmData.msg} onConfirm={confirmData.onConfirm} onClose={() => setConfirmData(null)} />}
                     {viewingStaffDetail && <StaffDetailModal staff={viewingStaffDetail} onClose={() => setViewingStaffDetail(null)} />}
+                    {/* [v6.26.0-beta1] 대시보드 카드 팝업 — 수정은 기존 LeaveActionModal 재사용, 삭제는 트랜잭션 경유 */}
+                    {showTodayLeaveModal && <TodayLeaveModal staffList={activeStaffs} adminName={adminName} onEditClick={handleEditLeave} onClose={() => setShowTodayLeaveModal(false)} showAlert={showAlert} showConfirm={showConfirm} />}
+                    {showOverLimitModal && <OverLimitModal staffList={activeStaffs} adminName={adminName} onEditClick={handleEditLeave} onClose={() => setShowOverLimitModal(false)} showAlert={showAlert} showConfirm={showConfirm} />}
                     {/* [v6.19.0] 로딩 이후에도 통신이 잠깐 끊기면 우상단에 살짝 안내(비차단) */}
                     {loadError && (
                         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9998] pointer-events-none">
@@ -4764,8 +5855,9 @@
                                 <div className="space-y-6 animate-fade-in">
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4"><div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500"><Icons.Users /></div><div><p className="text-sm font-bold text-slate-500">재직중인 직원</p><p className="text-2xl font-black text-slate-800">{dashStats.totalStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
-                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-teal-300 transition" onClick={() => setActiveTab('leave')}><div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-500"><Icons.Calendar /></div><div><p className="text-sm font-bold text-slate-500">금일 휴가자</p><p className="text-2xl font-black text-slate-800">{dashStats.todayLeaves}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
-                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-red-300 transition" onClick={() => setActiveTab('leave')}><div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500"><Icons.Alert /></div><div><p className="text-sm font-bold text-slate-500">연차 초과자</p><p className="text-2xl font-black text-red-500">{dashStats.warningStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
+                                        {/* [v6.26.0-beta1] 탭 이동 대신 팝업으로 상세 확인 + 수정/삭제 */}
+                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-teal-300 hover:shadow-md transition" onClick={() => setShowTodayLeaveModal(true)} title="클릭하면 오늘 휴가자 명단을 팝업으로 확인하고 바로 수정·삭제할 수 있습니다"><div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center text-teal-500"><Icons.Calendar /></div><div><p className="text-sm font-bold text-slate-500 flex items-center gap-1">금일 휴가자 <span className="text-[10px] font-black text-teal-600 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded">상세</span></p><p className="text-2xl font-black text-slate-800">{dashStats.todayLeaves}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
+                                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 cursor-pointer hover:border-red-300 hover:shadow-md transition" onClick={() => setShowOverLimitModal(true)} title="클릭하면 연차 초과자 명단을 팝업으로 확인하고 바로 수정·삭제할 수 있습니다"><div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500"><Icons.Alert /></div><div><p className="text-sm font-bold text-slate-500 flex items-center gap-1">연차 초과자 <span className="text-[10px] font-black text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">상세</span></p><p className="text-2xl font-black text-red-500">{dashStats.warningStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
                                     </div>
                                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 animate-fade-in">
                                         <div className="flex justify-between items-center mb-6">
