@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.28.0-beta3)</title>
+    <title>양지누림 연차 관리 시스템 (Official v6.29.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -177,7 +177,7 @@
         //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.28.0-beta3";
+        const SYSTEM_VERSION = "6.29.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -190,6 +190,24 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.29.0-beta1 은 관리자 계획서 관리 기능 추가 + 서식 정비 + 버그 6건 수정입니다.
+            { version: "6.29.0-beta1", date: "2026-08-20", details: [
+                "🗓️ [계획서 월별 조회] 관리자 [제출된 사용 계획서 관리] 화면에 제출 월을 고르는 드롭다운이 생겼습니다. 실제 제출이 있는 달만 건수와 함께 표시되어, 원하는 달의 계획서만 골라 볼 수 있습니다",
+                "🗑️ [계획서 삭제] 잘못 제출된 계획서를 관리자가 삭제할 수 있습니다. 삭제하면 그 직원의 '계획서 제출 완료' 체크가 자동으로 해제되어 직원이 곧바로 다시 제출할 수 있습니다 (같은 촉진 건에 다른 계획서가 남아 있으면 체크는 유지). 삭제 전 계획 내용을 확인창에서 보여주며, 삭제된 원본은 감사 로그에 통째로 보관됩니다",
+                "📐 [출력물 위·아래 여백 균등화] 인쇄물의 위쪽 여백은 13mm인데 아래쪽은 36mm로 치우쳐 있던 문제를 바로잡았습니다. 이제 내용이 인쇄 영역 정중앙에 놓여 위·아래 여백이 같습니다",
+                "🔠 [시간 글씨 강조] 통지서의 발생·사용·미사용 연차 시간 글씨를 모두 진하게 통일했습니다",
+                "🐞 [버그수정 · 문서 날짜가 하루 밀림] 계획서 제출 시각을 세계표준시(UTC)로 저장해, 오전 0~9시에 제출하면 통지서·계획서에 찍히는 날짜가 하루 전으로 밀리고 월별 조회도 이전 달로 잡히던 문제를 해결했습니다. 이제 한국 시간 기준으로 저장됩니다",
+                "🐞 [버그수정 · 통보서 지정일수 초과] 사용시기 지정 통보서에서 남은 일수가 0.5일 미만일 때도 0.5일을 지정해, 지정일수 합계가 통보서에 적힌 미사용 일수보다 커지던 문제를 해결했습니다 (예: 2.7일 → 3.0일 지정)",
+                "🐞 [버그수정 · 지난 날짜 선택] 계획서 작성 달력에서 이미 지나간 날짜가 선택되던 문제를 막았습니다. 앞으로 사용할 날짜만 고를 수 있습니다",
+                "🐞 [버그수정 · 1년 미만 통지서 수치 불일치] 9일분/2일분 통지서에 전체 미사용 연차가 표시되어 아래 계획서 합계와 어긋나던 문제를 해결했습니다. 이제 이번 통지가 다루는 몫만 표기됩니다",
+                "🐞 [버그수정 · 시휴 선택 거부] 드롭다운에서는 선택 가능해 보이는데 실제로는 '한도 초과'로 거부되던 시휴 선택 문제를 해결했습니다",
+                "🐞 [버그수정 · 한도 계산 오차] 소정근로시간이 7.5시간처럼 나누어떨어지지 않는 직원의 배정 가능 한도가 실제보다 조금 크게 계산되던 문제를 해결했습니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 트랜잭션 처리, 감사 로그 구조는 종전과 동일합니다"
+            ], staffDetails: [
+                "🐞 계획서에 찍히는 날짜가 오전에 제출할 때 하루 전으로 밀리던 문제를 해결했습니다",
+                "🗓️ 계획서 작성 달력에서 이미 지나간 날짜는 이제 선택되지 않습니다 (앞으로 쓸 날짜만 선택)",
+                "🖨️ 인쇄물의 위·아래 여백이 같아져 문서가 가운데에 반듯하게 출력됩니다"
+            ] },
             // ▼ v6.28.0-beta3 은 미사용 연차를 넘겨 계획할 수 없도록 제한을 추가한 버전입니다.
             { version: "6.28.0-beta3", date: "2026-08-19", details: [
                 "🚫 [미사용 연차 초과 선택 차단] 직원이 연차 사용 계획서를 작성할 때, 본인의 미사용 연차 시간을 넘겨서는 날짜·시간을 선택할 수 없게 했습니다. 한도를 다 쓰면 달력에서 날짜를 눌러도 선택되지 않으며, 이유가 화면에 표시됩니다",
@@ -825,6 +843,71 @@
             });
             return txResult;
         };
+        // ============================================================================
+        // [v6.29.0-beta1 신규] 제출된 연차 사용 계획서 삭제 (관리자 전용 트랜잭션)
+        // ----------------------------------------------------------------------------
+        //  ▣ 왜 필요한가
+        //     직원이 날짜나 시간을 잘못 적어 제출한 계획서를 관리자가 지울 수 있어야
+        //     직원이 다시 제출할 수 있습니다. 그런데 계획서만 지우고 '계획서 제출 완료'
+        //     체크를 그대로 두면, 직원 화면에는 제출한 것으로 남아 다시 낼 수가 없습니다.
+        //
+        //  ▣ 처리 내용 (모두 하나의 트랜잭션)
+        //     ① submittedPlans 배열에서 해당 계획서 1건 제거
+        //     ② 그 촉진 건(promoPlanKey)에 남은 계획서가 하나도 없으면
+        //        제출 완료 체크를 자동으로 '미제출'로 되돌립니다.
+        //        (같은 촉진 건에 다른 계획서가 남아 있으면 체크는 그대로 유지)
+        //     ③ audit_logs 에 actionType:'DELETE' 로 삭제 이력을 남깁니다.
+        //        beforeData 에 삭제된 계획서 원본이 통째로 보관되어 복구 근거가 됩니다.
+        // ============================================================================
+        const deleteSubmittedPlanTransaction = async (staffId, adminName, planId, reason) => {
+            if (!staffId) throw new Error('처리 대상 직원 ID가 없습니다.');
+            if (!planId) throw new Error('삭제할 계획서 ID가 지정되지 않았습니다.');
+            const actorName = (adminName === undefined || adminName === null || String(adminName).trim() === '')
+                ? '알 수 없음' : String(adminName);
+            const userRef = db.collection('users').doc(staffId);
+            // 트랜잭션 재시도 시 감사 로그가 중복 생성되지 않도록 문서 ID를 미리 고정합니다.
+            const auditRef = db.collection(AUDIT_COLLECTION).doc();
+            let txResult = null;
+            await db.runTransaction(async (transaction) => {
+                const snap = await transaction.get(userRef);
+                if (!snap.exists) throw new Error('대상 직원 문서를 찾을 수 없습니다. (퇴사 처리되었거나 삭제되었을 수 있습니다)');
+                const freshData = snap.data() || {};
+                const list = Array.isArray(freshData.submittedPlans) ? freshData.submittedPlans : [];
+                const target = list.find(p => String(p.id) === String(planId));
+                if (!target) throw new Error('삭제하려는 계획서가 이미 삭제되었거나 존재하지 않습니다. (다른 관리자가 먼저 처리했을 수 있습니다)');
+                const rest = list.filter(p => String(p.id) !== String(planId));
+                const planKey = target.promoPlanKey || '';
+                // 같은 촉진 건에 남은 계획서가 있으면 '제출 완료' 유지, 없으면 '미제출'로 복귀
+                const stillSubmitted = planKey ? rest.some(p => p.promoPlanKey === planKey) : false;
+                const userUpdates = { submittedPlans: rest };
+                if (planKey) userUpdates[planKey] = stillSubmitted;
+                transaction.update(userRef, userUpdates);
+                transaction.set(auditRef, {
+                    timestamp: new Date().toISOString(),
+                    targetStaffId: staffId,
+                    actionType: 'DELETE',
+                    adminName: actorName,
+                    beforeData: sanitizeForAudit([target]),   // 삭제 전 원본 전체 보관
+                    afterData: [],
+                    domain: 'PROMOTION_PLAN',
+                    targetStaffName: freshData.name || '',
+                    targetIds: [String(planId)],
+                    changedCount: 1,
+                    promoType: target.promoType || '',
+                    promoCategory: target.promoCategory || '',
+                    promoPortion: target.portion || '',
+                    promoStep: target.step || 0,
+                    promoBaseYear: target.baseYear || 0,
+                    promoPlanKey: planKey,
+                    planFlagAfter: stillSubmitted,
+                    deleteReason: reason || '',
+                    origin: 'SubmittedPlansView.deletePlan',
+                    systemVersion: SYSTEM_VERSION
+                });
+                txResult = { deleted: true, planId: String(planId), promoPlanKey: planKey, planFlagAfter: stillSubmitted, remaining: rest.length, auditLogId: auditRef.id };
+            });
+            return txResult;
+        };
         // [공통화] 엑셀 헤더 자동 탐색 (직원명부 / 퇴사자명부 / 대조 엔진 공용)
         const findColumns = (jsonData, needs, scanRows = 10) => {
             let best = null;
@@ -992,6 +1075,16 @@
             const out = [];
             for (let h = 0.5; h <= dh - 0.5 + 1e-9; h += 0.5) out.push(Math.round(h * 100) / 100);
             return out.length ? out : [1];
+        };
+        // [v6.29.0-beta1 버그수정] 로컬 시간대 기준 타임스탬프.
+        //   종전에는 new Date().toISOString() (UTC) 을 저장해, 한국시간 오전 0~9시에 제출하면
+        //   통지서·계획서에 찍히는 날짜가 하루 전으로 밀리고 월별 조회도 이전 달로 잡혔습니다.
+        //   예) 2026-08-20 08:30 KST 제출 → 저장 '2026-08-19T23:30:00.000Z' → 문서에 8월 19일
+        const toLocalIso = (dateObj) => {
+            const d = dateObj instanceof Date ? dateObj : new Date();
+            const p2 = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}` +
+                   `T${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
         };
         // 날짜 문자열을 'YYYY년 M월 D일' 형태로 (통지서·계획서 서명란 표기용)
         const toKoreanDate = (ymd) => {
@@ -3708,13 +3801,25 @@
             const rows = [...items];
             while (rows.length < 10) rows.push(null);
             const submittedYmd = String(plan.submittedAt || '').substring(0, 10);
+            // [v6.29.0-beta1 버그수정] 1년 미만 촉진은 '이번 통지 대상 몫'을 미사용 연차로 표기
+            const hasPortion = plan.promoCategory === 'under1'
+                && plan.portionRemainingHours !== undefined && plan.portionRemainingHours !== null;
+            const noticeRemainHours = hasPortion ? plan.portionRemainingHours : plan.remainingHours;
+            const noticeRemainDays = hasPortion
+                ? (plan.portionRemainingDays !== undefined && plan.portionRemainingDays !== null ? plan.portionRemainingDays : plan.remainingDays)
+                : plan.remainingDays;
             const cellTh = 'border border-black p-1.5 bg-gray-100 font-bold text-center';
             const cellTd = 'border border-black p-1.5 text-center';
             return (
                 <div id={domId} className="bg-white text-black text-left font-sans"
-                    style={{ width: '180mm', minHeight: '260mm', padding: '8px', boxSizing: 'border-box', fontSize: '11px' }}>
+                    style={{
+                        width: '180mm', minHeight: '262mm', padding: '8px', boxSizing: 'border-box', fontSize: '11px',
+                        // [v6.29.0-beta1] 내용을 세로 가운데로 모아 위·아래 여백을 같게 만듭니다.
+                        //   (내용이 페이지보다 길어지면 남는 공간이 없어 자동으로 위쪽부터 채워지므로 잘릴 걱정이 없습니다)
+                        display: 'flex', flexDirection: 'column', justifyContent: 'center'
+                    }}>
                     {/* ══════════════ [서식 1] 미사용 연차유급휴가 일수 통지서 ══════════════ */}
-                    <div className="avoid-break" style={{ marginBottom: '14px' }}>
+                    <div className="avoid-break" style={{ marginBottom: '0' }}>
                         <p className="font-bold" style={{ fontSize: '10px', marginBottom: '2px' }}>[서식 1]</p>
                         <h1 className="text-center font-black tracking-widest" style={{ fontSize: '17px', marginBottom: '4px' }}>미사용 연차유급휴가 일수 통지서</h1>
                         <p className="text-center font-bold" style={{ fontSize: '10px', marginBottom: '10px' }}>&lt; 근로기준법 제61조(연차 유급휴가의 사용 촉진) 관련 &gt;</p>
@@ -3748,9 +3853,12 @@
                                 <tr>
                                     <td className={cellTd}>{plan.period || `${plan.periodStart} ~ ${plan.periodEnd}`}</td>
                                     {/* [v6.28.0-beta1] 시간을 먼저, 환산 일수를 괄호로 뒤에 표기 */}
-                                    <td className={cellTd + ' font-bold'}>{fmt(plan.totalHours)}시간<br /><span style={{ fontSize: '10px', color: '#555' }}>({fmt(plan.totalDays)}일)</span></td>
-                                    <td className={cellTd}>{fmt(plan.usedHours)}시간<br /><span style={{ fontSize: '10px', color: '#555' }}>({fmt(plan.usedDays)}일)</span></td>
-                                    <td className={cellTd + ' font-black'} style={{ color: '#dc2626' }}>{fmt(plan.remainingHours)}시간<br /><span style={{ fontSize: '10px' }}>({fmt(plan.remainingDays)}일)</span></td>
+                                    {/* [v6.29.0-beta1] 세 항목 모두 '시간' 글씨를 진하게 통일 */}
+                                    <td className={cellTd + ' font-black'}>{fmt(plan.totalHours)}시간<br /><span className="font-bold" style={{ fontSize: '10px', color: '#555' }}>({fmt(plan.totalDays)}일)</span></td>
+                                    <td className={cellTd + ' font-black'}>{fmt(plan.usedHours)}시간<br /><span className="font-bold" style={{ fontSize: '10px', color: '#555' }}>({fmt(plan.usedDays)}일)</span></td>
+                                    {/* [버그수정] 1년 미만은 이번 통지가 다루는 몫(9일분/2일분)만 표시해야
+                                        아래 계획서 합계와 맞습니다. 구버전 기록은 전체 미사용으로 대체합니다. */}
+                                    <td className={cellTd + ' font-black'} style={{ color: '#dc2626' }}>{fmt(noticeRemainHours)}시간<br /><span className="font-bold" style={{ fontSize: '10px' }}>({fmt(noticeRemainDays)}일)</span></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -3771,7 +3879,7 @@
                             </p>
                         </div>
                     </div>
-                    <div style={{ borderTop: '2px dashed #9ca3af', margin: '10px 0 12px 0' }}></div>
+                    <div style={{ borderTop: '2px dashed #9ca3af', margin: '12px 0' }}></div>
                     {/* ══════════════ [서식 2] 연차유급휴가 사용 계획서 ══════════════ */}
                     <div className="avoid-break">
                         <p className="font-bold" style={{ fontSize: '10px', marginBottom: '2px' }}>[서식 2]</p>
@@ -3881,7 +3989,9 @@
   /* 폭은 문서 본래의 180mm 를 그대로 유지합니다.
      (100% 로 늘리면 인쇄 가능 폭을 넘어가 좌우가 잘립니다) */
   #plan-print-doc {
-    min-height: 0 !important;
+    /* [v6.29.0-beta1] A4(297mm) - 상하 여백(12mm x 2) = 273mm 를 꽉 채우고,
+       내용을 세로 가운데로 두어 위·아래 여백이 정확히 같아지도록 합니다. */
+    min-height: 273mm !important;
     margin: 0 auto !important; padding: 0 !important; box-shadow: none !important;
     max-width: 100% !important;
   }
@@ -4001,13 +4111,16 @@
         //   PDF 로 내려받을 수 있게 합니다.
         //   · [v6.27.0-beta1] 목록에서 [미리보기] 버튼으로 출력물을 먼저 확인할 수 있습니다.
         // ============================================================================
-        const SubmittedPlansView = ({ staffList, showAlert }) => {
+        const SubmittedPlansView = ({ staffList, showAlert, showConfirm, adminName }) => {
             const [search, setSearch] = useState('');
             const [categoryFilter, setCategoryFilter] = useState('all'); // all | over1 | under1
             const [busyId, setBusyId] = useState('');
             const [openId, setOpenId] = useState('');
             // [v6.27.0-beta1] 미리보기 모달에 넘길 계획서 (null 이면 닫힘)
             const [previewPlan, setPreviewPlan] = useState(null);
+            // [v6.29.0-beta1] 제출 월 필터 ('all' = 전체) / 삭제 진행 중 표시
+            const [monthFilter, setMonthFilter] = useState('all');
+            const [deletingId, setDeletingId] = useState('');
             const allPlans = useMemo(() => {
                 const list = [];
                 (staffList || []).forEach(staff => {
@@ -4022,11 +4135,41 @@
                 });
                 return list.sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')));
             }, [staffList]);
+            // [v6.29.0-beta1] 실제로 제출이 있는 '월'만 뽑아 드롭다운을 구성합니다 (빈 달은 안 보임)
+            const monthOptions = useMemo(() => {
+                const counts = {};
+                allPlans.forEach(p => {
+                    const ym = String(p.submittedAt || '').substring(0, 7);
+                    if (ym.length === 7) counts[ym] = (counts[ym] || 0) + 1;
+                });
+                return Object.keys(counts).sort().reverse().map(ym => ({ ym, count: counts[ym] }));
+            }, [allPlans]);
             const filtered = useMemo(() => allPlans.filter(p => {
                 if (categoryFilter !== 'all' && p.promoCategory !== categoryFilter) return false;
+                if (monthFilter !== 'all' && String(p.submittedAt || '').substring(0, 7) !== monthFilter) return false;
                 if (search && !String(p.staffName || '').includes(search)) return false;
                 return true;
-            }), [allPlans, categoryFilter, search]);
+            }), [allPlans, categoryFilter, monthFilter, search]);
+            // [v6.29.0-beta1] 잘못 제출된 계획서 삭제
+            const handleDeletePlan = (plan) => {
+                const itemLines = sumPlanItems(plan.items, plan.dailyHours).list
+                    .map(it => `· ${it.date} ${planUnitLabel(it.unit)} ${fmt(it.hours)}시간`).join('\n');
+                showConfirm(
+                    `[${plan.staffName}] 님이 제출한 계획서를 삭제하시겠습니까?\n\n` +
+                    `· 촉진 구분: ${plan.promoType}\n· 제출일: ${String(plan.submittedAt || '').substring(0, 10)}\n` +
+                    `· 계획 내용:\n${itemLines}\n\n` +
+                    `삭제하면 해당 직원의 '계획서 제출 완료' 체크가 해제되어 직원이 다시 제출할 수 있습니다.\n` +
+                    `이 작업은 되돌릴 수 없습니다. (삭제 이력은 감사 로그에 남습니다)`,
+                    async () => {
+                        setDeletingId(plan.id);
+                        try {
+                            const r = await deleteSubmittedPlanTransaction(plan.staffId, adminName || '관리자', plan.id, '관리자 삭제');
+                            if (previewPlan && previewPlan.id === plan.id) setPreviewPlan(null);
+                            showAlert(`🗑️ 계획서를 삭제했습니다.\n${r && r.planFlagAfter === false ? '해당 직원은 이제 계획서를 다시 제출할 수 있습니다.' : '같은 촉진 건에 다른 계획서가 남아 있어 제출 완료 상태는 유지됩니다.'}`);
+                        } catch (e) { showAlert('❌ 삭제 실패: ' + e.message); }
+                        finally { setDeletingId(''); }
+                    });
+            };
             const handlePdf = async (plan) => {
                 if (!window.html2pdf) { showAlert('PDF 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
                 const el = document.getElementById(plan.domId);
@@ -4054,6 +4197,13 @@
                             <p className="text-[11px] md:text-xs font-bold text-slate-500 mt-0.5">직원이 시스템으로 제출한 연차 사용 계획서입니다. 법정 2단 서식으로 출력할 수 있습니다.</p>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
+                            {/* [v6.29.0-beta1] 제출 월별 조회 */}
+                            <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)}
+                                className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                                title="제출된 달을 기준으로 걸러 봅니다">
+                                <option value="all">📅 전체 기간 ({allPlans.length}건)</option>
+                                {monthOptions.map(o => <option key={o.ym} value={o.ym}>{o.ym.replace('-', '년 ')}월 ({o.count}건)</option>)}
+                            </select>
                             <div className="flex bg-slate-50 rounded-xl border border-slate-200 p-1">
                                 {[{ k: 'all', l: '전체' }, { k: 'over1', l: '1년 이상' }, { k: 'under1', l: '1년 미만' }].map(o => (
                                     <button key={o.k} type="button" onClick={() => setCategoryFilter(o.k)}
@@ -4066,12 +4216,17 @@
                     </div>
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
                         <div className="px-4 py-3 border-b border-slate-100">
-                            <p className="text-xs font-bold text-slate-500">총 <span className="text-blue-600">{filtered.length}건</span>{allPlans.length !== filtered.length && <span className="text-slate-400"> / 전체 {allPlans.length}건</span>}</p>
+                            <p className="text-xs font-bold text-slate-500">
+                                {monthFilter === 'all' ? '전체 기간' : monthFilter.replace('-', '년 ') + '월'} · 총 <span className="text-blue-600">{filtered.length}건</span>
+                                {allPlans.length !== filtered.length && <span className="text-slate-400"> / 전체 {allPlans.length}건</span>}
+                            </p>
                         </div>
                         {filtered.length === 0 ? (
                             <p className="text-center text-slate-400 font-bold py-16 text-sm">
-                                제출된 계획서가 없습니다.
-                                <span className="block text-xs font-bold text-slate-300 mt-2">직원이 [연차 사용 계획] 탭에서 제출하면 이곳에 자동으로 나타납니다.</span>
+                                {monthFilter === 'all' ? '제출된 계획서가 없습니다.' : `${monthFilter.replace('-', '년 ')}월에 제출된 계획서가 없습니다.`}
+                                <span className="block text-xs font-bold text-slate-300 mt-2">
+                                    {monthFilter === 'all' ? '직원이 [연차 사용 계획] 탭에서 제출하면 이곳에 자동으로 나타납니다.' : '다른 달을 선택하거나 [전체 기간]으로 바꿔보세요.'}
+                                </span>
                             </p>
                         ) : (
                             <div className="divide-y divide-slate-100">
@@ -4102,6 +4257,12 @@
                                                 <button type="button" onClick={() => handlePdf(plan)} disabled={busyId === plan.id}
                                                     className="px-4 py-2 rounded-xl text-xs font-black bg-red-500 text-white hover:bg-red-600 transition shadow-sm shadow-red-200 flex items-center gap-1.5 disabled:bg-slate-300 disabled:shadow-none">
                                                     <Icons.Download /> {busyId === plan.id ? '생성 중…' : 'PDF 출력'}
+                                                </button>
+                                                {/* [v6.29.0-beta1] 잘못 제출된 계획서 삭제 */}
+                                                <button type="button" onClick={() => handleDeletePlan(plan)} disabled={deletingId === plan.id}
+                                                    className="px-3 py-2 rounded-xl text-xs font-black bg-white border border-red-300 text-red-500 hover:bg-red-50 transition flex items-center gap-1.5 disabled:opacity-40"
+                                                    title="잘못 제출된 계획서를 삭제합니다 (직원이 다시 제출할 수 있게 됩니다)">
+                                                    <Icons.Trash /> {deletingId === plan.id ? '삭제 중…' : '삭제'}
                                                 </button>
                                             </div>
                                         </div>
@@ -4154,7 +4315,7 @@
                 twoRemaining: Math.round((twoTotal - twoUsed) * 10) / 10
             };
         };
-        const PromotionTab = ({ staffList, allStaffList, showAlert, onOpenModal, adminName }) => {
+        const PromotionTab = ({ staffList, allStaffList, showAlert, showConfirm, onOpenModal, adminName }) => {
             const today = new Date();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const [startMonth, setStartMonth] = useState(defaultMonth);
@@ -4304,7 +4465,14 @@
                 }
                 for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
                 let remain = remainingDays; const selected = [];
-                for (let i = 0; i < pool.length && remain > 0; i++) { const use = remain >= 1 ? 1 : 0.5; selected.push({ dateObj: pool[i], days: use }); remain -= use; }
+                // [버그수정] 종전에는 남은 일수가 0.5 미만이어도 무조건 0.5일을 지정해,
+            //   지정일수 합계가 통보서에 적힌 '미사용 일수'보다 커지는 문제가 있었습니다.
+            //   (예: 2.7일 → 3.0일 지정) 이제 마지막 자투리는 남은 만큼만 지정합니다.
+            for (let i = 0; i < pool.length && remain > 0.001; i++) {
+                const use = remain >= 1 ? 1 : (remain >= 0.5 ? 0.5 : Math.round(remain * 100) / 100);
+                selected.push({ dateObj: pool[i], days: use });
+                remain = Math.round((remain - use) * 100) / 100;
+            }
                 selected.sort((a, b) => a.dateObj - b.dateObj);
                 const dates = selected.map(it => ({ month: it.dateObj.getMonth() + 1, date: it.dateObj.getDate(), days: it.days }));
                 while (dates.length < 5) dates.push({ month: '', date: '', days: '' });
@@ -4357,7 +4525,7 @@
                             )}
                         </button>
                     </div>
-                    {mainView === 'plans' && <SubmittedPlansView staffList={allStaffList || staffList} showAlert={showAlert} />}
+                    {mainView === 'plans' && <SubmittedPlansView staffList={allStaffList || staffList} showAlert={showAlert} showConfirm={showConfirm} adminName={adminName} />}
                     {mainView === 'notice' && (<React.Fragment>
                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div><h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 관리</h3><p className="text-xs md:text-sm text-slate-500">촉진 대상자 검색, 계획서 제출 여부 체크 및 통보서를 출력합니다.</p></div>
@@ -4970,6 +5138,11 @@
                 if (t > leaveInfo.endDate) return leaveInfo.endDate;
                 return t;
             }, [leaveInfo]);
+            // [버그수정] 계획 가능 최소 날짜 = 산정기간 시작일과 '오늘' 중 더 늦은 날
+            const planMinDate = useMemo(() => {
+                const t = toLocalYMD(new Date());
+                return t > leaveInfo.startDate ? t : leaveInfo.startDate;
+            }, [leaveInfo]);
             const sortedDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
             // 시휴 선택용 시간 목록 (0.5시간 단위)
             const hourlyOptions = useMemo(() => buildHourlyOptions(dailyHours), [dailyHours]);
@@ -4998,7 +5171,11 @@
             //   달력에서도 더 넣을 자리가 없으면 날짜가 선택되지 않습니다.
             // ────────────────────────────────────────────────────────────────
             const MIN_PLAN_UNIT_HOURS = 0.5;   // 계획에 넣을 수 있는 최소 단위(시휴 최소 시간)
-            const budgetHours = Math.max(0, portionRemainingHours);
+            // [버그수정] 1년 이상은 반올림된 일수를 되돌리지 않고 '실제 잔여 시간'을 그대로 씁니다.
+            //   (예: 소정 7.5시간·잔여 26시간 → 종전 26.25시간으로 부풀어 0.25시간 초과 계획 가능)
+            const budgetHours = Math.max(0, status.promoCategory === 'under1'
+                ? portionRemainingHours
+                : Math.round(remainingHours * 100) / 100);
             const leftHours = Math.round((budgetHours - plannedHours) * 100) / 100;
             const halfHours = Math.round((dailyHours / 2) * 100) / 100;
             const rowMaxHours = (item) => Math.round((budgetHours - (plannedHours - item.hours)) * 100) / 100;
@@ -5045,7 +5222,12 @@
             const setUnit = (date, val) => {
                 const item = planItems.find(x => x.date === date);
                 const max = item ? rowMaxHours(item) : budgetHours;
-                const need = planUnitToHours(val, dailyHours, hourMap[date] || MIN_PLAN_UNIT_HOURS);
+                // [버그수정] 시휴는 '최소 0.5시간'으로 판정합니다. 예전에 골라 둔 hourMap 값으로
+                //   판정하면, 드롭다운에서는 선택 가능하게 보이는데 실제로는 거부되는 모순이 생깁니다.
+                //   (실제 시간은 아래에서 남은 한도에 맞게 다시 채워집니다)
+                const need = (val === PLAN_UNIT_HOURLY)
+                    ? MIN_PLAN_UNIT_HOURS
+                    : planUnitToHours(val, dailyHours, hourMap[date]);
                 if (need > max + 1e-9) {
                     setLimitMsg(`❌ 남은 미사용 연차(${fmt(max)}시간)를 넘어 선택할 수 없습니다.`);
                     return;
@@ -5077,7 +5259,7 @@
                 showConfirm(`총 ${fmt(plannedHours)}시간(${fmt(plannedTotal)}일)의 연차 사용 계획을 최종 제출합니다.\n제출 후에는 관리자 화면에 즉시 반영되며, 수정이 필요하면 관리자에게 문의해야 합니다.\n\n제출하시겠습니까?`, async () => {
                     setSaving(true);
                     try {
-                        const nowIso = new Date().toISOString();
+                        const nowIso = toLocalIso();   // [버그수정] 로컬 시간 기준 (UTC 저장 시 날짜가 하루 밀림)
                         const planRecord = {
                             id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
                             submittedAt: nowIso,
@@ -5188,8 +5370,8 @@
                                 <div className="animate-fade-in">
                                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 mb-3">
                                         <p className="text-[11px] md:text-xs font-bold text-amber-800 leading-relaxed">
-                                            🗓️ 선택 가능 기간: <b>{leaveInfo.startDate} ~ {leaveInfo.endDate}</b>
-                                            <span className="block mt-0.5 font-normal">이 기간(내 연차 산정기간) 밖의 날짜는 선택할 수 없습니다.</span>
+                                            🗓️ 선택 가능 기간: <b>{planMinDate} ~ {leaveInfo.endDate}</b>
+                                            <span className="block mt-0.5 font-normal">앞으로 사용할 날짜만 고를 수 있습니다. (지난 날짜와 내 연차 산정기간 밖의 날짜는 선택 불가)</span>
                                         </p>
                                     </div>
                                     {/* [v6.28.0-beta3] 미사용 연차 한도 표시 — 남은 시간이 0이면 더 고를 수 없습니다 */}
@@ -5208,8 +5390,10 @@
                                             </div>
                                         )}
                                     </div>
+                                    {/* [버그수정] 계획서는 '앞으로 언제 쓸지'를 정하는 문서이므로 지난 날짜는 고를 수 없게 합니다.
+                                        (산정기간 시작일과 오늘 중 더 늦은 날짜를 하한으로 사용) */}
                                     <MiniCalendar value={selectedDates} onChange={handleDatesChange} offDays={userData.offDays}
-                                        takenDates={alreadyTaken} minDate={leaveInfo.startDate} maxDate={leaveInfo.endDate} initialViewDate={initialView} />
+                                        takenDates={alreadyTaken} minDate={planMinDate} maxDate={leaveInfo.endDate} initialViewDate={initialView} />
                                     <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400">
                                         <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 휴가가 등록된 날
                                     </div>
@@ -6327,7 +6511,7 @@
                             {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'staff' && <StaffTab staffList={staffList} showConfirm={showConfirm} showAlert={showAlert} />}
-                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} onOpenModal={handleOpenModal} adminName={adminName} />}
+                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={handleOpenModal} adminName={adminName} />}
                             {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'settings' && <SettingsTab showAlert={showAlert} showConfirm={showConfirm} />}
                             {/* [v6.23.0-beta1 신규] 결재 관리 탭 — 전 직원의 pendingRequests를 모아 승인/반려 처리 */}
