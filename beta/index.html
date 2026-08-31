@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Official v6.30.0-beta4)</title>
+    <title>양지누림 연차 관리 시스템 (Beta v6.31.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -177,7 +177,23 @@
         //        곧바로 재발급을 진행할 수 있습니다. (연차 데이터는 100% 보존)
         //   ※ 데이터 구조 / 저장 방식 / 차감 로직 / 탭 구성 / 집계 방식은 전부 그대로입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.30.0-beta4";
+        // ============================================================================
+        // [v6.31.0-beta1] v6.30.1-stable 기반 1건 개선 (베타 — 이상 없으면 정식 승격)
+        //   ① [연차 관리] 탭에 '작년부터 이어짐' 필터 신설
+        //      : 연차 산정 대상기간이 '작년에 시작해서 올해 끝나는' 직원만 골라 볼 수 있는
+        //        체크박스를 화면 상단에 추가했습니다. 올해 아직 입사 기념일이 돌아오지 않아
+        //        대상기간이 얼마 남지 않은 직원들이며, 연차 촉진·정산을 먼저 챙겨야 하는 대상입니다.
+        //      : 판정은 신설 유틸 isCarryOverPeriod(leaveInfo) 한 곳에서만 이뤄지며,
+        //        기존 calculateAnnualLeave 가 계산해 둔 startDate 의 '연도'만 올해와 비교합니다.
+        //        연차 계산·차감 로직(calcLeaveHours · calculateAnnualLeave · sumUsedHours)과
+        //        저장 데이터 구조(leaveHistory)는 단 한 글자도 변경하지 않았습니다.
+        //      : 필터를 끄고 전체를 보더라도 [기간] 칸의 배지로 대상자를 구분할 수 있습니다.
+        //      : [과년도 관리] 탭에는 표시하지 않습니다 — 그 화면은 조회 연도를 직접 고르는
+        //        구조(calculateLeaveForYear)라 모든 직원의 산정기간이 그 연도에 시작하므로
+        //        필터를 넣어도 결과가 달라지지 않기 때문입니다. (퇴사자 탭도 동일)
+        //   ※ 정렬·검색·중복확인·초과자만 등 기존 필터, 다른 탭, 직원 화면은 전부 그대로입니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.31.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -190,6 +206,48 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.31.0-beta1 : [연차 관리] 탭 '작년부터 이어짐' 필터 신설 (관리자 전용 · 베타)
+            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
+            { version: "6.31.0-beta1", date: "2026-08-31", details: [
+                "🗓️ [작년부터 이어짐 필터 신설] [연차 관리] 탭 상단에 [작년부터 이어짐] 체크박스가 생겼습니다. 체크하면 연차 산정 대상기간이 '작년에 시작해서 올해 끝나는' 직원만 목록에 남습니다 (예: 2020-11-15 입사 → 대상기간 2025-11-15 ~ 2026-11-14). 올해 아직 입사 기념일이 돌아오지 않아 대상기간이 얼마 남지 않은 분들로, 연차 촉진·정산을 먼저 챙겨야 하는 대상입니다",
+                "🔢 [대상 인원 미리 표시] 체크박스 옆의 보라색 숫자와 화면 상단 '작년부터 이어짐 ○명' 표기로, 필터를 켜지 않아도 몇 명인지 바로 확인할 수 있습니다",
+                "🏷️ [기간 칸 배지] 필터를 끄고 전체 목록을 보실 때도 해당 직원의 [기간] 칸에 '작년부터 이어짐' 배지가 붙어 한눈에 구분됩니다",
+                "🧭 [안내 배너] 필터를 켜면 지금 무엇을 보고 있는지 설명하는 보라색 안내와 [전체 보기] 버튼이 목록 위에 표시됩니다",
+                "♻️ [초기화 연동] 이름 검색창 옆 [초기화] 버튼을 누르면 이 필터도 함께 해제됩니다",
+                "ℹ️ [적용 범위] 이 필터는 [연차 관리] 탭 전용입니다. [과년도 관리] 탭은 조회할 연도를 직접 고르는 구조라 모든 직원의 산정기간이 그 연도에 시작하므로, 필터를 넣어도 결과가 달라지지 않아 의도적으로 표시하지 않았습니다 (퇴사자 관리 탭도 동일)",
+                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 정렬·검색·중복확인·초과자만 등 기존 필터, 다른 탭과 직원 화면은 종전과 100% 동일합니다. 이번 변경은 화면에서 '보이기'만 걸러주는 기능입니다"
+            ] },
+            // ▼ v6.30.1-stable : 정식 릴리즈 후 첫 유지보수 (버그 1건 + 링크 1건)
+            { version: "6.30.1-stable", date: "2026-08-25", details: [
+                "🐞 [버그수정 · 통보서 인쇄가 깨지던 문제] 촉진 통보서 [미리보기] 창에서 [인쇄]를 누르면, 통보서만 나와야 하는데 어두운 배경과 모달 테두리, 왼쪽 메뉴, [닫기]·[PDF 저장] 버튼까지 함께 인쇄되고 문서 좌우가 잘리거나 여러 장으로 쪼개지던 문제를 바로잡았습니다. 이제 계획서 출력물과 똑같이 A4 한 장에 통보서만 깨끗하게 인쇄됩니다 (관리자 화면·직원 화면 모두 적용)",
+                "🖨️ [PDF 저장 품질 개선] 종전에는 화면에서 확대·축소한 상태 그대로 PDF가 만들어져 배율에 따라 여백과 글자 크기가 달라졌습니다. 이제 화면 배율과 무관하게 항상 원본 크기(180mm 폭)로 저장되며, 위·아래 여백도 같게 맞춰집니다",
+                "🔗 [오프라인 서식 다운로드 주소 변경] 직원 화면의 [오프라인 제출 양식 다운로드] 버튼이 새 공지사항 게시글로 연결되도록 주소를 바꿨습니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 촉진 대상·기한 산정 로직, 통보서 내용과 지정 날짜 산출 규칙, 트랜잭션·감사 로그 구조는 v6.30.0-stable 과 100% 동일합니다. 이번 변경은 '인쇄가 나오는 모양'과 '링크 주소'뿐입니다"
+            ], staffDetails: [
+                "🖨️ 받으신 통보서를 [인쇄]하면 이제 통보서만 A4 한 장에 깔끔하게 나옵니다 (화면 배경이나 버튼이 함께 인쇄되던 문제를 고쳤습니다)",
+                "🔗 오프라인 제출 양식 다운로드 버튼이 새 공지사항으로 연결됩니다"
+            ] },
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.30.0-stable : 정식 릴리즈
+            //   beta1(근무시간 변경일) · beta2(촉진 통보 발송) · beta3(2차 지정통보서 일괄
+            //   다운로드 / 직인 / 데모 계정 확대) · beta4(직인 파일 형식 확대) 를 하나로 묶은
+            //   정식 빌드입니다. beta4 대비 기능 변경은 없으며 버전 표기만 정식으로 올렸습니다.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.30.0-stable", date: "2026-08-24", details: [
+                "🎉 [정식 릴리즈] v6.30.0 정식 빌드입니다. 베타 기간에 검증한 아래 기능이 모두 포함되어 있으며, 베타 최종본(beta4) 대비 기능 변경은 없습니다",
+                "⏱️ [근무시간 변경일] 직원의 근무시간이 바뀐 경우 '언제부터' 몇 시간으로 바뀌는지 등록하면, 연차를 쓴 날짜 기준으로 그날의 근무시간이 자동 적용됩니다. 변경 전에 쓴 연차와 변경 후에 쓴 연차가 각각 정확하게 계산됩니다",
+                "📨 [촉진 통보 발송] 촉진 대상 통보가 시기만 되면 자동으로 노출되던 방식에서, 관리자가 [발송] 버튼을 눌러야 직원에게 보이는 방식으로 바뀌었습니다. 통보 기준일(매월 10일, 주말·공휴일이면 그 전 평일) 전에는 발송할 수 없습니다",
+                "🆕 [2차 사용시기 지정 통보서] 1차 통보 후 계획서를 내지 않은 직원에게 회사가 사용 날짜를 지정해 통보할 수 있습니다. 지정 날짜는 발송하는 순간 확정·저장되어 이후 절대 바뀌지 않습니다",
+                "📌 [2차 지정통보서 일괄 다운로드] 계획서 미제출자 전원을 2차 지정 서식으로 통일해 한 번에 내려받을 수 있습니다. 기존 [통보서 압축(ZIP)] 버튼은 각자 실제 단계에 맞는 서식을 담는 방식 그대로 유지됩니다",
+                "🔖 [직인 자동 날인] 저장소에 index.html 과 같은 폴더로 stamp.jpg / stamp.jpeg / stamp.png 중 하나를 올리면 통보서·계획서 출력물에 직인이 자동으로 찍히고 '(인)' 글자는 사라집니다. 파일이 없으면 종전처럼 손으로 날인할 수 있습니다",
+                "🧪 [테스트 계정] '양지누림' 데모 계정이 근로기준법 제61조의 촉진 의무 6종(1년 이상 1·2차, 1년 미만 9일분 1·2차, 1년 미만 2일분 1·2차)을 모두 보여주어 발송·미리보기·다운로드를 언제든 점검할 수 있습니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 촉진 대상·기한 산정 로직, 트랜잭션·감사 로그 구조는 v6.29 이하와 100% 동일합니다"
+            ], staffDetails: [
+                "🎉 연차 관리 시스템이 정식 버전으로 올라갔습니다",
+                "📨 통보서는 회사가 발송한 것만 화면에 나타납니다",
+                "🆕 계획서를 내지 않으면 회사가 사용 날짜를 지정하는 2차 통보서를 받을 수 있으며, 지정된 날짜는 '연차 사용 계획' 화면에서 바로 확인할 수 있습니다",
+                "🔖 통보서와 계획서 출력물에 기관 직인이 함께 찍혀 나옵니다"
+            ] },
             // ▼ v6.30.0-beta4 : 직인 파일 형식 확대 (stamp.jpg 지원)
             { version: "6.30.0-beta4", date: "2026-08-24", details: [
                 "🔖 [직인 파일 형식 확대] 직인 이미지를 stamp.jpg / stamp.jpeg / stamp.png 중 어느 형식으로 올려도 자동으로 인식합니다. index.html 과 같은 폴더에 세 가지 중 '하나만' 올리시면 되고, 시스템이 위 순서대로 찾아 먼저 발견되는 파일을 직인으로 씁니다. 파일이 하나도 없으면 종전처럼 '(인)' 글자만 남아 손으로 날인할 수 있습니다",
@@ -1305,7 +1363,7 @@
         //  · OFFLINE_PLAN_FORM_URL   : 오프라인(수기) 제출용 법정 서식 다운로드 주소.
         //  · ORG_NAME                : 통지서·계획서에 찍히는 기관명.
         const DEMO_PROMO_ACCOUNT_NAME = '양지누림';
-        const OFFLINE_PLAN_FORM_URL = 'https://ygnurim.org/%ea%b3%b5%ec%a7%80%ec%82%ac%ed%95%ad/?mod=document&uid=490';
+        const OFFLINE_PLAN_FORM_URL = 'https://ygnurim.org/%ea%b3%b5%ec%a7%80%ec%82%ac%ed%95%ad/?mod=document&uid=772';
         const ORG_NAME = '(사)장애인의양지누림';
         // ============================================================================
         // [v6.28.0-beta1] 계획서 1건의 사용 구분 — 연차 / 반차 / 시휴
@@ -1688,6 +1746,31 @@
         const isFutureLeave = (dateStr) => {
             if (!dateStr) return false;
             return String(dateStr) > toLocalYMD(new Date());
+        };
+        // ============================================================================
+        // [v6.31.0-beta1 신규] '작년부터 이어지는 대상기간' 판정
+        // ----------------------------------------------------------------------------
+        //  ▣ 무엇을 가려내나
+        //     연차 산정 대상기간은 '입사 기념일'을 기준으로 1년 단위로 끊깁니다.
+        //     그래서 올해 아직 입사 기념일이 돌아오지 않은 직원은 산정기간이
+        //     '작년에 시작해서 올해 끝나는' 형태가 됩니다.
+        //       예) 2020-11-15 입사 · 오늘 2026-08-31 → 2025-11-15 ~ 2026-11-14  (해당 O)
+        //           2020-03-10 입사 · 오늘 2026-08-31 → 2026-03-10 ~ 2027-03-09  (해당 X)
+        //     앞의 경우는 대상기간이 끝나가는 중이라 연차 촉진·정산을 먼저 챙겨야 하므로,
+        //     이런 직원만 따로 모아 볼 수 있게 하는 것이 이 함수의 목적입니다.
+        //  ▣ 판정 방법
+        //     기존 calculateAnnualLeave 가 이미 계산해 둔 leaveInfo.startDate 의
+        //     '연도'만 올해와 비교합니다. 연차 계산·차감 로직은 전혀 건드리지 않습니다.
+        //  ▣ 적용 범위
+        //     [연차 관리] 탭 전용입니다. [과년도 관리] 탭은 조회할 연도를 직접 고르는 구조라
+        //     모든 직원의 산정기간이 그 연도에 시작하므로(calculateLeaveForYear),
+        //     이 판정을 적용해도 결과가 달라지지 않아 화면에 표시하지 않습니다.
+        // ============================================================================
+        const isCarryOverPeriod = (leaveInfo) => {
+            if (!leaveInfo || leaveInfo.notJoined || !leaveInfo.startDate) return false;
+            const startYear = parseInt(String(leaveInfo.startDate).substring(0, 4), 10);
+            if (isNaN(startYear)) return false;
+            return startYear < new Date().getFullYear();
         };
         // [2번 ESC 닫기] 모달이 열려 있는 동안 ESC 키를 누르면 onClose를 호출하는 공통 훅.
         //   · enabled=false 면 리스너를 걸지 않습니다(확인·경고·비번강제 등 제외 대상).
@@ -3476,11 +3559,15 @@
             const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1);
             const [showNegativeOnly, setShowNegativeOnly] = useState(false);
             const [showCheckOnly, setShowCheckOnly] = useState(false);
+            // [v6.31.0-beta1 신규] '작년부터 이어지는 대상기간'만 보기 (연차 관리 탭 전용)
+            const [showCarryOverOnly, setShowCarryOverOnly] = useState(false);
             const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
             const [calendarStaff, setCalendarStaff] = useState(null);
             const [showMonthlyModal, setShowMonthlyModal] = useState(false);
             const [showAdvancedAuditModal, setShowAdvancedAuditModal] = useState(false);
-            const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(new Date().getFullYear() - 1); };
+            // [v6.31.0-beta1] 이 필터를 쓸 수 있는 화면인지 (과년도·퇴사자 탭에서는 의미가 없어 표시하지 않음)
+            const canUseCarryOver = !isPastMode && !isResignedTab;
+            const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setShowCarryOverOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(new Date().getFullYear() - 1); };
             const handleResetAllLeaveHistory = () => {
                 showConfirm('모든 직원의 연차 사용 내역을 완전히 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.', async () => {
                     // [v6.24.0-beta1] 일괄 batch 덮어쓰기 → 직원별 트랜잭션(DELETE)으로 전환.
@@ -3524,13 +3611,17 @@
                         usedDays: dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0,
                         remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0,
                         displayHistory: activeHistory.map(h => ({ ...h, isWarn: dateCounts[h.date] > 1 })),
-                        notJoined: leaveInfo.notJoined, needsCheck
+                        notJoined: leaveInfo.notJoined, needsCheck,
+                        // [v6.31.0-beta1] 산정 대상기간이 작년에 시작해 올해 끝나는 직원인지
+                        isCarryOver: canUseCarryOver && isCarryOverPeriod(leaveInfo)
                     };
                 }).filter(d => {
                     if (!isResignedTab && d.notJoined) return false;
                     if (searchTerm && !(d.name && d.name.includes(searchTerm))) return false;
                     if (showNegativeOnly && d.remainingHours >= 0) return false;
                     if (showCheckOnly && !d.needsCheck) return false;
+                    // [v6.31.0-beta1] '작년부터 이어짐'만 보기 (화면 표시만 걸러낼 뿐, 데이터는 그대로입니다)
+                    if (showCarryOverOnly && canUseCarryOver && !d.isCarryOver) return false;
                     return true;
                 });
                 if (sortConfig.key) {
@@ -3544,7 +3635,13 @@
                     });
                 }
                 return data;
-            }, [staffList, selectedYear, isPastMode, searchTerm, showNegativeOnly, showCheckOnly, isResignedTab, sortConfig]);
+            }, [staffList, selectedYear, isPastMode, searchTerm, showNegativeOnly, showCheckOnly, showCarryOverOnly, canUseCarryOver, isResignedTab, sortConfig]);
+            // [v6.31.0-beta1] 필터를 켜지 않아도 '몇 명인지' 미리 보여주기 위한 인원 수.
+            //   calculateAnnualLeave 는 내부 캐시(_leaveCache)를 쓰므로 반복 호출 부담이 없습니다.
+            const carryOverCount = useMemo(() => {
+                if (!canUseCarryOver) return 0;
+                return staffList.reduce((n, s) => n + (isCarryOverPeriod(calculateAnnualLeave(s.joinDate)) ? 1 : 0), 0);
+            }, [staffList, canUseCarryOver]);
             const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
             const handleDeleteLeave = (data, leaveId) => {
                 showConfirm('이 휴가 내역을 삭제하시겠습니까?', async () => {
@@ -3568,10 +3665,17 @@
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
-                                <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명</p></div>
+                                <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명{canUseCarryOver && carryOverCount > 0 && <span> · 작년부터 이어짐 <span className="text-purple-600">{carryOverCount}</span>명</span>}</p></div>
                                 {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option>; })}</select>)}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                                {/* [v6.31.0-beta1 신규] 연차 산정 대상기간이 '작년에 시작해 올해 끝나는' 직원만 보기 */}
+                                {canUseCarryOver && (
+                                    <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-purple-50 px-3 py-2 rounded-xl border border-purple-100 hover:bg-purple-100 transition" title="연차 산정 대상기간이 작년에 시작해서 올해 끝나는 직원만 봅니다 (올해 아직 입사 기념일이 지나지 않은 분들)">
+                                        <input type="checkbox" checked={showCarryOverOnly} onChange={(e) => setShowCarryOverOnly(e.target.checked)} />
+                                        <span className="text-[11px] md:text-sm font-bold text-purple-700 whitespace-nowrap flex items-center gap-1"><Icons.History /> 작년부터 이어짐{carryOverCount > 0 && <span className="bg-purple-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{carryOverCount}</span>}</span>
+                                    </label>
+                                )}
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition" title="같은 날짜에 2개 이상의 연차가 등록된 직원을 찾습니다"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-orange-600 whitespace-nowrap flex items-center gap-1"><Icons.Alert /> 중복 확인</span></label>
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-red-500 whitespace-nowrap">초과자만</span></label>
                                 <div className="flex w-full md:w-auto items-center gap-1"><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-32 px-4 py-2 border rounded-xl text-sm outline-none mt-2 md:mt-0" /><button onClick={handleResetFilters} className="p-2.5 mt-2 md:mt-0 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition border border-slate-200" title="필터/검색 초기화"><Icons.Refresh /></button></div>
@@ -3583,6 +3687,16 @@
                             </div>
                         </div>
                     </div>
+                    {/* [v6.31.0-beta1 신규] 필터가 켜져 있을 때 '지금 무엇을 보고 있는지' 알려주는 안내 배너 */}
+                    {canUseCarryOver && showCarryOverOnly && (
+                        <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 animate-fade-in">
+                            <p className="text-[11px] md:text-xs font-bold text-purple-800 leading-relaxed">
+                                📌 연차 산정 대상기간이 <b>작년에 시작해서 올해 끝나는</b> 직원만 보고 있습니다.
+                                <span className="block font-medium text-purple-600 mt-0.5">올해 아직 입사 기념일이 돌아오지 않은 분들로, 남은 기간이 짧아 연차 촉진·정산을 먼저 챙기셔야 합니다. (전체 {staffList.length}명 중 {carryOverCount}명)</span>
+                            </p>
+                            <button type="button" onClick={() => setShowCarryOverOnly(false)} className="text-[11px] font-bold text-purple-700 bg-white border border-purple-200 rounded-lg px-3 py-1.5 hover:bg-purple-100 transition shrink-0 self-start sm:self-auto">전체 보기</button>
+                        </div>
+                    )}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
@@ -3610,7 +3724,7 @@
                                             <td className="p-4 text-center font-bold text-blue-600">{isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({data.totalDays}일)</span></>}</td>
                                             <td className="p-4 text-center font-bold text-red-500">{fmt(data.usedHours)}h <span className="text-xs font-normal text-slate-400">({data.usedDays}일)</span></td>
                                             <td className={`p-4 text-center font-black text-lg ${data.remainingHours < 0 ? 'text-red-600 animate-pulse' : 'text-green-600'}`}>{fmt(data.remainingHours)}h <span className="text-xs font-normal text-slate-400">({data.remainingDays}일)</span></td>
-                                            <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}</td>
+                                            <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}{data.isCarryOver && <div className="mt-1"><span className="inline-block bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-black" title="연차 산정 대상기간이 작년에 시작해서 올해 끝나는 직원입니다">작년부터 이어짐</span></div>}</td>
                                             <td className="p-4">{data.displayHistory.length > 0 ? (
                                                 <div className="max-h-32 overflow-y-auto space-y-1 custom-scrollbar pr-2">
                                                     {data.displayHistory.map((rec, i) => (
@@ -4632,6 +4746,79 @@
             );
         };
         // ============================================================================
+        // [v6.30.1 신규] 촉진 통보서 인쇄 전용 CSS + 출력 포털
+        // ----------------------------------------------------------------------------
+        //  ▣ 무엇이 잘못되어 있었나
+        //     통보서 미리보기의 [인쇄] 버튼이 아무 준비 없이 window.print() 만 불렀습니다.
+        //     그래서 인쇄 미리보기에 통보서만 나오는 것이 아니라
+        //       · 어둡게 깔린 배경(backdrop)과 모달 테두리
+        //       · 왼쪽 메뉴, [닫기]/[PDF 저장] 버튼, 확대·축소 막대
+        //     까지 그대로 딸려 나오고, 문서 자체도 transform: scale() 로 축소된 상태에서
+        //     스크롤 영역 안에 갇혀 있어 좌우가 잘리거나 여러 장으로 쪼개졌습니다.
+        //  ▣ 어떻게 고쳤나
+        //     이미 '연차 사용 계획서' 미리보기(PlanPreviewModal)에서 검증된 방식을
+        //     그대로 씁니다 — 출력용 원본을 배율 없이 <body> 바로 아래에 따로 띄우고,
+        //     인쇄할 때 그 원본만 남기고 나머지 자식은 display:none 으로 완전히 뺍니다.
+        //     (visibility:hidden 은 자리(높이)를 그대로 차지해 문서가 아래로 밀립니다)
+        //  ▣ 적용 범위
+        //     관리자 화면과 직원 화면이 같은 PromotionNoticePreviewModal 을 쓰므로,
+        //     양쪽 모두 이 수정의 효과를 받습니다.
+        // ============================================================================
+        const NOTICE_PRINT_CSS = `
+@media print {
+  html, body {
+    margin: 0 !important; padding: 0 !important;
+    background: #fff !important; height: auto !important;
+  }
+  /* 출력용 통보서를 제외한 나머지는 자리까지 완전히 제거 */
+  body > *:not(#notice-print-area) { display: none !important; }
+  #notice-print-area {
+    display: block !important;
+    position: static !important; left: auto !important; top: auto !important;
+    width: 100% !important; margin: 0 !important; padding: 0 !important;
+    overflow: visible !important; background: #fff !important;
+  }
+  /* 폭은 통보서 본래의 180mm 를 유지합니다(100% 로 늘리면 좌우가 잘립니다) */
+  #notice-print-doc {
+    /* A4(297mm) - 상하 여백(12mm x 2) = 273mm 를 꽉 채우고 내용을 세로 가운데로 두어
+       위·아래 여백이 정확히 같아지게 합니다 (계획서 출력물과 동일한 규칙) */
+    min-height: 273mm !important;
+    margin: 0 auto !important; padding: 0 !important; box-shadow: none !important;
+    max-width: 100% !important;
+    transform: none !important;
+  }
+  /* 표 머리글 음영과 직인이 인쇄에서도 그대로 나오도록 */
+  #notice-print-doc, #notice-print-doc * {
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+  }
+  /* 사용시기 지정 날짜표가 페이지 경계에서 어색하게 쪼개지지 않도록 */
+  #notice-print-doc table { page-break-inside: auto !important; }
+  #notice-print-doc tr { page-break-inside: avoid !important; }
+}
+@page { size: A4 portrait; margin: 12mm; }
+`;
+        // 출력용 통보서 원본을 <body> 바로 아래에 띄우는 포털 (화면에서는 보이지 않습니다)
+        const NoticePrintPortal = ({ row, notice, previewDesignatedDates, forceStep }) => {
+            const [host] = useState(() => {
+                const el = document.createElement('div');
+                el.id = 'notice-print-area';
+                el.setAttribute('aria-hidden', 'true');
+                el.style.position = 'absolute';
+                el.style.left = '-99999px';
+                el.style.top = '0';
+                return el;
+            });
+            useEffect(() => {
+                document.body.appendChild(host);
+                return () => { try { document.body.removeChild(host); } catch (e) {} };
+            }, [host]);
+            return ReactDOM.createPortal(
+                <PromotionNoticeDocument row={row} notice={notice}
+                    previewDesignatedDates={previewDesignatedDates}
+                    forceStep={forceStep} domId="notice-print-doc" />,
+                host);
+        };
+        // ============================================================================
         // [v6.30.0-beta1 신규] 촉진 1차/2차 통보서 미리보기 (관리자 전용)
         //   PlanPreviewModal과 같은 UI 패턴(확대/축소, 인쇄, PDF 저장)을 그대로 씁니다.
         // ============================================================================
@@ -4642,11 +4829,15 @@
             const notice = row.sentNotice;
             const step = notice ? notice.step : row.promoStatus.step;
             const fileName = `통보서_${row.name || ''}_${step === 1 ? '1차' : '2차'}.pdf`;
+            // [v6.30.1] 화면에 보이는 축소본이 아니라, 배율 없는 '출력용 원본'을 인쇄·저장합니다.
             const handlePrint = () => { setTimeout(() => { try { window.print(); } catch (e) { showAlert('인쇄창을 열지 못했습니다: ' + e.message); } }, 60); };
             const handleSavePdf = async () => {
                 if (!window.html2pdf) { showAlert('PDF 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-                const el = document.getElementById('promo-notice-preview-doc');
-                if (!el) { showAlert('출력할 문서를 찾지 못했습니다.'); return; }
+                // [v6.30.1] 종전에는 확대·축소가 걸린 화면용 문서(promo-notice-preview-doc)를 캡처해
+                //   배율에 따라 여백과 글자 크기가 달라졌습니다. 이제 원본(notice-print-doc)을 씁니다.
+                const el = document.getElementById('notice-print-doc')
+                        || document.getElementById('promo-notice-preview-doc');
+                if (!el) { showAlert('출력할 문서를 찾지 못했습니다. 화면을 새로고침한 뒤 다시 시도해주세요.'); return; }
                 setBusy(true);
                 try {
                     await window.html2pdf().from(el).set({
@@ -4661,6 +4852,12 @@
             };
             const zoom = (delta) => setScale(s => Math.min(1.3, Math.max(0.35, Math.round((s + delta) * 100) / 100)));
             return (
+                <React.Fragment>
+                {/* [v6.30.1] 이 모달이 열려 있는 동안에만 유효한 인쇄 규칙 */}
+                <style dangerouslySetInnerHTML={{ __html: NOTICE_PRINT_CSS }} />
+                {/* [v6.30.1] 출력 전용 원본 — <body> 바로 아래로 보내 인쇄 시 1페이지 맨 위에서 시작하게 합니다 */}
+                <NoticePrintPortal row={row} notice={notice}
+                    previewDesignatedDates={notice ? null : previewDesignatedDates} />
                 <div className="fixed inset-0 bg-black/70 flex items-start md:items-center justify-center z-[520] animate-fade-in backdrop-blur-sm p-2 md:p-4 overflow-y-auto pt-14 md:pt-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative my-auto flex flex-col max-h-[94vh]">
                         <div className="flex items-start justify-between gap-3 px-4 md:px-6 py-3.5 border-b border-slate-100">
@@ -4697,6 +4894,7 @@
                         </div>
                     </div>
                 </div>
+                </React.Fragment>
             );
         };
         // ============================================================================
