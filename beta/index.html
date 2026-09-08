@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Beta v6.33.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Beta v6.34.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -278,7 +278,34 @@
         //   ※ 연차 계산·차감 로직, 저장 데이터 구조, 감사 로그 기록 방식, 다른 화면과
         //     직원 화면은 종전과 100% 동일합니다. 두 기능 모두 '읽기 전용' 입니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.33.0-beta1";
+        // ============================================================================
+        // [v6.34.0-beta1] 운영 흐름 개선 4건 (베타)
+        //   ① [대시보드] '오늘 할 일' 위젯 (TodayTaskWidget)
+        //      : 대시보드가 '현황'만 보여주고 '무엇을 처리해야 하는지'는 탭을 하나씩 열어봐야
+        //        알 수 있었습니다. 이제 결재 대기 · 이번 달 촉진 대상(미발송 포함) ·
+        //        대상기간 만료 임박 · 연차 초과자 · 지난달 등록 현황 · 계정 미발급을
+        //        한 줄씩 보여주고 [바로가기]로 해당 탭으로 이동합니다.
+        //        전부 화면에 이미 있는 자료로 세므로 Firestore 를 추가로 읽지 않습니다.
+        //   ② [연차 관리] '만료 임박' 필터 (EXPIRY_SOON_DAYS = 30일)
+        //      : 대상기간이 30일 안에 끝나는데 잔여 연차가 남은 직원만 골라 봅니다.
+        //        기간이 지나면 소멸·수당 정산 대상이 되므로 가장 급한 인원입니다.
+        //        신규 유틸 daysUntilDate / getPeriodExpiryInfo / isExpiringSoon 사용.
+        //        기존 '작년부터 이어짐' 필터는 그대로 두고 나란히 추가했습니다.
+        //   ③ [직원 명부] 엑셀 '반영 전 미리보기' (StaffUploadPreviewModal)
+        //      : 종전에는 파일을 고르는 즉시 반영됐습니다. '엑셀에 없는 직원 자동 퇴사' 규칙
+        //        때문에 파일을 잘못 고르면 멀쩡한 직원이 한꺼번에 퇴사 처리될 수 있었습니다.
+        //        이제 신규/갱신/복구/퇴사 4가지 명단을 먼저 보여주고 [반영하기] 를 눌러야
+        //        저장합니다. 판정 규칙과 저장 값은 종전과 100% 동일하며 확인 단계만 생겼습니다.
+        //   ④ [연차 촉진] '절차 진행 현황' 뷰 (timelineGroups)
+        //      : 같은 촉진 건의 1차·2차가 여러 줄로 흩어져 있어 '이 사람은 지금 무엇을 해야
+        //        하나'가 안 보였습니다. 이제 (직원 · 산정연도 · 몫) 단위로 한 줄에 묶어
+        //        1차 통보 → 계획서 → 2차 지정통보 → 종료 4단계 진행 상태를 표시하고,
+        //        그 줄에서 바로 발송·통보서 보기를 할 수 있습니다.
+        //        판정에 쓰는 값은 기존 allRows 그대로이며 새 계산·저장은 없습니다.
+        //   ※ 연차 계산·차감 로직, 저장 데이터 구조, 촉진 대상·기한 산정, 감사 로그 방식,
+        //     직원 화면은 종전과 100% 동일합니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.34.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -291,6 +318,15 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.34.0-beta1 : 운영 흐름 개선 4건 (관리자 전용 · 베타)
+            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
+            { version: "6.34.0-beta1", date: "2026-09-07", details: [
+                "🧭 [대시보드 '오늘 할 일' 신설] 로그인하면 맨 위에 처리할 일이 한 줄씩 뜹니다 — 결재 대기 / 이번 달 촉진 대상(아직 발송 안 한 건수 포함) / 대상기간 만료 임박 / 연차 초과자 / 지난달 등록 현황 / 계정 미발급. 각 줄의 [바로가기]를 누르면 해당 탭으로 이동합니다. 처리할 게 없으면 초록색 '완료'로 표시됩니다",
+                "⏳ [연차 관리 · 만료 임박 필터] 연차 산정 대상기간이 30일 안에 끝나는데 아직 잔여 연차가 남은 직원만 골라 볼 수 있습니다. 기간이 지나면 남은 연차는 소멸 또는 수당 정산 대상이 되므로 가장 먼저 챙겨야 할 분들입니다. 목록의 [기간] 칸에는 'D-12 만료 · 잔여 3일' 배지가 붙습니다",
+                "🛡️ [직원 명부 · 반영 전 미리보기] 명부 엑셀을 올려도 곧바로 반영되지 않습니다. 신규 등록 / 정보 갱신 / 재직 복구 / 자동 퇴사 처리 4가지 명단을 먼저 보여주고, 확인 후 [반영하기]를 눌러야 저장됩니다. 파일을 잘못 골랐을 때 멀쩡한 직원이 한꺼번에 퇴사 처리되는 사고를 막기 위한 조치입니다 (판정 규칙과 저장 값은 종전과 동일)",
+                "📊 [촉진 절차 진행 현황 신설] [연차 촉진] 탭에 [절차 진행 현황] 버튼이 생겼습니다. 같은 촉진 건의 1차·2차가 따로 보이던 것을 직원 한 줄로 묶어, 1차 통보 → 계획서 제출 → 2차 지정통보 → 종료 중 어디까지 왔는지 한눈에 보여줍니다. 위쪽 요약 카드로 '1차 발송 필요 N건 / 계획서 대기 N건 / 2차 필요 N건 / 종료 N건'을 확인하고, 각 줄에서 바로 발송하거나 통보서를 볼 수 있습니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 촉진 대상·기한 산정 규칙, 감사 로그 기록 방식, 직원 화면은 종전과 100% 동일합니다. 네 가지 모두 '보여주는 방식'과 '확인 단계'에 대한 변경입니다"
+            ] },
             // ▼ v6.33.0-beta1 : [데이터 관리] 탭에 변경 이력 조회 + 건강검진 신설 (관리자 전용 · 베타)
             //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
             { version: "6.33.0-beta1", date: "2026-09-07", details: [
@@ -3956,13 +3992,15 @@
             const [showCheckOnly, setShowCheckOnly] = useState(false);
             // [v6.31.0-beta1 신규] '작년부터 이어지는 대상기간'만 보기 (연차 관리 탭 전용)
             const [showCarryOverOnly, setShowCarryOverOnly] = useState(false);
+            // [v6.34.0-beta1 신규] '대상기간 만료 임박(30일 내 종료 + 잔여 있음)'만 보기
+            const [showExpiringOnly, setShowExpiringOnly] = useState(false);
             const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
             const [calendarStaff, setCalendarStaff] = useState(null);
             const [showMonthlyModal, setShowMonthlyModal] = useState(false);
             const [showAdvancedAuditModal, setShowAdvancedAuditModal] = useState(false);
             // [v6.31.0-beta1] 이 필터를 쓸 수 있는 화면인지 (과년도·퇴사자 탭에서는 의미가 없어 표시하지 않음)
             const canUseCarryOver = !isPastMode && !isResignedTab;
-            const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setShowCarryOverOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(new Date().getFullYear() - 1); };
+            const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setShowCarryOverOnly(false); setShowExpiringOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(new Date().getFullYear() - 1); };
             // [v6.32.0-beta3] '전체 연차 초기화'는 되돌릴 수 없는 위험 작업이라,
             //   매일 쓰는 [연차 관리] 화면에서 빼고 [데이터 관리] 탭의 위험 구역으로 옮겼습니다.
             //   (기능·처리 방식은 그대로이며 SettingsTab 안에 있습니다)
@@ -3987,7 +4025,16 @@
                         displayHistory: activeHistory.map(h => ({ ...h, isWarn: dateCounts[h.date] > 1 })),
                         notJoined: leaveInfo.notJoined, needsCheck,
                         // [v6.31.0-beta1] 산정 대상기간이 작년에 시작해 올해 끝나는 직원인지
-                        isCarryOver: canUseCarryOver && isCarryOverPeriod(leaveInfo)
+                        isCarryOver: canUseCarryOver && isCarryOverPeriod(leaveInfo),
+                        // [v6.34.0-beta1] 대상기간 종료까지 남은 일수 / 만료 임박 여부
+                        //   기간이 끝나면 남은 연차는 소멸(또는 수당 정산) 대상이 되므로,
+                        //   '30일 안에 끝나는데 아직 잔여가 있는' 직원이 가장 급합니다.
+                        daysToExpire: canUseCarryOver ? daysUntilDate(leaveInfo.endDate) : null,
+                        expiringSoon: canUseCarryOver
+                            && daysUntilDate(leaveInfo.endDate) !== null
+                            && daysUntilDate(leaveInfo.endDate) >= 0
+                            && daysUntilDate(leaveInfo.endDate) <= EXPIRY_SOON_DAYS
+                            && (totalHours - usedHours) > 0.01
                     };
                 }).filter(d => {
                     if (!isResignedTab && d.notJoined) return false;
@@ -3996,6 +4043,8 @@
                     if (showCheckOnly && !d.needsCheck) return false;
                     // [v6.31.0-beta1] '작년부터 이어짐'만 보기 (화면 표시만 걸러낼 뿐, 데이터는 그대로입니다)
                     if (showCarryOverOnly && canUseCarryOver && !d.isCarryOver) return false;
+                    // [v6.34.0-beta1] '만료 임박'만 보기
+                    if (showExpiringOnly && canUseCarryOver && !d.expiringSoon) return false;
                     return true;
                 });
                 if (sortConfig.key) {
@@ -4009,12 +4058,17 @@
                     });
                 }
                 return data;
-            }, [staffList, selectedYear, isPastMode, searchTerm, showNegativeOnly, showCheckOnly, showCarryOverOnly, canUseCarryOver, isResignedTab, sortConfig]);
+            }, [staffList, selectedYear, isPastMode, searchTerm, showNegativeOnly, showCheckOnly, showCarryOverOnly, showExpiringOnly, canUseCarryOver, isResignedTab, sortConfig]);
             // [v6.31.0-beta1] 필터를 켜지 않아도 '몇 명인지' 미리 보여주기 위한 인원 수.
             //   calculateAnnualLeave 는 내부 캐시(_leaveCache)를 쓰므로 반복 호출 부담이 없습니다.
             const carryOverCount = useMemo(() => {
                 if (!canUseCarryOver) return 0;
                 return staffList.reduce((n, s) => n + (isCarryOverPeriod(calculateAnnualLeave(s.joinDate)) ? 1 : 0), 0);
+            }, [staffList, canUseCarryOver]);
+            // [v6.34.0-beta1] 만료 임박 인원 — 필터를 켜지 않아도 몇 명인지 미리 보여줍니다.
+            const expiringCount = useMemo(() => {
+                if (!canUseCarryOver) return 0;
+                return staffList.reduce((n, s) => n + (isExpiringSoon(s, EXPIRY_SOON_DAYS) ? 1 : 0), 0);
             }, [staffList, canUseCarryOver]);
             const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
             const handleDeleteLeave = (data, leaveId) => {
@@ -4039,7 +4093,7 @@
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
-                                <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명{canUseCarryOver && carryOverCount > 0 && <span> · 작년부터 이어짐 <span className="text-purple-600">{carryOverCount}</span>명</span>}</p></div>
+                                <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명{canUseCarryOver && carryOverCount > 0 && <span> · 작년부터 이어짐 <span className="text-purple-600">{carryOverCount}</span>명</span>}{canUseCarryOver && expiringCount > 0 && <span> · 만료 임박 <span className="text-rose-600">{expiringCount}</span>명</span>}</p></div>
                                 {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option>; })}</select>)}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
@@ -4048,6 +4102,13 @@
                                     <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-purple-50 px-3 py-2 rounded-xl border border-purple-100 hover:bg-purple-100 transition" title="연차 산정 대상기간이 작년에 시작해서 올해 끝나는 직원만 봅니다 (올해 아직 입사 기념일이 지나지 않은 분들)">
                                         <input type="checkbox" checked={showCarryOverOnly} onChange={(e) => setShowCarryOverOnly(e.target.checked)} />
                                         <span className="text-[11px] md:text-sm font-bold text-purple-700 whitespace-nowrap flex items-center gap-1"><Icons.History /> 작년부터 이어짐{carryOverCount > 0 && <span className="bg-purple-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{carryOverCount}</span>}</span>
+                                    </label>
+                                )}
+                                {/* [v6.34.0-beta1 신규] 대상기간이 30일 안에 끝나는데 잔여 연차가 남은 직원만 보기 */}
+                                {canUseCarryOver && (
+                                    <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-rose-50 px-3 py-2 rounded-xl border border-rose-100 hover:bg-rose-100 transition" title={`연차 산정 대상기간이 ${EXPIRY_SOON_DAYS}일 안에 끝나는데 아직 잔여 연차가 남은 직원만 봅니다. 기간이 지나면 소멸·정산 대상이 되므로 가장 급한 인원입니다`}>
+                                        <input type="checkbox" checked={showExpiringOnly} onChange={(e) => setShowExpiringOnly(e.target.checked)} />
+                                        <span className="text-[11px] md:text-sm font-bold text-rose-700 whitespace-nowrap flex items-center gap-1">⏳ 만료 임박{expiringCount > 0 && <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{expiringCount}</span>}</span>
                                     </label>
                                 )}
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition" title="같은 날짜에 2개 이상의 연차가 등록된 직원을 찾습니다"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-orange-600 whitespace-nowrap flex items-center gap-1"><Icons.Alert /> 중복 확인</span></label>
@@ -4068,6 +4129,16 @@
                                 <span className="block font-medium text-purple-600 mt-0.5">올해 아직 입사 기념일이 돌아오지 않은 분들로, 남은 기간이 짧아 연차 촉진·정산을 먼저 챙기셔야 합니다. (전체 {staffList.length}명 중 {carryOverCount}명)</span>
                             </p>
                             <button type="button" onClick={() => setShowCarryOverOnly(false)} className="text-[11px] font-bold text-purple-700 bg-white border border-purple-200 rounded-lg px-3 py-1.5 hover:bg-purple-100 transition shrink-0 self-start sm:self-auto">전체 보기</button>
+                        </div>
+                    )}
+                    {/* [v6.34.0-beta1 신규] 만료 임박 필터 안내 배너 */}
+                    {canUseCarryOver && showExpiringOnly && (
+                        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 animate-fade-in">
+                            <p className="text-[11px] md:text-xs font-bold text-rose-800 leading-relaxed">
+                                ⏳ 연차 산정 대상기간이 <b>{EXPIRY_SOON_DAYS}일 안에 끝나는데 잔여 연차가 남은</b> 직원만 보고 있습니다.
+                                <span className="block font-medium text-rose-600 mt-0.5">기간이 지나면 남은 연차는 소멸 또는 수당 정산 대상이 됩니다. 촉진 통보와 사용 계획을 먼저 챙겨 주세요. (전체 {staffList.length}명 중 {expiringCount}명)</span>
+                            </p>
+                            <button type="button" onClick={() => setShowExpiringOnly(false)} className="text-[11px] font-bold text-rose-700 bg-white border border-rose-200 rounded-lg px-3 py-1.5 hover:bg-rose-100 transition shrink-0 self-start sm:self-auto">전체 보기</button>
                         </div>
                     )}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto whitespace-nowrap md:whitespace-normal">
@@ -4097,7 +4168,7 @@
                                             <td className="p-4 text-center font-bold text-blue-600">{isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({data.totalDays}일)</span></>}</td>
                                             <td className="p-4 text-center font-bold text-red-500">{fmt(data.usedHours)}h <span className="text-xs font-normal text-slate-400">({data.usedDays}일)</span></td>
                                             <td className={`p-4 text-center font-black text-lg ${data.remainingHours < 0 ? 'text-red-600 animate-pulse' : 'text-green-600'}`}>{fmt(data.remainingHours)}h <span className="text-xs font-normal text-slate-400">({data.remainingDays}일)</span></td>
-                                            <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}{data.isCarryOver && <div className="mt-1"><span className="inline-block bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-black" title="연차 산정 대상기간이 작년에 시작해서 올해 끝나는 직원입니다">작년부터 이어짐</span></div>}</td>
+                                            <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}<div className="mt-1 flex flex-wrap gap-1">{data.isCarryOver && <span className="inline-block bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-black" title="연차 산정 대상기간이 작년에 시작해서 올해 끝나는 직원입니다">작년부터 이어짐</span>}{data.expiringSoon && <span className="inline-block bg-rose-100 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded text-[10px] font-black" title={`대상기간 종료까지 ${data.daysToExpire}일 남았고, 잔여 연차가 남아 있습니다`}>D-{data.daysToExpire} 만료 · 잔여 {fmt(data.remainingDays)}일</span>}</div></td>
                                             <td className="p-4">{data.displayHistory.length > 0 ? (
                                                 <div className="max-h-32 overflow-y-auto space-y-1 custom-scrollbar pr-2">
                                                     {data.displayHistory.map((rec, i) => (
@@ -4136,6 +4207,84 @@
             work: ['일일근무시간', '근무시간', '근무', '시간'],
             resign: ['퇴사일', '퇴사']
         };
+        // ============================================================================
+        // [v6.34.0-beta1 신규] StaffUploadPreviewModal — 명부 엑셀 '반영 전 미리보기'
+        //   업로드한 엑셀을 반영하면 무엇이 어떻게 바뀌는지 4가지로 나눠 보여주고,
+        //   관리자가 [반영하기] 를 눌러야 실제로 저장합니다.
+        //     · 신규 등록 / 정보 갱신(유지) / 재직 복구 / 자동 퇴사 처리
+        //   특히 '자동 퇴사 처리'는 되돌리기가 번거로우므로 가장 눈에 띄게 배치했습니다.
+        // ============================================================================
+        const StaffUploadPreviewModal = ({ plan, onCancel, onApply, applying }) => {
+            useEscClose(onCancel, !applying);
+            const [openKey, setOpenKey] = useState('resigns');
+            if (!plan) return null;
+            const groups = [
+                { key: 'creates',  title: '신규 등록',      items: plan.creates,  tone: 'bg-blue-50 text-blue-700 border-blue-200',   desc: '명부에 없던 사람입니다. 새로 등록되고 로그인 계정은 [개별 발급]으로 따로 만들어야 합니다.' },
+                { key: 'resigns',  title: '자동 퇴사 처리', items: plan.resigns,  tone: 'bg-red-50 text-red-700 border-red-200',      desc: '이번 엑셀에 이름이 없어 퇴사 처리됩니다. 파일을 잘못 골랐거나 일부만 담긴 엑셀이면 여기에 멀쩡한 직원이 잡힙니다 — 꼭 확인하세요. (연차 이력은 지워지지 않습니다)' },
+                { key: 'restores', title: '재직 복구',      items: plan.restores, tone: 'bg-green-50 text-green-700 border-green-200', desc: '퇴사 처리돼 있었는데 이번 엑셀에 다시 나타난 사람입니다. 재직 상태로 되돌아가며 연차 이력은 그대로입니다.' },
+                { key: 'updates',  title: '정보 갱신(유지)', items: plan.updates, tone: 'bg-slate-100 text-slate-600 border-slate-200', desc: '계속 재직 중인 사람입니다. 엑셀 값으로 인사 정보만 갱신됩니다.' }
+            ];
+            const open = groups.find(g => g.key === openKey) || groups[0];
+            const changedUpdates = plan.updates.filter(u => u.changed).length;
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4">
+                    <div className="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-4xl relative flex flex-col max-h-[92vh]">
+                        <div className="border-b pb-4 mb-4">
+                            <h3 className="text-xl font-black text-slate-800 flex items-center gap-2"><Icons.Upload /> 명부 반영 미리보기</h3>
+                            <p className="text-xs font-bold text-slate-500 mt-1">
+                                <b className="text-slate-700">{plan.fileName}</b> · 엑셀에서 읽은 인원 {plan.excelRows}명
+                                <span className="block text-[11px] text-slate-400 mt-0.5">아직 아무것도 저장되지 않았습니다. 아래 내용을 확인하고 [반영하기] 를 눌러야 실제로 반영됩니다.</span>
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mb-4">
+                            {groups.map(g => (
+                                <button type="button" key={g.key} onClick={() => setOpenKey(g.key)}
+                                    className={`text-left p-3 rounded-2xl border-2 transition ${openKey === g.key ? 'border-slate-800 bg-slate-50' : 'border-slate-100 bg-white hover:border-slate-300'}`}>
+                                    <p className="text-[11px] font-black text-slate-600">{g.title}</p>
+                                    <p className={`text-2xl font-black mt-0.5 ${g.items.length === 0 ? 'text-slate-300' : (g.key === 'resigns' ? 'text-red-600' : 'text-slate-800')}`}>
+                                        {g.items.length}<span className="text-xs font-bold text-slate-400 ml-1">명</span>
+                                    </p>
+                                    {g.key === 'updates' && g.items.length > 0 && <p className="text-[10px] font-bold text-slate-400 mt-0.5">이 중 값 변경 {changedUpdates}명</p>}
+                                </button>
+                            ))}
+                        </div>
+                        {plan.resigns.length > 0 && (
+                            <div className="mb-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                                <p className="text-xs font-black text-red-700">⚠️ 이번 반영으로 {plan.resigns.length}명이 퇴사 처리됩니다.</p>
+                                <p className="text-[11px] font-bold text-red-600 mt-0.5">엑셀에 이름이 없는 재직자는 자동으로 퇴사 처리하는 규칙입니다. 명단을 확인해 주세요. (연차 이력은 보존되고, 다음 달 엑셀에 다시 나오면 자동 복구됩니다)</p>
+                            </div>
+                        )}
+                        <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl custom-scrollbar">
+                            <div className={`px-4 py-3 border-b border-slate-200 sticky top-0 z-10 ${open.tone}`}>
+                                <p className="text-sm font-black">{open.title} · {open.items.length}명</p>
+                                <p className="text-[11px] font-bold mt-0.5 opacity-90">{open.desc}</p>
+                            </div>
+                            <table className="w-full text-sm text-left bg-white">
+                                <tbody className="divide-y divide-slate-100">
+                                    {open.items.map((it, i) => (
+                                        <tr key={it.id + '_' + i} className="hover:bg-slate-50">
+                                            <td className="p-3 text-center text-xs font-bold text-slate-400 w-12">{i + 1}</td>
+                                            <td className="p-3 font-bold text-slate-800 w-32">{it.name}</td>
+                                            <td className="p-3 text-xs font-bold text-slate-500">{it.detail}</td>
+                                        </tr>
+                                    ))}
+                                    {open.items.length === 0 && (<tr><td className="p-10 text-center text-slate-400 font-bold">해당하는 직원이 없습니다.</td></tr>)}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+                            <p className="text-[11px] font-bold text-slate-400">※ [반영하기] 를 누르면 위 네 가지가 한 번에 저장됩니다. 되돌리려면 [데이터 관리] 탭의 백업 파일이 필요합니다.</p>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <button type="button" onClick={onCancel} disabled={applying} className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition disabled:opacity-50">취소</button>
+                                <button type="button" onClick={onApply} disabled={applying} className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:opacity-50">
+                                    {applying ? '반영 중...' : '반영하기'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
         const StaffTab = ({ staffList, showConfirm, showAlert, adminName }) => {
             const fileInputRef = useRef(null);
             const [uploadMsg, setUploadMsg] = useState('');
@@ -4146,6 +4295,9 @@
             const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
             const [showUnregisteredOnly, setShowUnregisteredOnly] = useState(false);
             const [showResignedToo, setShowResignedToo] = useState(false); // [v6.11.0] 퇴사자 포함 보기
+            // [v6.34.0-beta1] 명부 엑셀 '반영 전 미리보기' — 계획(plan)과 반영 진행 상태
+            const [uploadPlan, setUploadPlan] = useState(null);
+            const [applyingPlan, setApplyingPlan] = useState(false);
             const activeStaffList = useMemo(() => staffList.filter(s => s.status !== 'resigned'), [staffList]);
             const processedStaffList = useMemo(() => {
                 let data = showResignedToo ? staffList : activeStaffList;
@@ -4173,6 +4325,18 @@
                 return data;
             }, [activeStaffList, staffList, showResignedToo, searchTerm, sortConfig, showUnregisteredOnly]);
             const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
+            // ════════════════════════════════════════════════════════════════
+            // [v6.34.0-beta1 개편] 명부 엑셀 업로드 — '미리보기 후 반영' 2단계로 변경
+            //   ▣ 왜 바꿨나
+            //     종전에는 파일을 고르는 순간 곧바로 반영됐습니다. 특히 '엑셀에 없는 직원은
+            //     자동 퇴사 처리' 규칙이 걸려 있어서, 파일을 잘못 골랐거나 일부만 담긴
+            //     엑셀을 올리면 멀쩡한 직원들이 한꺼번에 퇴사 처리될 수 있었습니다.
+            //   ▣ 이제는
+            //     ① 파일을 읽어 '무엇이 어떻게 바뀌는지' 계획(plan)만 세우고 화면에 보여줍니다.
+            //     ② 관리자가 목록을 확인하고 [반영하기] 를 눌러야 실제로 저장합니다.
+            //   ▣ 판정 규칙(이름 정규화 매칭, 재등장 시 복구, 미포함 시 퇴사)은 종전 그대로이며,
+            //     저장하는 값도 종전과 완전히 동일합니다. 사이에 '확인' 단계만 생겼습니다.
+            // ════════════════════════════════════════════════════════════════
             const handleFileUpload = (e) => {
                 const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
@@ -4190,25 +4354,33 @@
                             const name = String(row[c.name] || '').trim();
                             if (name) excelStaffs.push({ name, normName: normalizeString(name), birthRaw: row[c.birth], phoneRaw: row[c.phone], joinRaw: row[c.join], workRaw: row[c.work] });
                         }
-                        const batch = db.batch();
-                        let newCount = 0, updateCount = 0, resignCount = 0, restoreCount = 0;
+                        // ── 여기서는 '계획'만 만들고 저장하지 않습니다 ──
+                        const plan = { fileName: file.name, excelRows: excelStaffs.length, updates: [], restores: [], resigns: [], creates: [] };
                         const matchedIdx = new Set();
                         const todayStr = toLocalYMD(new Date());
                         staffList.forEach(dbStaff => {
                             const normDbName = normalizeString(dbStaff.name);
                             const idx = excelStaffs.findIndex((es, i) => !matchedIdx.has(i) && es.normName === normDbName);
-                            const docRef = db.collection('users').doc(dbStaff.id);
                             const wasResigned = dbStaff.status === 'resigned' || !!(dbStaff.resignDate && String(dbStaff.resignDate).trim());
                             if (idx !== -1) {
                                 matchedIdx.add(idx); const es = excelStaffs[idx];
                                 const joinDate = safeDateRecent(es.joinRaw) || dbStaff.joinDate;
                                 const leaveInfo = calculateAnnualLeave(joinDate);
                                 const upd = { birth: safeDate(es.birthRaw) || dbStaff.birth || '', phone: es.phoneRaw || dbStaff.phone || '', workHours: es.workRaw || dbStaff.workHours || '', joinDate, annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0, annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-' };
-                                if (wasResigned) { upd.status = 'active'; upd.resignDate = ''; restoreCount++; } // 명부에 다시 나타남 → 재직 복구
-                                else updateCount++;
-                                batch.update(docRef, upd);
+                                if (wasResigned) {
+                                    upd.status = 'active'; upd.resignDate = '';
+                                    plan.restores.push({ id: dbStaff.id, name: dbStaff.name, upd, detail: `퇴사 상태 → 재직 복구 (연차 이력 유지)` });
+                                } else {
+                                    // 실제로 값이 달라지는 항목만 골라 '무엇이 바뀌는지' 보여줍니다(저장 값은 종전과 동일).
+                                    const changes = [];
+                                    if (String(dbStaff.joinDate || '') !== String(upd.joinDate || '')) changes.push(`입사일 ${safeDate(dbStaff.joinDate) || '없음'} → ${safeDate(upd.joinDate) || '없음'}`);
+                                    if (String(dbStaff.workHours || '') !== String(upd.workHours || '')) changes.push(`근무시간 ${dbStaff.workHours || '없음'} → ${upd.workHours || '없음'}`);
+                                    if (String(dbStaff.phone || '') !== String(upd.phone || '')) changes.push('휴대폰 변경');
+                                    if (String(safeDate(dbStaff.birth) || '') !== String(upd.birth || '')) changes.push(`생년월일 ${safeDate(dbStaff.birth) || '없음'} → ${upd.birth || '없음'}`);
+                                    plan.updates.push({ id: dbStaff.id, name: dbStaff.name, upd, detail: changes.length ? changes.join(' · ') : '변경 없음(그대로 유지)', changed: changes.length > 0 });
+                                }
                             } else if (!wasResigned) {
-                                batch.update(docRef, { status: 'resigned', resignDate: todayStr }); resignCount++;
+                                plan.resigns.push({ id: dbStaff.id, name: dbStaff.name, upd: { status: 'resigned', resignDate: todayStr }, detail: `엑셀에 없음 → ${todayStr} 자로 퇴사 처리 (연차 이력은 보존)` });
                             }
                         });
                         excelStaffs.forEach((es, idx) => {
@@ -4219,14 +4391,32 @@
                             const last4 = phoneStr.length >= 4 ? phoneStr.slice(-4) : '0000';
                             const uniqueKey = `yg${last4}`;
                             const email = `${uniqueKey}_${Math.random().toString(36).substring(2, 6)}@ygnurim.com`;
-                            batch.set(db.collection('users').doc(email), { name: es.name, birth: safeDate(es.birthRaw), phone: es.phoneRaw || '', workHours: es.workRaw || '', joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-', status: 'active', resignDate: '', offDays: [0], leaveHistory: [], annualLeaveUsed: 0, authStatus: 'pending' });
-                            newCount++;
+                            const payload = { name: es.name, birth: safeDate(es.birthRaw), phone: es.phoneRaw || '', workHours: es.workRaw || '', joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-', status: 'active', resignDate: '', offDays: [0], leaveHistory: [], annualLeaveUsed: 0, authStatus: 'pending' };
+                            plan.creates.push({ id: email, name: es.name, payload, detail: `입사일 ${safeDate(joinDate) || '없음'} · 근무시간 ${es.workRaw || '없음'} · 로그인 ID ${uniqueKey}` });
                         });
-                        await batch.commit();
-                        setUploadMsg(`✅ 신규:${newCount}명 / 유지:${updateCount}명 / 복구:${restoreCount}명 / 퇴사:${resignCount}명`);
-                        setTimeout(() => setUploadMsg(''), 6000); e.target.value = '';
-                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); }
+                        setUploadPlan(plan);
+                        setUploadMsg('');
+                        e.target.value = '';
+                    } catch (err) { setUploadMsg('❌ 오류: ' + err.message); e.target.value = ''; }
                 };
+            };
+            // [v6.34.0-beta1] 미리보기에서 [반영하기] 를 눌렀을 때에만 실제로 저장합니다.
+            //   저장 방식(batch commit)과 저장 값은 종전과 100% 동일합니다.
+            const applyUploadPlan = async () => {
+                if (!uploadPlan || applyingPlan) return;
+                setApplyingPlan(true);
+                try {
+                    const batch = db.batch();
+                    uploadPlan.updates.forEach(it => batch.update(db.collection('users').doc(it.id), it.upd));
+                    uploadPlan.restores.forEach(it => batch.update(db.collection('users').doc(it.id), it.upd));
+                    uploadPlan.resigns.forEach(it => batch.update(db.collection('users').doc(it.id), it.upd));
+                    uploadPlan.creates.forEach(it => batch.set(db.collection('users').doc(it.id), it.payload));
+                    await batch.commit();
+                    setUploadMsg(`✅ 신규:${uploadPlan.creates.length}명 / 유지:${uploadPlan.updates.length}명 / 복구:${uploadPlan.restores.length}명 / 퇴사:${uploadPlan.resigns.length}명`);
+                    setUploadPlan(null);
+                    setTimeout(() => setUploadMsg(''), 8000);
+                } catch (err) { showAlert('❌ 반영 실패: ' + err.message); }
+                setApplyingPlan(false);
             };
             const handleDeleteOne = (staff) => showConfirm(`정말 [${staff.name}] 직원의 정보를 완전히 삭제하시겠습니까?`, async () => { try { await db.collection('users').doc(staff.id).delete(); showAlert('삭제 완료되었습니다.'); } catch (err) { showAlert('삭제 실패: ' + err.message); } });
             const handleReactivate = (staff) => showConfirm(`[${staff.name}] 직원을 다시 '재직 중' 상태로 복구하시겠습니까?\n\n· 연차·인사 정보는 그대로 유지됩니다.\n· 퇴사일 기록은 지워집니다.`, async () => {
@@ -4380,6 +4570,8 @@
                 <div className="space-y-6">
                     {editingStaff && <EditStaffModal staff={editingStaff} onClose={() => setEditingStaff(null)} showAlert={showAlert} showConfirm={showConfirm} adminName={adminName} />}
                     {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
+                    {/* [v6.34.0-beta1 신규] 명부 엑셀은 이 미리보기에서 [반영하기] 를 눌러야 저장됩니다 */}
+                    {uploadPlan && <StaffUploadPreviewModal plan={uploadPlan} applying={applyingPlan} onCancel={() => { if (!applyingPlan) setUploadPlan(null); }} onApply={applyUploadPlan} />}
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div className="flex items-center gap-4 w-full md:w-auto justify-between"><div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 ({showResignedToo ? '퇴사자 포함' : '퇴사자 제외'})</p></div></div>
                         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -5714,6 +5906,68 @@
                 if (hideSubmittedSecond) list = list.filter(r => !(r.promoStatus.step === 2 && r.isPlanSubmitted));
                 return list;
             }, [allRows, promoView, hideSubmittedSecond]);
+            // ════════════════════════════════════════════════════════════════
+            // [v6.34.0-beta1 신규] 절차 진행 타임라인 — '한 사람 한 줄'로 어디까지 왔는지
+            //   종전 목록은 (직원 × 촉진 단계)로 줄이 나뉘어 있어, 같은 사람의 1차와 2차가
+            //   따로 보였습니다. 그래서 '이 사람은 지금 무엇을 해야 하나'가 한눈에 안 들어왔습니다.
+            //   여기서는 같은 촉진 건(직원 · 산정연도 · 몫)을 하나로 묶어
+            //     ① 1차 통보 발송 → ② 계획서 제출 → ③ 2차 지정통보 → ④ 종료
+            //   4단계 중 어디까지 왔는지 표시합니다.
+            //   ※ 판정에 쓰는 값(발송 여부·계획서 제출 여부·기한)은 기존 allRows 그대로이며,
+            //     새로운 계산이나 저장은 하지 않습니다. 보여주는 방식만 바꾼 화면입니다.
+            // ════════════════════════════════════════════════════════════════
+            const timelineGroups = useMemo(() => {
+                const map = new Map();
+                allRows.forEach(r => {
+                    const key = `${r.id}__${r.promoStatus.baseYear}__${r.promoStatus.portion}`;
+                    if (!map.has(key)) {
+                        map.set(key, {
+                            key, name: r.name, staffId: r.id,
+                            baseYear: r.promoStatus.baseYear,
+                            portion: r.promoStatus.portion,
+                            category: r.promoStatus.promoCategory,
+                            period: r.leaveInfo.period,
+                            portionRemainingDays: r.portionRemainingDays,
+                            targetDate: r.targetDate,
+                            first: null, second: null
+                        });
+                    }
+                    const g = map.get(key);
+                    if (r.promoStatus.step === 1) g.first = r; else g.second = r;
+                    // 대상 잔여는 두 줄이 같지만, 값이 있는 쪽을 우선 보관합니다.
+                    if (r.portionRemainingDays > 0) g.portionRemainingDays = r.portionRemainingDays;
+                });
+                const list = Array.from(map.values()).map(g => {
+                    const firstSent = !!(g.first && g.first.isNoticeSent);
+                    const planSubmitted = !!((g.first && g.first.isPlanSubmitted) || (g.second && g.second.isPlanSubmitted));
+                    const secondSent = !!(g.second && g.second.isNoticeSent);
+                    // 현재 단계 : 1(1차 발송 필요) · 2(계획서 대기) · 3(2차 발송 필요) · 4(종료)
+                    let stage = 1, stageLabel = '1차 통보 발송', tone = 'amber';
+                    if (!firstSent) { stage = 1; stageLabel = '1차 통보 발송 필요'; tone = 'amber'; }
+                    else if (planSubmitted) { stage = 4; stageLabel = '완료 · 계획서 접수'; tone = 'green'; }
+                    else if (!secondSent) { stage = 3; stageLabel = '2차 지정통보 발송 필요'; tone = 'red'; }
+                    else { stage = 4; stageLabel = '완료 · 회사 지정 통보'; tone = 'green'; }
+                    // 1차는 보냈고 아직 2차 시기가 아니면 '계획서 대기'로 봅니다.
+                    if (firstSent && !planSubmitted && !secondSent && !g.second) { stage = 2; stageLabel = '계획서 제출 대기'; tone = 'blue'; }
+                    const label = g.category === 'under1'
+                        ? `1년 미만 · ${g.portion === '9days' ? '9일분' : '2일분'}`
+                        : '1년 이상 정기';
+                    return Object.assign({}, g, { firstSent, planSubmitted, secondSent, stage, stageLabel, tone, label });
+                });
+                list.sort((a, b) => (a.stage - b.stage) || String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
+                return list;
+            }, [allRows]);
+            const timelineSummary = useMemo(() => ({
+                total: timelineGroups.length,
+                s1: timelineGroups.filter(g => g.stage === 1).length,
+                s2: timelineGroups.filter(g => g.stage === 2).length,
+                s3: timelineGroups.filter(g => g.stage === 3).length,
+                done: timelineGroups.filter(g => g.stage === 4).length
+            }), [timelineGroups]);
+            const [timelineHideDone, setTimelineHideDone] = useState(false);
+            const timelineShown = useMemo(
+                () => timelineHideDone ? timelineGroups.filter(g => g.stage !== 4) : timelineGroups,
+                [timelineGroups, timelineHideDone]);
             const hiddenSecondCount = useMemo(() => {
                 if (!hideSubmittedSecond) return 0;
                 return allRows.filter(r => r.promoStatus.promoCategory === promoView && r.promoStatus.step === 2 && r.isPlanSubmitted).length;
@@ -5971,8 +6225,111 @@
                                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${mainView === 'plans' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'}`}>{submittedPlanCount}건</span>
                             )}
                         </button>
+                        {/* [v6.34.0-beta1 신규] 직원 한 줄로 보는 절차 진행 현황 */}
+                        <button type="button" onClick={() => setMainView('timeline')}
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition ${mainView === 'timeline' ? 'bg-slate-800 text-white shadow-lg shadow-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                            <Icons.History /> 절차 진행 현황
+                            {timelineGroups.length > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${mainView === 'timeline' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'}`}>{timelineGroups.length}건</span>
+                            )}
+                        </button>
                     </div>
                     {mainView === 'plans' && <SubmittedPlansView staffList={allStaffList || staffList} showAlert={showAlert} showConfirm={showConfirm} adminName={adminName} />}
+                    {/* ═══ [v6.34.0-beta1 신규] 절차 진행 타임라인 — 한 사람 한 줄 ═══ */}
+                    {mainView === 'timeline' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
+                                <h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.History /> 촉진 절차 진행 현황</h3>
+                                <p className="text-xs md:text-sm text-slate-500">
+                                    위 조회 기간({startMonth} ~ {endMonth})에 잡힌 촉진 건을 <b className="text-slate-700">직원 한 줄</b>로 묶어, 1차 통보 → 계획서 제출 → 2차 지정통보 → 종료 중 지금 어디까지 왔는지 보여줍니다.
+                                    <span className="block text-[11px] text-slate-400 mt-0.5">기간은 [촉진 대상 통보 관리] 화면 위쪽의 월 선택으로 바꿉니다. 발송·미리보기는 여기서 바로 할 수 있습니다.</span>
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
+                                {[
+                                    { label: '1차 통보 발송 필요', n: timelineSummary.s1, cls: 'text-amber-600' },
+                                    { label: '계획서 제출 대기', n: timelineSummary.s2, cls: 'text-blue-600' },
+                                    { label: '2차 지정통보 필요', n: timelineSummary.s3, cls: 'text-red-600' },
+                                    { label: '절차 종료', n: timelineSummary.done, cls: 'text-green-600' }
+                                ].map(c => (
+                                    <div key={c.label} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                        <p className="text-[11px] font-bold text-slate-500 mb-0.5">{c.label}</p>
+                                        <p className={`text-2xl font-black ${c.n === 0 ? 'text-slate-300' : c.cls}`}>{c.n}<span className="text-xs font-bold text-slate-400 ml-1">건</span></p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500">표시 <span className="text-blue-600">{timelineShown.length}건</span> · 전체 {timelineSummary.total}건</p>
+                                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition self-start md:self-auto">
+                                        <input type="checkbox" checked={timelineHideDone} onChange={(e) => setTimelineHideDone(e.target.checked)} />
+                                        <span className="text-[11px] font-bold text-slate-600 whitespace-nowrap">절차 끝난 건 숨기기</span>
+                                    </label>
+                                </div>
+                                <div className="divide-y divide-slate-100">
+                                    {timelineShown.map(g => {
+                                        const actionRow = g.stage === 1 ? g.first : (g.stage === 3 ? g.second : null);
+                                        const steps = [
+                                            { n: 1, label: '1차 통보', done: g.firstSent, skip: false },
+                                            { n: 2, label: '계획서', done: g.planSubmitted, skip: false },
+                                            { n: 3, label: '2차 지정통보', done: g.secondSent, skip: g.planSubmitted },
+                                            { n: 4, label: '종료', done: g.stage === 4, skip: false }
+                                        ];
+                                        const toneCls = { amber: 'bg-amber-50 text-amber-700 border-amber-200', blue: 'bg-blue-50 text-blue-700 border-blue-200', red: 'bg-red-50 text-red-700 border-red-200', green: 'bg-green-50 text-green-700 border-green-200' };
+                                        return (
+                                            <div key={g.key} className={`p-4 transition ${g.stage === 4 ? 'bg-green-50/30' : 'hover:bg-slate-50'}`}>
+                                                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                                                    <div className="lg:w-56 shrink-0">
+                                                        <p className="font-black text-slate-800 flex items-center gap-2">{g.name}
+                                                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-slate-100 text-slate-600 border border-slate-200">{g.label}</span>
+                                                        </p>
+                                                        <p className="text-[11px] font-bold text-slate-400 mt-0.5">{g.baseYear}년 산정 · 대상 잔여 {fmt(g.portionRemainingDays)}일</p>
+                                                    </div>
+                                                    <div className="flex-1 flex items-center gap-1 md:gap-2 overflow-x-auto">
+                                                        {steps.map((st, i) => (
+                                                            <React.Fragment key={st.n}>
+                                                                {i > 0 && <div className={`h-0.5 flex-1 min-w-[10px] ${st.done ? 'bg-green-300' : 'bg-slate-200'}`}></div>}
+                                                                <div className={`px-2.5 py-1.5 rounded-xl border text-[10px] md:text-[11px] font-black whitespace-nowrap ${st.skip ? 'bg-slate-50 text-slate-300 border-slate-100 line-through' : (st.done ? 'bg-green-50 text-green-700 border-green-200' : (g.stage === st.n ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-400 border-slate-200'))}`}>
+                                                                    {st.done ? '✅ ' : ''}{st.label}
+                                                                </div>
+                                                            </React.Fragment>
+                                                        ))}
+                                                    </div>
+                                                    <div className="lg:w-72 shrink-0 flex flex-col sm:flex-row lg:justify-end items-stretch sm:items-center gap-2">
+                                                        <span className={`px-3 py-1.5 rounded-xl text-[11px] font-black border text-center ${toneCls[g.tone]}`}>{g.stageLabel}</span>
+                                                        {actionRow && (
+                                                            <button type="button"
+                                                                disabled={!!sendingKey || (actionRow.promoStatus.step === 1 ? !actionRow.canSendByDate : (!actionRow.isFirstSent || actionRow.isPlanSubmitted))}
+                                                                onClick={() => handleSendNotice(actionRow)}
+                                                                className="px-3 py-1.5 rounded-lg text-[11px] font-black bg-amber-500 text-white hover:bg-amber-600 transition disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed">
+                                                                📨 발송
+                                                            </button>
+                                                        )}
+                                                        {(g.firstSent || g.secondSent) && (
+                                                            <button type="button" onClick={() => setPreviewNoticeRow(g.secondSent ? g.second : g.first)} className="px-3 py-1.5 rounded-lg text-[11px] font-black bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 transition">통보서 보기</button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {actionRow && actionRow.promoStatus.step === 1 && !actionRow.canSendByDate && (
+                                                    <p className="text-[11px] font-bold text-slate-400 mt-2 lg:ml-56">※ 통보 기준일 {actionRow.noticeGateDate} 부터 발송할 수 있습니다.</p>
+                                                )}
+                                                {g.stage === 3 && g.second && (
+                                                    <p className="text-[11px] font-bold text-red-500 mt-2 lg:ml-56">※ 1차에서 계획서를 내지 않았습니다. 회사가 사용 시기를 지정하는 2차 통보를 {g.second.promoStatus.deadlineDate} 까지 보내야 합니다.</p>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {timelineShown.length === 0 && (
+                                        <div className="p-12 text-center text-slate-400 font-bold">
+                                            {timelineSummary.total === 0
+                                                ? `선택한 기간(${startMonth} ~ ${endMonth})에 촉진 대상이 없습니다.`
+                                                : '진행 중인 건이 없습니다. (모두 절차가 끝났습니다)'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {mainView === 'notice' && (<React.Fragment>
                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div><h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Megaphone /> 미사용 연차 촉진 관리</h3><p className="text-xs md:text-sm text-slate-500">촉진 대상자 검색, 계획서 제출 여부 체크 및 통보서를 출력합니다.</p></div>
@@ -8189,6 +8546,164 @@
                 </div>
             );
         };
+        // ============================================================================
+        // [v6.34.0-beta1 신규] 대상기간 '만료 임박' 판정 유틸
+        //   연차 산정 대상기간이 곧 끝나는데 아직 잔여 연차가 남아 있는 직원을 찾습니다.
+        //   기간이 끝나면 남은 연차는 소멸(또는 수당 정산) 대상이 되므로, 촉진·정산을
+        //   가장 먼저 챙겨야 하는 사람들입니다.
+        //   ※ 기존 calculateAnnualLeave / sumUsedHours 를 그대로 사용합니다(새 계산식 없음).
+        // ============================================================================
+        const EXPIRY_SOON_DAYS = 30;
+        // 'YYYY-MM-DD' 까지 남은 일수 (오늘=0, 지났으면 음수)
+        const daysUntilDate = (ymd) => {
+            if (!ymd || String(ymd).length < 10) return null;
+            const [y, m, d] = String(ymd).split('-').map(Number);
+            if (!y || !m || !d) return null;
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const target = new Date(y, m - 1, d); target.setHours(0, 0, 0, 0);
+            return Math.round((target - today) / 86400000);
+        };
+        const getPeriodExpiryInfo = (staff) => {
+            if (!staff) return null;
+            const info = calculateAnnualLeave(staff.joinDate);
+            if (!info || info.notJoined || !info.endDate || info.endDate.length < 10) return null;
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const [ey, em, ed] = info.endDate.split('-').map(Number);
+            const end = new Date(ey, em - 1, ed); end.setHours(0, 0, 0, 0);
+            const daysLeft = Math.round((end - today) / 86400000);
+            const dailyHours = safeParseFloat(staff.workHours) || 8;
+            const totalHours = (info.total || 0) * dailyHours;
+            const usedHours = sumUsedHours(staff.leaveHistory, info.startDate, info.endDate);
+            const remainingHours = Math.round((totalHours - usedHours) * 100) / 100;
+            return {
+                info, daysLeft, dailyHours, totalHours, usedHours, remainingHours,
+                remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0
+            };
+        };
+        const isExpiringSoon = (staff, days = EXPIRY_SOON_DAYS) => {
+            const e = getPeriodExpiryInfo(staff);
+            return !!(e && e.daysLeft >= 0 && e.daysLeft <= days && e.remainingHours > 0.01);
+        };
+        // ============================================================================
+        // [v6.34.0-beta1 신규] TodayTaskWidget — 대시보드 '오늘 할 일'
+        //   지금까지 대시보드는 '현황'(인원·휴가자·초과자·그래프·달력)만 보여주고,
+        //   정작 '무엇을 처리해야 하는지'는 탭을 하나씩 열어봐야 알 수 있었습니다.
+        //   이제 로그인 직후 처리할 일이 한 줄씩 보이고, [바로가기]로 그 탭으로 갑니다.
+        //   ※ 전부 이미 화면에 있는 데이터로 세기 때문에 Firestore 를 추가로 읽지 않습니다.
+        // ============================================================================
+        const TodayTaskWidget = ({ activeStaffs, pendingApprovalCount, onGoTab }) => {
+            const items = useMemo(() => {
+                const list = activeStaffs || [];
+                const now = new Date();
+                const y = now.getFullYear(), m = now.getMonth() + 1;
+                const prevM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const prevYm = `${prevM.getFullYear()}-${String(prevM.getMonth() + 1).padStart(2, '0')}`;
+                const prevLabel = `${prevM.getFullYear()}년 ${prevM.getMonth() + 1}월`;
+                // ① 이번 달 촉진 대상 — 통보 미발송 건수까지 함께 셈
+                let promoTotal = 0, promoUnsent = 0;
+                list.forEach(staff => {
+                    (getPromotionStatusList(staff, y, m) || []).forEach(status => {
+                        promoTotal++;
+                        if (!resolveNoticeSent(staff, status).sent) promoUnsent++;
+                    });
+                });
+                // ② 대상기간 만료 임박 (30일 내 종료 + 잔여 있음)
+                const expiring = list.filter(s => isExpiringSoon(s, EXPIRY_SOON_DAYS));
+                // ③ 연차 초과자
+                const over = list.filter(s => {
+                    const e = getPeriodExpiryInfo(s);
+                    return e && e.remainingHours < -0.01;
+                });
+                // ④ 지난달 연차 등록 현황 (대조를 마쳤는지 가늠하는 지표)
+                let prevPeople = 0, prevHours = 0;
+                list.forEach(s => {
+                    const recs = (s.leaveHistory || []).filter(h => h && h.date && String(h.date).substring(0, 7) === prevYm);
+                    if (recs.length) { prevPeople++; prevHours += recs.reduce((a, c) => a + safeParseFloat(c.days), 0); }
+                });
+                // ⑤ 계정 미발급
+                const noAuth = list.filter(s => s.authStatus !== 'success');
+                return [
+                    {
+                        key: 'approval', icon: '🖐️', tab: 'approval', tone: 'red',
+                        title: '결재 대기', count: pendingApprovalCount || 0, unit: '건',
+                        desc: '직원이 올린 과거 연차 요청을 승인하거나 반려해야 합니다.',
+                        done: '처리할 결재 요청이 없습니다.'
+                    },
+                    {
+                        key: 'promo', icon: '📨', tab: 'promotion', tone: 'amber',
+                        title: `${m}월 촉진 대상`, count: promoTotal, unit: '건',
+                        desc: promoUnsent > 0 ? `이 중 ${promoUnsent}건은 아직 통보서를 발송하지 않았습니다.` : '이번 달 대상 통보는 모두 발송했습니다.',
+                        done: '이번 달 촉진 대상이 없습니다.'
+                    },
+                    {
+                        key: 'expiring', icon: '⏳', tab: 'leave', tone: 'purple',
+                        title: `대상기간 만료 임박 (${EXPIRY_SOON_DAYS}일 내)`, count: expiring.length, unit: '명',
+                        desc: '기간이 끝나기 전에 촉진·정산을 마쳐야 하는 직원입니다.',
+                        done: '한 달 안에 기간이 끝나는 직원이 없습니다.'
+                    },
+                    {
+                        key: 'over', icon: '⚠️', tab: 'leave', tone: 'red',
+                        title: '연차 초과 사용', count: over.length, unit: '명',
+                        desc: '발생한 연차보다 많이 사용한 상태입니다. 대조 오류일 수 있습니다.',
+                        done: '연차를 초과 사용한 직원이 없습니다.'
+                    },
+                    {
+                        key: 'prev', icon: '🗓️', tab: 'leave', tone: 'blue', info: true,
+                        title: `${prevLabel} 등록 현황`, count: prevPeople, unit: '명',
+                        desc: `총 ${fmt(Math.round(prevHours * 100) / 100)}시간이 등록되어 있습니다. 활동내용 엑셀과 대조해 보세요. ([연차 관리] → [월간 보고서])`,
+                        done: `${prevLabel}에 등록된 연차가 아직 없습니다. 대조를 시작해 주세요.`
+                    },
+                    {
+                        key: 'auth', icon: '🔑', tab: 'staff', tone: 'slate',
+                        title: '계정 미발급', count: noAuth.length, unit: '명',
+                        desc: '직원 페이지를 쓰지 못하는 상태입니다. [직원 명부]에서 발급해 주세요.',
+                        done: '모든 직원의 계정이 발급되어 있습니다.'
+                    }
+                ];
+            }, [activeStaffs, pendingApprovalCount]);
+            const todoCount = items.filter(it => !it.info && it.count > 0).length;
+            const TONE = {
+                red: 'bg-red-50 text-red-600 border-red-200',
+                amber: 'bg-amber-50 text-amber-700 border-amber-200',
+                purple: 'bg-purple-50 text-purple-700 border-purple-200',
+                blue: 'bg-blue-50 text-blue-700 border-blue-200',
+                slate: 'bg-slate-100 text-slate-600 border-slate-200'
+            };
+            return (
+                <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base"><Icons.CheckCircle /> 오늘 할 일</h3>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-black border ${todoCount === 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                            {todoCount === 0 ? '✅ 처리할 일 없음' : `처리할 항목 ${todoCount}가지`}
+                        </span>
+                    </div>
+                    <div className="space-y-2">
+                        {items.map(it => {
+                            const active = it.count > 0;
+                            return (
+                                <div key={it.key} className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 px-4 py-3 rounded-xl border transition ${active ? (it.info ? 'bg-blue-50/40 border-blue-100' : 'bg-white border-slate-200 hover:border-slate-300') : 'bg-slate-50/60 border-slate-100'}`}>
+                                    <span className="text-xl w-7 text-center shrink-0">{active ? it.icon : '✅'}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-black text-slate-800 flex items-center gap-2 flex-wrap">
+                                            {it.title}
+                                            {active
+                                                ? <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black border ${TONE[it.tone]}`}>{it.count}{it.unit}</span>
+                                                : <span className="px-2 py-0.5 rounded-lg text-[11px] font-black bg-green-50 text-green-700 border border-green-200">완료</span>}
+                                        </p>
+                                        <p className="text-[11px] font-bold text-slate-500 mt-0.5">{active ? it.desc : it.done}</p>
+                                    </div>
+                                    <button type="button" onClick={() => onGoTab(it.tab)}
+                                        className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-black transition self-start sm:self-auto ${active ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-white text-slate-400 border border-slate-200 hover:bg-slate-50'}`}>
+                                        바로가기 →
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 mt-3">※ 화면에 이미 불러온 자료로 계산하므로 별도 조회 없이 항상 최신 상태입니다.</p>
+                </div>
+            );
+        };
         const App = () => {
             const [user, setUser] = useState(null);
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -8495,6 +9010,8 @@
                         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-[#F1F5F9] custom-scrollbar">
                             {activeTab === 'dashboard' && (
                                 <div className="space-y-6 animate-fade-in">
+                                    {/* [v6.34.0-beta1 신규] 로그인 직후 '무엇을 처리해야 하는지' 한눈에 */}
+                                    <TodayTaskWidget activeStaffs={activeStaffs} pendingApprovalCount={pendingApprovalCount} onGoTab={handleTabClick} />
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4"><div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500"><Icons.Users /></div><div><p className="text-sm font-bold text-slate-500">재직중인 직원</p><p className="text-2xl font-black text-slate-800">{dashStats.totalStaff}<span className="text-sm font-bold text-slate-400 ml-1">명</span></p></div></div>
                                         {/* [v6.26.0-beta1] 탭 이동 대신 팝업으로 상세 확인 + 수정/삭제 */}
