@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.35.1-stable)</title>
+    <title>양지누림 연차 관리 시스템 (v6.36.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -338,7 +338,35 @@
         //     저장값과 같은 UTC 로 계산해 비교 결과가 어긋나지 않게 했습니다.
         //   ※ 연차 계산·차감 로직, 데이터 구조, 화면 구성은 v6.35.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.35.1-stable";
+        // ============================================================================
+        // [v6.36.0-stable] 정식 릴리즈 (2026-09-09) — 엑셀 대조 화면 보완 3건
+        //   v6.36.0-beta1 을 실제 대조 업무로 확인한 뒤 코드 변경 없이 정식 승격했습니다.
+        //   ① [내역 수정] 버튼 신설 — 오차의 원인이 '잘못 넣은 것'일 때
+        //      : 종전에는 [연차 등록]밖에 없어, 엉뚱한 날짜·과다 시간·중복 등록처럼
+        //        '이미 들어간 기록이 틀린' 경우에는 창을 닫고 [연차 관리] 탭으로 가야 했습니다.
+        //      : 이제 각 오차 줄의 [내역 수정]으로 그 직원·그 달 기록을 그 자리에서 열어
+        //        건별 수정(연차 등록창 재사용) / 삭제(processLeaveTransaction DELETE)가 됩니다.
+        //        팝업은 대조 창(z-400) 위 z-450, 수정 창은 그 위 z-500 으로 겹쳐 뜹니다.
+        //      : 팝업 상단에 '시스템 합계 vs 엑셀' 을 같이 보여주어, 고칠 때마다 일치 여부가
+        //        즉시 갱신됩니다(목록은 실시간 구독 staffList 에서 매번 다시 읽습니다).
+        //   ② 합계 일치 잠금 — 대조에서 연 등록창에만 적용
+        //      : 이번에 등록될 총합이 오차 시간과 정확히 같을 때만 [등록] 버튼이 켜집니다.
+        //        판단 기준은 건별이 아니라 '이번에 저장될 총합'입니다(8h 를 4h×2일로 나눠
+        //        넣는 경우가 있기 때문). 장바구니에 담은 것이 있으면 그 합계로, 비어 있으면
+        //        선택 날짜 수 × 차감 시간으로 계산합니다.
+        //      : 부족/초과 시간을 실시간으로 보여주고, 엑셀 자체가 틀린 달을 위해
+        //        [오차와 다르게 등록] 체크로 잠금을 풀 수 있습니다(완전 차단 아님).
+        //      : prefillHours 가 넘어온 경우에만 동작하므로, 직원 명부·달력·월간 보고서 등
+        //        다른 경로로 연 등록창과 직원 화면에는 영향이 없습니다.
+        //   ③ 처리 후 다음 미처리 건 자동 열기
+        //      : 한 건을 등록해 그 줄이 '처리 완료'가 되면, 등록창이 닫힌 것을 확인한 뒤
+        //        (isLeaveModalOpen) 0.5초 후 다음 미처리 건의 등록창을 자동으로 엽니다.
+        //        취소하고 닫으면 그 줄이 남아 있으므로 자동 이동도 일어나지 않습니다.
+        //        상단 [처리 후 다음 건 자동 열기] 체크로 끌 수 있습니다.
+        //   ※ 대조 엔진(엑셀 읽기·오차 계산), 연차 계산·차감 로직, 저장 데이터 구조,
+        //     감사 로그 기록 방식, 직원 화면은 v6.35.1-stable 과 100% 동일합니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.36.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -351,6 +379,19 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.36.0-stable : 정식 릴리즈 — 엑셀 대조 화면 보완 3건 (관리자 전용)
+            //   v6.36.0-beta1 을 코드 변경 없이 그대로 승격했습니다.
+            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.36.0-stable", date: "2026-09-09", details: [
+                "🛠️ [내역 수정 버튼 신설] 대조 결과의 각 줄에 [내역 수정] 버튼이 생겼습니다. 오차의 원인이 '덜 넣은 것'이 아니라 '잘못 넣은 것'(엉뚱한 날짜, 시간 과다, 같은 날 두 번 등록)일 때, 창을 닫고 [연차 관리] 탭으로 가지 않아도 그 자리에서 해당 직원의 그 달 기록을 열어 건별로 수정하거나 삭제할 수 있습니다",
+                "🧮 [고치는 즉시 확인] 내역 창 위쪽에 '시스템 합계 vs 엑셀'이 표시되어, 한 건 고칠 때마다 일치·부족·초과가 바로 갱신됩니다. 대조 목록의 처리 상태도 함께 바뀝니다",
+                "🔒 [합계가 맞아야 등록됩니다] 대조에서 연 등록창은 이번에 등록될 시간의 총합이 오차와 정확히 같을 때만 [등록] 버튼이 켜집니다. 오차 8시간을 4시간씩 이틀로 나눠 넣는 경우도 총합으로 판단하므로 그대로 쓰실 수 있습니다. 부족·초과 시간은 실시간으로 표시됩니다",
+                "🔓 [예외 처리] 엑셀 자체가 틀린 달도 있으므로 [오차와 다르게 등록]에 체크하면 잠금이 풀립니다. 완전히 막지 않고 '한 번 더 확인'하게 만드는 방식입니다",
+                "⏭️ [다음 건 자동 열기] 한 명을 등록해 그 줄이 처리 완료되면, 남은 오차 중 다음 건의 등록창이 자동으로 열립니다. 12건을 처리할 때 목록을 다시 찾아 누르는 수고가 사라집니다. 취소하고 닫으면 자동으로 넘어가지 않으며, 상단 체크박스로 끌 수 있습니다",
+                "🛡️ [호환] 이 잠금은 엑셀 대조에서 연 등록창에만 걸립니다. 직원 명부·달력·월간 보고서 등 다른 경로의 등록창과 직원 화면은 종전 그대로이며, 대조 엔진·연차 계산·차감 로직·저장 구조도 v6.35.1 과 100% 동일합니다"
+            ] },
             // ▼ v6.35.1-stable : 날짜·시각 기준을 한국 시간(UTC+9)으로 고정
             { version: "6.35.1-stable", date: "2026-09-07", details: [
                 "🕘 [한국 시간 기준으로 통일] 시스템이 '오늘'을 판단하는 기준을 접속 기기의 시간대가 아니라 한국 시간(UTC+9)으로 고정했습니다. 시간대가 다르게 설정된 PC나 해외에서 접속해도 연차 등록일, 촉진 통보 기준일, 직원 월별 마감 기준일이 언제나 한국 날짜로 동일하게 계산됩니다",
@@ -2785,7 +2826,7 @@
         // [v6.15.0] 개선점: 오차 내역의 [연차 등록] 버튼을 누를 때, 직원 ID뿐 아니라
         //           '누락된 오차 시간(r.diff)'까지 함께 모달로 전달합니다.
         //           → 연차 등록 모달이 '시간 직접 입력' 모드로 열리며 해당 시간이 미리 채워집니다.
-        const AdvancedAuditModal = ({ staffList, onClose, showAlert, onOpenModal, defaultPromoFilter = false }) => {
+        const AdvancedAuditModal = ({ staffList, onClose, showAlert, showConfirm, onOpenModal, onEditClick, adminName, isLeaveModalOpen = false, defaultPromoFilter = false }) => {
             const today = nowKST();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             useEscClose(onClose); // [v6.17.0] ESC로 닫기
@@ -3035,6 +3076,74 @@
             const shownResults = useMemo(
                 () => hideResolved ? filteredResults.filter(r => getLiveStatus(r).state !== 'resolved') : filteredResults,
                 [filteredResults, hideResolved, liveHoursMap]);
+            // ════════════════════════════════════════════════════════════════
+            // [v6.36.0-beta1 신규] ① 그 달 등록 내역 보기·수정·삭제
+            //   오차의 원인이 '덜 넣은 것'이 아니라 '잘못 넣은 것'인 경우가 있습니다.
+            //   (엉뚱한 날짜, 시간 과다, 같은 날 두 번 등록 등)
+            //   그럴 때 창을 닫고 [연차 관리] 탭으로 돌아가지 않아도 되도록,
+            //   이 자리에서 그 직원의 그 달 기록을 열어 바로 고치거나 지울 수 있게 했습니다.
+            //   ※ 목록은 staffList(실시간 구독)에서 매번 다시 읽으므로 항상 최신입니다.
+            // ════════════════════════════════════════════════════════════════
+            const [recordPanel, setRecordPanel] = useState(null); // { staffId, name, month, excelHours }
+            const [deletingId, setDeletingId] = useState('');
+            const panelRecords = useMemo(() => {
+                if (!recordPanel) return [];
+                const staff = (staffList || []).find(s => s.id === recordPanel.staffId);
+                if (!staff) return [];
+                // 원본 배열에서의 위치(index)를 함께 들고 있어야 수정 화면으로 정확히 넘길 수 있습니다.
+                return (staff.leaveHistory || [])
+                    .map((rec, index) => ({ rec, index }))
+                    .filter(x => x.rec && x.rec.date && String(x.rec.date).substring(0, 7) === recordPanel.month)
+                    .sort((a, b) => String(a.rec.date).localeCompare(String(b.rec.date)));
+            }, [recordPanel, staffList]);
+            const panelTotal = useMemo(
+                () => Math.round(panelRecords.reduce((a, x) => a + safeParseFloat(x.rec.days), 0) * 100) / 100,
+                [panelRecords]);
+            const handleDeleteRecord = (x) => {
+                if (!recordPanel || deletingId) return;
+                showConfirm(
+                    `[${recordPanel.name}] ${x.rec.date} · ${fmt(x.rec.days)}시간 기록을 삭제하시겠습니까?\n\n` +
+                    `삭제하면 잔여 연차가 즉시 되돌아가고, 삭제 이력은 변경 이력(감사 로그)에 남습니다.`,
+                    async () => {
+                        setDeletingId(x.rec.id);
+                        try {
+                            await processLeaveTransaction(recordPanel.staffId, adminName || '관리자', {
+                                type: 'DELETE', leaves: [], targetId: x.rec.id,
+                                origin: 'AdvancedAuditModal.handleDeleteRecord'
+                            });
+                        } catch (e) { showAlert('삭제 오류: ' + e.message); }
+                        setDeletingId('');
+                    });
+            };
+            // ════════════════════════════════════════════════════════════════
+            // [v6.36.0-beta1 신규] ③ 처리 후 '다음 미처리 건'으로 자동 이동
+            //   한 명을 등록하고 창을 닫으면, 남은 오차 중 다음 건의 등록창을 자동으로 엽니다.
+            //   · 방금 처리한 줄이 '처리 완료(엑셀과 일치)'가 되었을 때에만 넘어갑니다.
+            //   · 등록창이 아직 열려 있는 동안에는 절대 열지 않습니다(isLeaveModalOpen 확인).
+            //   · 취소하고 닫으면 그 줄이 그대로 남으므로 자동 이동도 일어나지 않습니다.
+            // ════════════════════════════════════════════════════════════════
+            const [autoNext, setAutoNext] = useState(true);
+            const [lastRowKey, setLastRowKey] = useState('');
+            const advancingRef = useRef(false);
+            const openRowForFix = (r) => {
+                if (!r || !r.staffId) { showAlert("직원 명부에 등록되지 않은 인원입니다.\n[직원 명부] 탭에서 먼저 등록해주세요."); return; }
+                const live = getLiveStatus(r);
+                setLastRowKey(r.id);
+                onOpenModal(r.staffId, live.state === 'changed' ? live.remain : r.diff, r.month);
+            };
+            useEffect(() => {
+                if (!autoNext || !lastRowKey || isLeaveModalOpen || advancingRef.current) return;
+                const done = filteredResults.find(r => r.id === lastRowKey);
+                if (!done || getLiveStatus(done).state !== 'resolved') return;
+                const pool = filteredResults.filter(r => r.staffId && getLiveStatus(r).state !== 'resolved');
+                advancingRef.current = true;
+                const timer = setTimeout(() => {
+                    advancingRef.current = false;
+                    if (!pool.length) { setLastRowKey(''); showAlert('✅ 남은 오차를 모두 처리했습니다.'); return; }
+                    openRowForFix(pool[0]);
+                }, 500);
+                return () => { clearTimeout(timer); advancingRef.current = false; };
+            }, [autoNext, lastRowKey, isLeaveModalOpen, liveHoursMap, filteredResults]);
             const handleDownloadResults = () => {
                 // [v6.22.0] 다운로드도 '화면에 보이는 목록(filteredResults)' 기준으로 저장합니다.
                 if (!filteredResults || !filteredResults.length) { showAlert("다운로드할 오차 내역이 없습니다."); return; }
@@ -3053,8 +3162,67 @@
                 XLSX.writeFile(wb, `양지누림_사전대조_오차리포트_${toLocalYMD(nowKST()).replace(/-/g, '')}.xlsx`);
             };
             return (
-                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl relative flex flex-col max-h-[90vh]"><button type="button" onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                    <div className="mb-6 border-b pb-4"><h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Icons.CheckCircle /> 다중 엑셀 정밀 대조 엔진</h3><p className="text-sm text-slate-500 font-bold mt-2">수십 개의 엑셀을 한 번에 올려 월별 누락을 핀포인트로 찾아내고 즉시 보완합니다.</p><p className="text-[11px] text-blue-600 font-bold mt-1.5 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">🛡️ 재직 중인 직원만 대조 · 🎯 [연차 등록] 시 오차 시간 자동 입력 · 🆕 v6.32.0 : 등록해서 엑셀과 값이 맞으면 그 줄이 즉시 ✅ 처리 완료로 바뀝니다</p></div>
+                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4">
+                    {/* ═══ [v6.36.0-beta1 신규] 그 직원·그 달 등록 내역 (수정·삭제) ═══
+                        대조 창(z-400) 위에 뜨고, [수정]을 누르면 그 위에 연차 등록·수정 창(z-500)이 열립니다. */}
+                    {recordPanel && (
+                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-[450] animate-fade-in backdrop-blur-sm p-4" onClick={() => setRecordPanel(null)}>
+                            <div className="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-2xl relative flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+                                <button type="button" onClick={() => setRecordPanel(null)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                                <div className="border-b pb-4 mb-4 pr-8">
+                                    <h4 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.Edit /> {recordPanel.name} · {recordPanel.month} 등록 내역</h4>
+                                    <p className="text-xs font-bold text-slate-500 mt-1">
+                                        시스템 합계 <b className="text-slate-700">{fmt(panelTotal)}h</b> · 엑셀 <b className="text-slate-700">{fmt(recordPanel.excelHours)}h</b>
+                                        {Math.abs(panelTotal - recordPanel.excelHours) < 0.01
+                                            ? <span className="ml-2 px-2 py-0.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-[11px] font-black">일치</span>
+                                            : <span className="ml-2 px-2 py-0.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-[11px] font-black">{panelTotal > recordPanel.excelHours ? '초과' : '부족'} {fmt(Math.abs(panelTotal - recordPanel.excelHours))}h</span>}
+                                    </p>
+                                    <p className="text-[11px] font-bold text-slate-400 mt-1">잘못 들어간 기록을 고치거나 지우면 위 합계가 바로 바뀌고, 대조 목록의 처리 상태도 함께 갱신됩니다.</p>
+                                </div>
+                                <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl custom-scrollbar">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 border-b border-slate-200 z-10">
+                                            <tr><th className="p-3">날짜</th><th className="p-3 text-center">차감</th><th className="p-3">구분 · 사유</th><th className="p-3">등록자</th><th className="p-3 text-center w-24">관리</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {panelRecords.map(x => (
+                                                <tr key={x.rec.id || x.index} className="hover:bg-slate-50">
+                                                    <td className="p-3 font-bold text-slate-800">{x.rec.date}
+                                                        {(x.rec.startTime || x.rec.endTime) && <span className="block text-[10px] font-bold text-slate-400">{x.rec.startTime}~{x.rec.endTime}</span>}
+                                                    </td>
+                                                    <td className="p-3 text-center font-black text-blue-600">{fmt(x.rec.days)}h</td>
+                                                    <td className="p-3 text-xs font-bold text-slate-600">{x.rec.type || '-'}{x.rec.reason ? <span className="block text-slate-400 font-medium">{x.rec.reason}</span> : null}</td>
+                                                    <td className="p-3 text-[11px] font-bold text-slate-400">{x.rec.addedBy || '-'}</td>
+                                                    <td className="p-3 text-center">
+                                                        <div className="flex justify-center gap-1">
+                                                            <button type="button" title="수정" disabled={!!deletingId}
+                                                                onClick={() => { if (onEditClick) { onEditClick(recordPanel.staffId, x.index, x.rec); } else { showAlert('이 화면에서는 수정 기능을 쓸 수 없습니다.'); } }}
+                                                                className="text-blue-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-blue-50 transition disabled:opacity-40"><Icons.Edit /></button>
+                                                            <button type="button" title="삭제" disabled={!!deletingId}
+                                                                onClick={() => handleDeleteRecord(x)}
+                                                                className="text-red-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-red-50 transition disabled:opacity-40"><Icons.Trash /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {panelRecords.length === 0 && (
+                                                <tr><td colSpan="5" className="p-10 text-center text-slate-400 font-bold">
+                                                    {recordPanel.month} 에 등록된 연차 기록이 없습니다.<br />
+                                                    <span className="text-xs font-bold text-slate-400">엑셀에는 있는데 시스템에 없는 경우이니, 창을 닫고 [연차 등록]으로 넣어 주세요.</span>
+                                                </td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+                                    <p className="text-[11px] font-bold text-slate-400">※ [수정]을 누르면 이 창 위에 연차 수정 화면이 열립니다. 삭제는 되돌릴 수 없지만 이력은 남습니다.</p>
+                                    <button type="button" onClick={() => setRecordPanel(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition w-full sm:w-auto">닫기</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl relative flex flex-col max-h-[90vh]"><button type="button" onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                    <div className="mb-6 border-b pb-4"><h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Icons.CheckCircle /> 다중 엑셀 정밀 대조 엔진</h3><p className="text-sm text-slate-500 font-bold mt-2">수십 개의 엑셀을 한 번에 올려 월별 누락을 핀포인트로 찾아내고 즉시 보완합니다.</p><p className="text-[11px] text-blue-600 font-bold mt-1.5 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">🛡️ 재직 중인 직원만 대조 · 🎯 [연차 등록] 시 오차 시간 자동 입력 · ✅ 값이 맞으면 즉시 처리 완료 · 🆕 v6.36.0 : [내역 수정]으로 잘못 넣은 기록을 이 자리에서 고치고, 처리 후 다음 건이 자동으로 열립니다</p></div>
                     {isProcessing && (<div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-3xl backdrop-blur-sm"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-bold text-indigo-700">모든 엑셀 데이터를 월별로 병합하여 분석 중입니다...</p></div>)}
                     {!results && !isProcessing && (
                         <div className="mb-4 bg-orange-50 p-4 rounded-xl border border-orange-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -3117,9 +3285,16 @@
                                         <span className="font-black text-green-800 text-sm">처리 완료된 건 숨기기</span>
                                         <span className="text-[11px] font-bold text-green-600">— 연차를 등록해 엑셀과 값이 맞으면 그 줄은 자동으로 ✅ 표시됩니다</span>
                                     </label>
-                                    <span className="text-[11px] font-black text-green-700 bg-white border border-green-200 rounded-lg px-2.5 py-1 shrink-0 self-start sm:self-auto">
-                                        남은 오차 {Math.max(filteredResults.length - resolvedCount, 0)}건
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+                                        {/* [v6.36.0-beta1 신규] 한 건 끝나면 다음 미처리 건을 자동으로 열어줍니다 */}
+                                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white border border-green-200 rounded-lg px-2.5 py-1">
+                                            <input type="checkbox" checked={autoNext} onChange={(e) => setAutoNext(e.target.checked)} className="w-4 h-4 accent-green-600" />
+                                            <span className="text-[11px] font-black text-green-800 whitespace-nowrap">처리 후 다음 건 자동 열기</span>
+                                        </label>
+                                        <span className="text-[11px] font-black text-green-700 bg-white border border-green-200 rounded-lg px-2.5 py-1">
+                                            남은 오차 {Math.max(filteredResults.length - resolvedCount, 0)}건
+                                        </span>
+                                    </div>
                                 </div>
                             )}
                             {diag && (diag.failed.length > 0 || diag.autoFixed.length > 0 || diag.totalExcelHours <= 0 || (diag.ambiguous && diag.ambiguous.length > 0)) && (
@@ -3171,11 +3346,21 @@
                                                         {live.state === 'unknown' && (<span className="inline-block bg-slate-100 text-slate-400 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-black">명부 미등록</span>)}
                                                     </td>
                                                     <td className="p-3 text-center">
-                                                        <button onClick={() => { if (r.staffId) onOpenModal(r.staffId, live.state === 'changed' ? live.remain : r.diff, r.month); else showAlert("직원 명부에 등록되지 않은 인원입니다.\n[직원 명부] 탭에서 먼저 등록해주세요."); }}
-                                                            className={`text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 ${!r.staffId ? 'bg-slate-400 cursor-not-allowed' : (isDone ? 'bg-slate-300 hover:bg-slate-400' : 'bg-blue-600 hover:bg-blue-700')}`}
-                                                            title={isDone ? '이미 엑셀과 값이 맞습니다. 그래도 추가로 등록하려면 누르세요.' : '오차 시간이 미리 채워진 연차 등록창을 엽니다.'}>
-                                                            <Icons.Plus /> {isDone ? '추가 등록' : '연차 등록'}
-                                                        </button>
+                                                        {/* [v6.36.0-beta1] 등록(부족분 채우기) / 수정(잘못 넣은 것 고치기) 두 갈래로 나눴습니다 */}
+                                                        <div className="flex flex-col gap-1">
+                                                            <button onClick={() => openRowForFix(r)}
+                                                                className={`text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 ${!r.staffId ? 'bg-slate-400 cursor-not-allowed' : (isDone ? 'bg-slate-300 hover:bg-slate-400' : 'bg-blue-600 hover:bg-blue-700')}`}
+                                                                title={isDone ? '이미 엑셀과 값이 맞습니다. 그래도 추가로 등록하려면 누르세요.' : '오차 시간이 미리 채워진 연차 등록창을 엽니다.'}>
+                                                                <Icons.Plus /> {isDone ? '추가 등록' : '연차 등록'}
+                                                            </button>
+                                                            <button type="button"
+                                                                disabled={!r.staffId}
+                                                                onClick={() => setRecordPanel({ staffId: r.staffId, name: r.name, month: r.month, excelHours: safeParseFloat(r.excelHours) })}
+                                                                className="px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 bg-white text-amber-700 border border-amber-300 hover:bg-amber-50 disabled:bg-slate-100 disabled:text-slate-300 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                                                title="이 직원의 해당 월 등록 내역을 열어 잘못된 기록을 수정하거나 삭제합니다.">
+                                                                <Icons.Edit /> 내역 수정
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>);
                                             })}
@@ -3669,6 +3854,29 @@
             const dupDates = useMemo(() => validDates.filter(d => takenDates.has(d) || cartDates.has(d)), [validDates, takenDates, cartDates]);
             const calendarTaken = useMemo(() => new Set([...takenDates, ...cartDates]), [takenDates, cartDates]);
             const cartTotalDays = useMemo(() => cart.reduce((sum, it) => sum + it.dates.length, 0), [cart]);
+            // ════════════════════════════════════════════════════════════════
+            // [v6.36.0-beta1 신규] ② 대조에서 열었을 때만 걸리는 '합계 일치 잠금'
+            //   엑셀 대조 결과에서 [연차 등록]을 누르면 오차 시간(prefillHours)이 넘어옵니다.
+            //   그 값과 '이번에 실제로 등록될 총합'이 정확히 같을 때만 등록 버튼이 켜집니다.
+            //   왜 총합인가 : 오차 8시간을 4시간씩 이틀로 나눠 넣는 경우가 있으므로,
+            //                건별이 아니라 이번에 저장될 전체 합계로 판단해야 맞습니다.
+            //     · 장바구니에 담은 것이 있으면 → 담은 것들의 합계(현재 입력분은 담기 전까지 제외)
+            //     · 장바구니가 비어 있으면     → 선택 날짜 수 × 차감 시간
+            //   엑셀 자체가 틀린 달도 있으므로 [오차와 다르게 등록] 체크로 잠금을 풀 수 있습니다.
+            //   ※ 대조가 아닌 경로(직원 명부·달력·월간 보고서 등)로 연 등록창에는 걸리지 않습니다.
+            // ════════════════════════════════════════════════════════════════
+            const lockTargetHours = (!isEdit && prefillHours !== null && prefillHours !== undefined && safeParseFloat(prefillHours) > 0)
+                ? Math.round(safeParseFloat(prefillHours) * 100) / 100 : 0;
+            const [unlockMismatch, setUnlockMismatch] = useState(false);
+            const cartTotalHours = useMemo(
+                () => Math.round(cart.reduce((sum, it) => sum + it.dates.length * safeParseFloat(it.deductHours), 0) * 100) / 100,
+                [cart]);
+            const pendingHours = (!blockingError && deductHours > 0)
+                ? Math.round(validDates.length * deductHours * 100) / 100 : 0;
+            const plannedTotalHours = cart.length ? cartTotalHours : pendingHours;
+            const lockGap = Math.round((plannedTotalHours - lockTargetHours) * 100) / 100; // 음수=부족, 양수=초과
+            const lockMatched = lockTargetHours > 0 && Math.abs(lockGap) < 0.01;
+            const lockActive = lockTargetHours > 0 && !unlockMismatch && !lockMatched;
             // ---- [v6.15.0] 목록에 담기 (등록하지 않고 장바구니에만 추가) ----
             const addToCart = () => {
                 if (!selectedStaffId || !selectedStaff) { setMsg('❌ 먼저 직원을 검색·선택해주세요.'); return; }
@@ -3759,6 +3967,12 @@
             };
             // ---- 메인 제출 핸들러 ----
             const handleSubmit = async (e) => {
+                // [v6.36.0-beta1] 버튼이 비활성화돼 있어도 Enter 키로 제출될 수 있어 한 번 더 막습니다.
+                if (lockActive) {
+                    if (e && e.preventDefault) e.preventDefault();
+                    setMsg(`❌ 대조 오차 ${fmt(lockTargetHours)}h 와 ${lockGap < 0 ? fmt(Math.abs(lockGap)) + 'h 부족' : fmt(lockGap) + 'h 초과'} 합니다. 시간을 맞추거나 [오차와 다르게 등록] 에 체크해주세요.`);
+                    return;
+                }
                 e.preventDefault();
                 if (!selectedStaffId || !selectedStaff) { setMsg('❌ 직원을 검색하여 선택해주세요.'); return; }
                 if (blockingError) { setMsg('❌ ' + blockingError); return; }
@@ -3890,12 +4104,41 @@
                             )}
                             {/* ── 최종 등록/수정 버튼 (PC에서는 우측 컬럼 하단에 고정되도록 mt-auto) ── */}
                             <div className="md:mt-auto md:pt-2">
-                                <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">
+                                {/* [v6.36.0-beta1] 대조에서 열었을 때만 나타나는 '오차 맞추기' 안내판 */}
+                                {lockTargetHours > 0 && (
+                                    <div className={`mb-2 rounded-xl border px-4 py-3 ${lockMatched ? 'bg-green-50 border-green-200' : (unlockMismatch ? 'bg-slate-50 border-slate-200' : 'bg-amber-50 border-amber-200')}`}>
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <p className="text-xs font-black text-slate-700">
+                                                대조 오차 <span className="text-blue-700">{fmt(lockTargetHours)}h</span>
+                                                <span className="text-slate-400 mx-1">·</span>
+                                                지금 등록될 <span className={lockMatched ? 'text-green-600' : 'text-amber-700'}>{fmt(plannedTotalHours)}h</span>
+                                            </p>
+                                            {lockMatched
+                                                ? <span className="px-2 py-0.5 rounded-lg text-[11px] font-black bg-green-600 text-white">✅ 일치</span>
+                                                : <span className="px-2 py-0.5 rounded-lg text-[11px] font-black bg-amber-500 text-white">{lockGap < 0 ? `${fmt(Math.abs(lockGap))}h 부족` : `${fmt(lockGap)}h 초과`}</span>}
+                                        </div>
+                                        {!lockMatched && (
+                                            <p className="text-[11px] font-bold text-amber-700 mt-1">
+                                                {cart.length > 0
+                                                    ? '담은 목록의 합계로 판단합니다. 지금 입력한 날짜는 [목록에 담기] 를 눌러야 합계에 포함됩니다.'
+                                                    : '날짜 수 × 차감 시간이 오차와 같아져야 등록할 수 있습니다. (예: 8h → 4h씩 2일)'}
+                                            </p>
+                                        )}
+                                        <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
+                                            <input type="checkbox" checked={unlockMismatch} onChange={(e) => setUnlockMismatch(e.target.checked)} className="w-4 h-4 accent-slate-600" />
+                                            <span className="text-[11px] font-bold text-slate-600">오차와 다르게 등록 (엑셀이 틀렸거나 일부만 넣을 때)</span>
+                                        </label>
+                                    </div>
+                                )}
+                                <button type="submit" disabled={lockActive}
+                                    className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100">
                                     {isEdit
                                         ? '수정 내용 저장'
-                                        : (cart.length > 0
-                                            ? `담은 ${cart.length}건 전체 등록하기 (총 ${cartTotalDays}일)`
-                                            : `연차 등록하기 ${validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}`)}
+                                        : (lockActive
+                                            ? `오차와 ${lockGap < 0 ? fmt(Math.abs(lockGap)) + 'h 부족' : fmt(lockGap) + 'h 초과'} — 맞추면 등록됩니다`
+                                            : (cart.length > 0
+                                                ? `담은 ${cart.length}건 전체 등록하기 (총 ${cartTotalDays}일)`
+                                                : `연차 등록하기 ${validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}`))}
                                 </button>
                                 {msg && <p className="text-xs text-center font-bold text-red-500 mt-2">{msg}</p>}
                             </div>
@@ -4030,7 +4273,7 @@
             if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1">⇅</span>;
             return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? <Icons.SortAsc /> : <Icons.SortDesc />}</span>;
         };
-        const LeaveManagementTab = ({ staffList, allStaffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert }) => {
+        const LeaveManagementTab = ({ staffList, allStaffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert, isLeaveModalOpen = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(nowKST().getFullYear() - 1);
             const [showNegativeOnly, setShowNegativeOnly] = useState(false);
@@ -4134,7 +4377,7 @@
                 <div className="space-y-6 relative">
                     {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} />}
-                    {showAdvancedAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={false} />}
+                    {showAdvancedAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={onOpenModal} onEditClick={onEditClick} adminName={adminName} isLeaveModalOpen={isLeaveModalOpen} defaultPromoFilter={false} />}
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
@@ -5849,7 +6092,7 @@
                 </div>
             );
         };
-        const PromotionTab = ({ staffList, allStaffList, showAlert, showConfirm, onOpenModal, adminName }) => {
+        const PromotionTab = ({ staffList, allStaffList, showAlert, showConfirm, onOpenModal, onEditClick, adminName, isLeaveModalOpen = false }) => {
             const today = nowKST();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const [startMonth, setStartMonth] = useState(defaultMonth);
@@ -6254,7 +6497,7 @@
                             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div><h2 className="text-2xl font-bold">통보서 압축 파일(ZIP) 생성 중...</h2><p className="mt-2 text-blue-200">대상자가 많을 경우 다소 시간이 소요될 수 있습니다.</p>
                         </div>
                     )}
-                    {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={true} />}
+                    {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={onOpenModal} onEditClick={onEditClick} adminName={adminName} isLeaveModalOpen={isLeaveModalOpen} defaultPromoFilter={true} />}
                     {previewNoticeRow && <PromotionNoticePreviewModal row={previewNoticeRow} onClose={() => setPreviewNoticeRow(null)} showAlert={showAlert}
                         previewDesignatedDates={previewNoticeRow.promoStatus.step === 2 ? getStableDesignatedDates(previewNoticeRow) : null} />}
                     {/* ═══ [v6.26.0-beta1 신규] 상위 뷰 전환 : 통보 관리 ↔ 제출된 계획서 관리 ═══ */}
@@ -9086,10 +9329,10 @@
                                     </div>
                                 </div>
                             )}
-                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
-                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} isLeaveModalOpen={showLeaveModal} />}
+                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} isLeaveModalOpen={showLeaveModal} />}
                             {activeTab === 'staff' && <StaffTab staffList={staffList} showConfirm={showConfirm} showAlert={showAlert} adminName={adminName} />}
-                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={handleOpenModal} adminName={adminName} />}
+                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} adminName={adminName} isLeaveModalOpen={showLeaveModal} />}
                             {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'settings' && <SettingsTab showAlert={showAlert} showConfirm={showConfirm} staffList={activeStaffs} allStaffList={staffList} adminName={adminName} />}
                             {/* [v6.23.0-beta1 신규] 결재 관리 탭 — 전 직원의 pendingRequests를 모아 승인/반려 처리 */}
