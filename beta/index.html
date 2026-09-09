@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Beta v6.34.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Beta v6.36.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -305,7 +305,67 @@
         //   ※ 연차 계산·차감 로직, 저장 데이터 구조, 촉진 대상·기한 산정, 감사 로그 방식,
         //     직원 화면은 종전과 100% 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.34.0-beta1";
+        // ============================================================================
+        // [v6.35.0-stable] 정식 릴리즈 (2026-09-07)
+        //   v6.31.0-beta1 · v6.32.0-beta1~3 · v6.33.0-beta1 · v6.34.0-beta1 여섯 베타를
+        //   하나의 정식으로 통합했습니다. 코드 로직 변경은 없으며, 버전 표기와 업데이트
+        //   내역만 정리했습니다(각 베타의 상세 주석은 아래에 이력으로 그대로 남겨둡니다).
+        //   ▣ 이번 정식에 담긴 것 (전부 관리자 화면)
+        //     · 대시보드 '오늘 할 일' 위젯
+        //     · 월간 보고서 전월 대조 강화 + 목록에서 바로 등록 + 등록창이 그 달로 열림
+        //     · 엑셀 대조 결과 실시간 ✅ 처리 완료 체크
+        //     · 연차 관리 '만료 임박' / '작년부터 이어짐' 필터
+        //     · 연차 촉진 '절차 진행 현황' 타임라인
+        //     · 직원 명부 엑셀 '반영 전 미리보기'
+        //     · 데이터 관리 '변경 이력 조회' + '시스템 건강검진' + 위험 구역 이동
+        //   ▣ 직원 화면과 연차 계산·차감·저장 구조는 v6.30.1-stable 과 100% 동일합니다.
+        // ============================================================================
+        // ============================================================================
+        // [v6.35.1-stable] 시스템 날짜·시각 기준을 한국 시간(KST · UTC+9)으로 고정
+        //   ① '오늘/지금' 판단을 기기 시간대가 아니라 한국 시간으로 통일
+        //      : 종전에는 브라우저가 실행되는 기기의 시간대를 그대로 따랐습니다. 관리자 PC가
+        //        한국이면 문제가 없지만, 시간대가 다르게 잡힌 기기·해외 접속에서는 '오늘'이
+        //        하루 어긋나 연차 등록일·촉진 통보 기준일·직원 월별 마감이 밀릴 수 있었습니다.
+        //      : nowKST() 유틸을 신설하고, 날짜 계산에 쓰이던 new Date() 69곳을 전부 교체했습니다.
+        //        (기기 시계가 무엇이든 언제나 한국 시간의 연·월·일·시가 나옵니다)
+        //   ② 저장된 시각을 화면에 보여줄 때 한국 시간으로 환산
+        //      : 감사 로그의 일시, 촉진 통보 발송 시각, 계획서 제출 일시, 결재 요청·반려일이
+        //        세계표준시(UTC) 그대로 찍혀 실제보다 9시간 이르게 보였습니다.
+        //        kstText(값, 'date'|'datetime'|'full'|'ym') 로 표시 19곳을 환산했습니다.
+        //   ※ 저장 방식은 바꾸지 않았습니다 — createdAt · timestamp · sentAt 은 종전처럼
+        //     UTC ISO 문자열로 기록됩니다. 이미 쌓인 데이터와의 정렬·비교가 그대로 유지되며,
+        //     '보여줄 때만' 한국 시간으로 바꿉니다. 감사 로그 조회 기준선(최근 N일)도
+        //     저장값과 같은 UTC 로 계산해 비교 결과가 어긋나지 않게 했습니다.
+        //   ※ 연차 계산·차감 로직, 데이터 구조, 화면 구성은 v6.35.0-stable 과 동일합니다.
+        // ============================================================================
+        // ============================================================================
+        // [v6.36.0-beta1] 엑셀 대조 화면 보완 3건 (베타 — 9월 대조를 한 바퀴 돌린 뒤 정식 승격)
+        //   ① [내역 수정] 버튼 신설 — 오차의 원인이 '잘못 넣은 것'일 때
+        //      : 종전에는 [연차 등록]밖에 없어, 엉뚱한 날짜·과다 시간·중복 등록처럼
+        //        '이미 들어간 기록이 틀린' 경우에는 창을 닫고 [연차 관리] 탭으로 가야 했습니다.
+        //      : 이제 각 오차 줄의 [내역 수정]으로 그 직원·그 달 기록을 그 자리에서 열어
+        //        건별 수정(연차 등록창 재사용) / 삭제(processLeaveTransaction DELETE)가 됩니다.
+        //        팝업은 대조 창(z-400) 위 z-450, 수정 창은 그 위 z-500 으로 겹쳐 뜹니다.
+        //      : 팝업 상단에 '시스템 합계 vs 엑셀' 을 같이 보여주어, 고칠 때마다 일치 여부가
+        //        즉시 갱신됩니다(목록은 실시간 구독 staffList 에서 매번 다시 읽습니다).
+        //   ② 합계 일치 잠금 — 대조에서 연 등록창에만 적용
+        //      : 이번에 등록될 총합이 오차 시간과 정확히 같을 때만 [등록] 버튼이 켜집니다.
+        //        판단 기준은 건별이 아니라 '이번에 저장될 총합'입니다(8h 를 4h×2일로 나눠
+        //        넣는 경우가 있기 때문). 장바구니에 담은 것이 있으면 그 합계로, 비어 있으면
+        //        선택 날짜 수 × 차감 시간으로 계산합니다.
+        //      : 부족/초과 시간을 실시간으로 보여주고, 엑셀 자체가 틀린 달을 위해
+        //        [오차와 다르게 등록] 체크로 잠금을 풀 수 있습니다(완전 차단 아님).
+        //      : prefillHours 가 넘어온 경우에만 동작하므로, 직원 명부·달력·월간 보고서 등
+        //        다른 경로로 연 등록창과 직원 화면에는 영향이 없습니다.
+        //   ③ 처리 후 다음 미처리 건 자동 열기
+        //      : 한 건을 등록해 그 줄이 '처리 완료'가 되면, 등록창이 닫힌 것을 확인한 뒤
+        //        (isLeaveModalOpen) 0.5초 후 다음 미처리 건의 등록창을 자동으로 엽니다.
+        //        취소하고 닫으면 그 줄이 남아 있으므로 자동 이동도 일어나지 않습니다.
+        //        상단 [처리 후 다음 건 자동 열기] 체크로 끌 수 있습니다.
+        //   ※ 대조 엔진(엑셀 읽기·오차 계산), 연차 계산·차감 로직, 저장 데이터 구조,
+        //     감사 로그 기록 방식, 직원 화면은 v6.35.1-stable 과 100% 동일합니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.36.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -318,69 +378,44 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
-            // ▼ v6.34.0-beta1 : 운영 흐름 개선 4건 (관리자 전용 · 베타)
+            // ▼ v6.36.0-beta1 : 엑셀 대조 화면 보완 3건 (관리자 전용 · 베타)
             //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.34.0-beta1", date: "2026-09-07", details: [
-                "🧭 [대시보드 '오늘 할 일' 신설] 로그인하면 맨 위에 처리할 일이 한 줄씩 뜹니다 — 결재 대기 / 이번 달 촉진 대상(아직 발송 안 한 건수 포함) / 대상기간 만료 임박 / 연차 초과자 / 지난달 등록 현황 / 계정 미발급. 각 줄의 [바로가기]를 누르면 해당 탭으로 이동합니다. 처리할 게 없으면 초록색 '완료'로 표시됩니다",
-                "⏳ [연차 관리 · 만료 임박 필터] 연차 산정 대상기간이 30일 안에 끝나는데 아직 잔여 연차가 남은 직원만 골라 볼 수 있습니다. 기간이 지나면 남은 연차는 소멸 또는 수당 정산 대상이 되므로 가장 먼저 챙겨야 할 분들입니다. 목록의 [기간] 칸에는 'D-12 만료 · 잔여 3일' 배지가 붙습니다",
-                "🛡️ [직원 명부 · 반영 전 미리보기] 명부 엑셀을 올려도 곧바로 반영되지 않습니다. 신규 등록 / 정보 갱신 / 재직 복구 / 자동 퇴사 처리 4가지 명단을 먼저 보여주고, 확인 후 [반영하기]를 눌러야 저장됩니다. 파일을 잘못 골랐을 때 멀쩡한 직원이 한꺼번에 퇴사 처리되는 사고를 막기 위한 조치입니다 (판정 규칙과 저장 값은 종전과 동일)",
-                "📊 [촉진 절차 진행 현황 신설] [연차 촉진] 탭에 [절차 진행 현황] 버튼이 생겼습니다. 같은 촉진 건의 1차·2차가 따로 보이던 것을 직원 한 줄로 묶어, 1차 통보 → 계획서 제출 → 2차 지정통보 → 종료 중 어디까지 왔는지 한눈에 보여줍니다. 위쪽 요약 카드로 '1차 발송 필요 N건 / 계획서 대기 N건 / 2차 필요 N건 / 종료 N건'을 확인하고, 각 줄에서 바로 발송하거나 통보서를 볼 수 있습니다",
-                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 촉진 대상·기한 산정 규칙, 감사 로그 기록 방식, 직원 화면은 종전과 100% 동일합니다. 네 가지 모두 '보여주는 방식'과 '확인 단계'에 대한 변경입니다"
+            { version: "6.36.0-beta1", date: "2026-09-09", details: [
+                "🛠️ [내역 수정 버튼 신설] 대조 결과의 각 줄에 [내역 수정] 버튼이 생겼습니다. 오차의 원인이 '덜 넣은 것'이 아니라 '잘못 넣은 것'(엉뚱한 날짜, 시간 과다, 같은 날 두 번 등록)일 때, 창을 닫고 [연차 관리] 탭으로 가지 않아도 그 자리에서 해당 직원의 그 달 기록을 열어 건별로 수정하거나 삭제할 수 있습니다",
+                "🧮 [고치는 즉시 확인] 내역 창 위쪽에 '시스템 합계 vs 엑셀'이 표시되어, 한 건 고칠 때마다 일치·부족·초과가 바로 갱신됩니다. 대조 목록의 처리 상태도 함께 바뀝니다",
+                "🔒 [합계가 맞아야 등록됩니다] 대조에서 연 등록창은 이번에 등록될 시간의 총합이 오차와 정확히 같을 때만 [등록] 버튼이 켜집니다. 오차 8시간을 4시간씩 이틀로 나눠 넣는 경우도 총합으로 판단하므로 그대로 쓰실 수 있습니다. 부족·초과 시간은 실시간으로 표시됩니다",
+                "🔓 [예외 처리] 엑셀 자체가 틀린 달도 있으므로 [오차와 다르게 등록]에 체크하면 잠금이 풀립니다. 완전히 막지 않고 '한 번 더 확인'하게 만드는 방식입니다",
+                "⏭️ [다음 건 자동 열기] 한 명을 등록해 그 줄이 처리 완료되면, 남은 오차 중 다음 건의 등록창이 자동으로 열립니다. 12건을 처리할 때 목록을 다시 찾아 누르는 수고가 사라집니다. 취소하고 닫으면 자동으로 넘어가지 않으며, 상단 체크박스로 끌 수 있습니다",
+                "🛡️ [호환] 이 잠금은 엑셀 대조에서 연 등록창에만 걸립니다. 직원 명부·달력·월간 보고서 등 다른 경로의 등록창과 직원 화면은 종전 그대로이며, 대조 엔진·연차 계산·차감 로직·저장 구조도 v6.35.1 과 100% 동일합니다"
             ] },
-            // ▼ v6.33.0-beta1 : [데이터 관리] 탭에 변경 이력 조회 + 건강검진 신설 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.33.0-beta1", date: "2026-09-07", details: [
-                "🔎 [변경 이력 조회 신설] [데이터 관리] 탭에서 '누가 · 언제 · 누구의 연차를 어떻게 바꿨는지'를 볼 수 있습니다. 연차 등록·수정·삭제는 물론 촉진 계획서 체크, 촉진 통보 발송·취소, 근무시간 변경까지 그동안 자동으로 쌓여 온 기록입니다. 직원이 '제 연차가 왜 줄었나요'라고 물을 때 바로 확인해 드릴 수 있습니다",
-                "🧾 [상세 비교] 각 줄의 [보기]를 누르면 변경 전과 변경 후의 연차 기록(날짜·시간·사유)이 나란히 펼쳐집니다. 기간·구분·작업 종류·직원명/작업자로 걸러 보고 엑셀로도 저장됩니다",
-                "💡 [필요할 때만 조회] 평소에는 아무것도 불러오지 않고 [이력 불러오기]를 눌렀을 때만 최신 100~1000건을 가져옵니다. 데이터 사용량이 늘지 않도록 한 조치입니다",
-                "🩺 [시스템 건강검진 신설] 버튼 한 번으로 9가지를 훑습니다 — 잔여 연차 마이너스 / 같은 날 2건 이상 등록 / 입사일 없음·미래 / 생년월일 없음 / 동명이인인데 생년월일 없음 / 근무시간 비정상 / 이상한 연차 기록 / 퇴사일 이후 기록 / 계정 미발급",
-                "🧭 [어디서 고치는지까지 안내] 검진은 자동으로 고치지 않습니다. 항목별 인원과 상세 내용, 그리고 '어느 탭에서 고치면 되는지'를 함께 보여주고 결과를 엑셀로 저장합니다. 특히 '동명이인인데 생년월일 없음'은 매달 엑셀 대조가 어긋나는 주된 원인이라 먼저 확인하시길 권합니다",
-                "🛡️ [호환] 두 기능 모두 읽기 전용입니다. 연차 계산·차감 로직, 저장 데이터 구조, 감사 로그가 기록되는 방식, 다른 화면과 직원 화면은 종전과 100% 동일합니다"
+            // ▼ v6.35.1-stable : 날짜·시각 기준을 한국 시간(UTC+9)으로 고정
+            { version: "6.35.1-stable", date: "2026-09-07", details: [
+                "🕘 [한국 시간 기준으로 통일] 시스템이 '오늘'을 판단하는 기준을 접속 기기의 시간대가 아니라 한국 시간(UTC+9)으로 고정했습니다. 시간대가 다르게 설정된 PC나 해외에서 접속해도 연차 등록일, 촉진 통보 기준일, 직원 월별 마감 기준일이 언제나 한국 날짜로 동일하게 계산됩니다",
+                "🧾 [기록 시각 표시 보정] 변경 이력(감사 로그)의 일시, 촉진 통보 발송 시각, 연차 사용 계획서 제출 일시, 과거 연차 요청·반려일이 실제보다 9시간 이르게 표시되던 것을 한국 시간으로 바로잡았습니다",
+                "🛡️ [기존 기록 그대로] 저장되는 시각 자체는 종전 방식(세계표준시)을 그대로 유지하고 화면에 보여줄 때만 한국 시간으로 환산합니다. 이미 쌓인 기록의 순서나 값이 바뀌지 않으며, 연차 계산·차감 로직과 데이터 구조도 v6.35.0 과 동일합니다"
+            ], staffDetails: [
+                "🕘 시스템의 날짜 기준이 한국 시간으로 고정되었습니다. 휴가 신청 화면의 '오늘' 표시와 이번 달 마감 기준일이 항상 한국 날짜로 정확하게 계산됩니다"
             ] },
-            // ▼ v6.32.0-beta3 : [전체 연차 초기화] 를 [데이터 관리] 탭 위험 구역으로 이동 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.32.0-beta3", date: "2026-09-07", details: [
-                "🚚 [전체 연차 초기화 위치 이동] [연차 관리] 탭 위쪽에 있던 [전체 연차 초기화] 버튼을 [데이터 관리] 탭 맨 아래 '위험 구역'으로 옮겼습니다. 되돌릴 수 없는 작업이 매일 쓰는 화면의 버튼 줄에 섞여 있어 잘못 눌릴 위험이 있었습니다",
-                "🔒 [안전장치 3중] ①지울 인원과 기록 건수를 미리 계산해 보여주고 ②[위험을 이해했습니다] 체크를 해야 버튼이 눌리며 ③확인창에서 인원·건수와 'DB 백업을 먼저 받으셨는지'를 다시 안내합니다",
-                "🧾 [처리 방식은 그대로] 직원 한 명씩 안전하게 삭제하고 잔여 연차를 다시 계산하며, 삭제 이력이 감사 로그에 남는 방식은 종전과 동일합니다. 대상도 종전처럼 재직자만이며 퇴사자는 건드리지 않습니다",
-                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 다른 화면과 직원 화면은 종전과 100% 동일합니다. 이번 변경은 '버튼이 어디에 있느냐'와 안전장치뿐입니다"
-            ] },
-            // ▼ v6.32.0-beta2 : 연차 등록창 달력이 '대조한 달'로 열림 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.32.0-beta2", date: "2026-09-07", details: [
-                "🗓️ [등록창이 그 달로 열립니다] [다중 엑셀 정밀 대조] 결과나 [월간 보고서]에서 [연차 등록]을 누르면, 달력이 그 줄의 발생 월(예: 2026년 8월)로 맞춰진 채 열립니다. 지난달 건을 넣을 때마다 달력을 [◀]로 되돌리던 수고가 사라집니다",
-                "🧭 [어느 달 건인지 표시] 등록창 위쪽에 '2026년 8월 건으로 열었습니다' 안내가 표시되어, 여러 달을 오가며 입력할 때 헷갈리지 않습니다",
-                "🖐️ [날짜는 그대로 직접 선택] 달력이 그 달로 옮겨질 뿐, 날짜가 자동으로 찍히지는 않습니다. 며칠에 사용했는지는 종전처럼 관리자가 달력에서 직접 고릅니다 (다른 달로 옮기는 것도 그대로 가능합니다)",
-                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 등록 절차와 검증 규칙, 다른 경로에서 여는 등록창(직원 명부·캘린더 등)은 종전과 100% 동일합니다"
-            ] },
-            // ▼ v6.32.0-beta1 : [연차 관리] 탭 [월간 보고서] 전월 대조 강화 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.32.0-beta1", date: "2026-09-07", details: [
-                "🗓️ [전월 자동 조회] [연차 관리] 탭의 [월간 보고서] 버튼을 누르면, 이제 이번 달이 아니라 '지난달'이 먼저 열립니다. 매달 활동내용 엑셀을 받아 대조하는 흐름에 맞췄습니다",
-                "◀▶ [월 이동] 창 위쪽에 [◀][▶] 화살표와 [전월로] 버튼이 생겨, 다른 달로 옮겨 보다가도 한 번에 지난달로 돌아올 수 있습니다",
-                "🧮 [합계 요약 카드] 그 달의 총 사용시간(일수 환산 포함) · 사용 인원(전체 몇 명 중 몇 명) · 등록 건수 · 1인 평균 사용시간이 카드로 한눈에 요약됩니다",
-                "👥 [사용 없는 직원도 표시] 종전에는 그 달에 연차를 쓴 직원만 보여서 '이 사람은 아직 입력 안 한 건가?'를 확인할 수 없었습니다. 이제 전원이 나오고 사용 없는 직원은 흐리게 표시되며, [사용한 직원만 보기]를 체크하면 종전처럼 걸러집니다",
-                "↕️ [정렬] [이름순](기본) / [사용 많은 순] 을 고를 수 있습니다. 활동내용 엑셀과 순서를 맞춰 대조할 때는 이름순이 편합니다",
-                "➕ [목록에서 바로 등록] 각 줄 오른쪽 [+ 등록] 버튼을 누르면 그 직원의 연차 등록창이 이 화면 위에 바로 열리고, 닫으면 보던 목록으로 그대로 돌아옵니다. 대조하다 빠진 사람을 발견하면 화면을 옮기지 않고 곧바로 입력할 수 있습니다 (등록창의 날짜는 오늘 기준으로 열리므로 지난달 날짜는 달력에서 선택해 주세요)",
-                "🔢 [건수 열 추가] 그 달에 몇 건이 등록되어 있는지가 표에 함께 나옵니다. 같은 날 두 번 등록된 경우를 찾을 때 유용합니다",
-                "📥 [엑셀 다운로드 기준 통일] [월간 조회] 엑셀이 '화면에 보이는 목록 그대로'(정렬·숨김 반영, 번호와 건수 포함) 저장됩니다. 파일 두 번째 줄에 출력 범위가 표기됩니다",
-                "⏱️ [환산 정확도] '해당월 사용(일)' 환산에 그 날짜에 적용되던 하루 근무시간을 사용합니다. 근무시간이 중간에 바뀐 직원도 정확히 환산됩니다 (사용 '시간' 합계는 종전과 동일)",
-                "✅ [대조 결과가 그 자리에서 체크됩니다] [다중 엑셀 정밀 대조] 결과창에서 [연차 등록]으로 값을 채워 엑셀과 맞아떨어지면, 그 줄이 곧바로 초록색 ✅ 처리 완료로 바뀝니다. 지금까지는 대조를 누른 순간의 숫자가 그대로 남아 있어 어디까지 처리했는지 따로 기억해야 했습니다",
-                "🔄 [부분 등록도 구분] 값은 넣었지만 아직 엑셀과 맞지 않으면 '등록됨 · 남은 오차 N시간'으로 주황색 표시되고, [연차 등록] 버튼을 다시 누르면 남은 시간만큼만 채워진 상태로 열립니다",
-                "🔢 [진행 상황 한눈에] 결과창 위쪽에 [✅ 처리 완료 3 / 12건] 배지와 '남은 오차 N건' 표시가 생겼고, [처리 완료된 건 숨기기]를 체크하면 아직 처리하지 못한 줄만 남습니다",
-                "📥 [결과 엑셀 보강] 내려받는 대조 결과 엑셀에 '현재 처리 상태'와 '현재 시스템 시간' 열이 추가되어, 파일만 봐도 어디까지 처리했는지 알 수 있습니다",
-                "🛡️ [호환] 사용시간 집계 규칙, 연차 계산·차감 로직, 저장 데이터 구조, 대조 엔진(엑셀을 읽고 오차를 찾아내는 계산)과 [전체 보고서] 출력물, 직원 화면은 종전과 100% 동일합니다. 처리 완료 표시는 저장되는 값이 아니라 '지금 시스템 값과 엑셀 값을 비교해 그때그때 보여주는' 표시입니다"
-            ] },
-            // ▼ v6.31.0-beta1 : [연차 관리] 탭 '작년부터 이어짐' 필터 신설 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.31.0-beta1", date: "2026-08-31", details: [
-                "🗓️ [작년부터 이어짐 필터 신설] [연차 관리] 탭 상단에 [작년부터 이어짐] 체크박스가 생겼습니다. 체크하면 연차 산정 대상기간이 '작년에 시작해서 올해 끝나는' 직원만 목록에 남습니다 (예: 2020-11-15 입사 → 대상기간 2025-11-15 ~ 2026-11-14). 올해 아직 입사 기념일이 돌아오지 않아 대상기간이 얼마 남지 않은 분들로, 연차 촉진·정산을 먼저 챙겨야 하는 대상입니다",
-                "🔢 [대상 인원 미리 표시] 체크박스 옆의 보라색 숫자와 화면 상단 '작년부터 이어짐 ○명' 표기로, 필터를 켜지 않아도 몇 명인지 바로 확인할 수 있습니다",
-                "🏷️ [기간 칸 배지] 필터를 끄고 전체 목록을 보실 때도 해당 직원의 [기간] 칸에 '작년부터 이어짐' 배지가 붙어 한눈에 구분됩니다",
-                "🧭 [안내 배너] 필터를 켜면 지금 무엇을 보고 있는지 설명하는 보라색 안내와 [전체 보기] 버튼이 목록 위에 표시됩니다",
-                "♻️ [초기화 연동] 이름 검색창 옆 [초기화] 버튼을 누르면 이 필터도 함께 해제됩니다",
-                "ℹ️ [적용 범위] 이 필터는 [연차 관리] 탭 전용입니다. [과년도 관리] 탭은 조회할 연도를 직접 고르는 구조라 모든 직원의 산정기간이 그 연도에 시작하므로, 필터를 넣어도 결과가 달라지지 않아 의도적으로 표시하지 않았습니다 (퇴사자 관리 탭도 동일)",
-                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 정렬·검색·중복확인·초과자만 등 기존 필터, 다른 탭과 직원 화면은 종전과 100% 동일합니다. 이번 변경은 화면에서 '보이기'만 걸러주는 기능입니다"
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.35.0-stable : 정식 릴리즈
+            //   v6.31.0-beta1 · v6.32.0-beta1~3 · v6.33.0-beta1 · v6.34.0-beta1 여섯 개의
+            //   베타를 하나의 정식으로 묶었습니다. 코드 변경 없이 버전 표기와 내역만 통합했습니다.
+            //   전부 관리자 화면 개선이라 직원 화면에는 변화가 없어 staffDetails 를 넣지 않았습니다.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.35.0-stable", date: "2026-09-07", details: [
+                "🧭 [대시보드 · '오늘 할 일' 신설] 로그인하면 맨 위에 처리할 일이 한 줄씩 뜹니다 — 결재 대기 / 이번 달 촉진 대상(아직 발송하지 않은 건수 포함) / 대상기간 만료 임박 / 연차 초과자 / 지난달 등록 현황 / 계정 미발급. 각 줄의 [바로가기]로 해당 탭으로 이동하며, 처리할 것이 없으면 초록색 '완료'로 표시됩니다",
+                "🗓️ [연차 관리 · 월간 보고서가 전월 대조용으로 강화] [월간 보고서]를 열면 이번 달이 아니라 '지난달'이 먼저 열립니다. 총 사용시간·사용 인원·등록 건수·1인 평균 요약 카드가 붙었고, 연차를 쓰지 않은 직원도 흐리게 함께 보여 '아직 입력 안 한 사람'을 찾을 수 있습니다. 이름순/사용 많은 순 정렬, [◀][▶][전월로] 월 이동, 화면 그대로 엑셀 저장을 지원합니다",
+                "➕ [목록에서 바로 연차 등록] 월간 보고서의 각 줄 [+ 등록] 버튼으로 그 직원의 등록창을 띄울 수 있고, 닫으면 보던 목록으로 그대로 돌아옵니다",
+                "📅 [등록창이 '그 달'로 열립니다] 엑셀 대조 결과나 월간 보고서에서 [연차 등록]을 누르면 달력이 그 줄의 발생 월로 맞춰져 열립니다. 지난달 건을 넣을 때마다 달력을 되돌리던 수고가 사라집니다 (날짜 선택은 종전처럼 직접 하십니다)",
+                "✅ [대조 결과가 그 자리에서 체크됩니다] [다중 엑셀 정밀 대조] 결과창에서 연차를 등록해 엑셀과 값이 맞으면 그 줄이 즉시 초록색 ✅ 처리 완료로 바뀝니다. 아직 안 맞으면 '등록됨 · 남은 오차 N시간'으로 표시되고, [연차 등록]을 다시 누르면 남은 시간만 채워진 채 열립니다. 상단 [처리 완료 3/12건] 진행 배지와 [처리 완료된 건 숨기기] 토글도 함께 제공합니다",
+                "⏳ [연차 관리 · 만료 임박 필터] 연차 산정 대상기간이 30일 안에 끝나는데 잔여 연차가 남은 직원만 골라 볼 수 있습니다. 기간이 지나면 소멸 또는 수당 정산 대상이 되므로 가장 먼저 챙겨야 할 분들이며, 목록의 [기간] 칸에 'D-12 만료 · 잔여 3일' 배지가 붙습니다",
+                "📊 [연차 촉진 · 절차 진행 현황 신설] 같은 촉진 건의 1차·2차가 여러 줄로 흩어져 보이던 것을 직원 한 줄로 묶어, 1차 통보 → 계획서 제출 → 2차 지정통보 → 종료 중 어디까지 왔는지 보여줍니다. 요약 카드로 '1차 발송 필요 / 계획서 대기 / 2차 필요 / 종료' 건수를 확인하고, 각 줄에서 바로 발송하거나 통보서를 볼 수 있습니다",
+                "🛡️ [직원 명부 · 반영 전 미리보기] 명부 엑셀을 올려도 곧바로 반영되지 않습니다. 신규 등록 / 정보 갱신 / 재직 복구 / 자동 퇴사 처리 4가지 명단을 먼저 보여주고 [반영하기]를 눌러야 저장됩니다. 파일을 잘못 골랐을 때 멀쩡한 직원이 한꺼번에 퇴사 처리되는 사고를 막기 위한 안전장치입니다",
+                "🔎 [데이터 관리 · 변경 이력 조회 신설] '누가 · 언제 · 누구의 연차를 어떻게 바꿨는지'를 시스템 안에서 볼 수 있습니다. 연차 등록·수정·삭제는 물론 촉진 계획서 체크, 촉진 통보 발송·취소, 근무시간 변경까지 자동으로 쌓여 온 기록이며, 각 줄 [보기]로 변경 전·후를 나란히 비교하고 엑셀로도 저장됩니다. 평소에는 조회하지 않고 [이력 불러오기]를 눌렀을 때만 최신 100~1000건을 가져옵니다",
+                "🩺 [데이터 관리 · 시스템 건강검진 신설] 버튼 한 번으로 9가지를 점검합니다 — 잔여 연차 마이너스 / 같은 날 2건 이상 등록 / 입사일 없음·미래 / 생년월일 없음 / 동명이인인데 생년월일 없음 / 근무시간 비정상 / 이상한 연차 기록 / 퇴사일 이후 기록 / 계정 미발급. 자동으로 고치지 않고 '어느 탭에서 고치면 되는지'까지 안내하며 결과를 엑셀로 저장합니다",
+                "🚚 [전체 연차 초기화 위치 이동] [연차 관리] 탭에 있던 [전체 연차 초기화]를 [데이터 관리] 탭 맨 아래 '위험 구역'으로 옮기고 안전장치를 3중으로 걸었습니다 — 지울 인원·건수 미리 표시 / [위험을 이해했습니다] 체크 후에만 활성화 / 확인창에서 백업 여부 재안내",
+                "🗓️ [연차 관리 · 작년부터 이어짐 필터] 연차 산정 대상기간이 '작년에 시작해서 올해 끝나는' 직원만 볼 수 있는 체크박스가 있습니다. 올해 아직 입사 기념일이 돌아오지 않아 남은 기간이 짧은 분들로, 촉진·정산을 먼저 챙겨야 하는 대상입니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 저장 데이터 구조, 촉진 대상·기한 산정 규칙, 통보서 내용과 지정 날짜 산출, 감사 로그 기록 방식, 직원 화면은 v6.30.1-stable 과 100% 동일합니다. 이번 릴리즈는 전부 '관리자 화면에서 보여주는 방식'과 '실수를 막는 확인 단계'에 대한 변경입니다"
             ] },
             // ▼ v6.30.1-stable : 정식 릴리즈 후 첫 유지보수 (버그 1건 + 링크 1건)
             { version: "6.30.1-stable", date: "2026-08-25", details: [
@@ -715,12 +750,59 @@
             if (!date || isNaN(date.getTime())) return '';
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         };
+        // ============================================================================
+        // [v6.35.1-stable 신규] 시스템의 '오늘/지금' 기준을 한국 시간(KST · UTC+9)으로 고정
+        //   ▣ 왜 필요한가
+        //     종전에는 브라우저가 실행되는 기기의 시간대를 그대로 따랐습니다. 관리자 PC가
+        //     한국으로 맞춰져 있으면 문제가 없지만, 시간대가 다르게 설정된 기기나
+        //     해외에서 접속하면 '오늘'이 하루 어긋나 연차 날짜·촉진 기준일·월별 마감이
+        //     밀릴 수 있었습니다. 또 저장된 시각(감사 로그·통보 발송 시각)은 세계표준시(UTC)
+        //     문자열이라 화면에 9시간 이르게 표시됐습니다.
+        //   ▣ 어떻게 고정했나
+        //     · nowKST()  : 지금 이 순간을 '한국 시간 벽시계'로 읽은 Date.
+        //                   getFullYear/getMonth/getDate/getHours 가 모두 한국 기준입니다.
+        //                   기기 시간대가 무엇이든 같은 값이 나옵니다.
+        //     · kstText() : 저장된 시각 문자열(UTC ISO)을 한국 시간 표기로 바꿔 보여줍니다.
+        //   ▣ 저장 방식은 바꾸지 않았습니다
+        //     기록되는 시각(createdAt · timestamp · sentAt)은 종전대로 UTC ISO 문자열로
+        //     저장합니다. 이미 쌓인 데이터와 정렬·비교가 100% 그대로 유지되며,
+        //     '보여줄 때만' 한국 시간으로 변환합니다.
+        // ============================================================================
+        const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+        const nowKST = () => {
+            const d = new Date();   // 기기 시계로 읽은 '지금 이 순간'
+            return new Date(d.getTime() + KST_OFFSET_MS + d.getTimezoneOffset() * 60000);
+        };
+        // 저장된 UTC 시각 문자열 → 한국 시간 Date
+        const toKSTDate = (iso) => {
+            if (!iso) return null;
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return null;
+            return new Date(d.getTime() + KST_OFFSET_MS + d.getTimezoneOffset() * 60000);
+        };
+        // 저장된 UTC 시각 문자열 → 한국 시간 표기
+        //   mode : 'date'(YYYY-MM-DD) · 'datetime'(YYYY-MM-DD HH:MM) · 'full'(초까지) · 'ym'(YYYY-MM)
+        const kstText = (iso, mode = 'datetime') => {
+            const d = toKSTDate(iso);
+            if (!d) {
+                // 형식을 알 수 없는 값은 종전처럼 앞부분을 그대로 잘라 보여줍니다(빈 값 포함).
+                const raw = String(iso || '').replace('T', ' ');
+                return mode === 'ym' ? raw.substring(0, 7) : mode === 'date' ? raw.substring(0, 10) : mode === 'full' ? raw.substring(0, 19) : raw.substring(0, 16);
+            }
+            const ymd = toLocalYMD(d);
+            if (mode === 'ym') return ymd.substring(0, 7);
+            if (mode === 'date') return ymd;
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            if (mode === 'full') return `${ymd} ${hh}:${mm}:${String(d.getSeconds()).padStart(2, '0')}`;
+            return `${ymd} ${hh}:${mm}`;
+        };
         // ===== [v6.9.1] 두 자리 연도(YY) → 네 자리 연도 변환 =====
         const MIN_WORK_AGE = 14;
         const expandYear2 = (yy) => {
             const n = parseInt(yy, 10);
             if (isNaN(n)) return NaN;
-            const limit = new Date().getFullYear() - MIN_WORK_AGE;
+            const limit = nowKST().getFullYear() - MIN_WORK_AGE;
             const cand = 2000 + n;
             return cand > limit ? 1900 + n : cand;
         };
@@ -728,7 +810,7 @@
             const n = parseInt(yy, 10);
             if (isNaN(n)) return NaN;
             const cand = 2000 + n;
-            return cand > new Date().getFullYear() ? 1900 + n : cand;
+            return cand > nowKST().getFullYear() ? 1900 + n : cand;
         };
         // [최적화] 동일한 날짜 문자열을 반복 파싱하지 않도록 결과를 캐시에 보관합니다.
         const _dateCache = new Map();
@@ -780,7 +862,7 @@
                 const yearsWorked = targetYear - jYear;
                 let totalLeave;
                 if (yearsWorked < 1) {
-                    const today = new Date();
+                    const today = nowKST();
                     let monthsWorked = (today.getFullYear() - jYear) * 12 + (today.getMonth() - (jMonth - 1));
                     if (today.getDate() < jDay) monthsWorked--;
                     totalLeave = Math.max(0, Math.min(11, monthsWorked));
@@ -794,7 +876,7 @@
         const calculateAnnualLeave = (rawJoinDate) => {
             const joinDateStr = safeDate(rawJoinDate);
             if(!joinDateStr || joinDateStr.length < 10) return { total: 0, period: '-', startDate: '', endDate: '', notJoined: true };
-            const today = new Date(); let baseYear = today.getFullYear();
+            const today = nowKST(); let baseYear = today.getFullYear();
             const [, jMonth, jDay] = joinDateStr.split('-').map(Number);
             if (today < new Date(baseYear, jMonth - 1, jDay)) baseYear -= 1;
             return calculateLeaveForYear(joinDateStr, baseYear);
@@ -817,7 +899,7 @@
             const history = (staff && Array.isArray(staff.workHoursHistory)) ? staff.workHoursHistory.filter(h => h && h.effectiveDate) : [];
             if (!history.length) return fallback;
             const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
-            const d = dateStr || toLocalYMD(new Date());
+            const d = dateStr || toLocalYMD(nowKST());
             let applicable = null;
             for (const h of sorted) { if (h.effectiveDate <= d) applicable = h; else break; }
             if (applicable) return safeParseFloat(applicable.newWorkHours) || fallback;
@@ -1246,7 +1328,7 @@
                     memo: p.memo || '', setBy: actorName, setAt: new Date().toISOString()
                 };
                 const afterHistory = [...beforeHistory, entry];
-                const todayWorkHours = getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: afterHistory }, toLocalYMD(new Date()));
+                const todayWorkHours = getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: afterHistory }, toLocalYMD(nowKST()));
                 const userUpdates = { workHoursHistory: afterHistory, workHours: todayWorkHours };
                 transaction.update(userRef, userUpdates);
                 transaction.set(auditRef, {
@@ -1284,7 +1366,7 @@
                 const target = list.find(h => String(h.id) === String(entryId));
                 if (!target) throw new Error('삭제하려는 변경 이력이 이미 삭제되었거나 존재하지 않습니다.');
                 const rest = list.filter(h => String(h.id) !== String(entryId));
-                const todayWorkHours = getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: rest }, toLocalYMD(new Date()));
+                const todayWorkHours = getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: rest }, toLocalYMD(nowKST()));
                 const userUpdates = { workHoursHistory: rest, workHours: todayWorkHours };
                 transaction.update(userRef, userUpdates);
                 transaction.set(auditRef, {
@@ -1600,7 +1682,7 @@
         //   통지서·계획서에 찍히는 날짜가 하루 전으로 밀리고 월별 조회도 이전 달로 잡혔습니다.
         //   예) 2026-08-20 08:30 KST 제출 → 저장 '2026-08-19T23:30:00.000Z' → 문서에 8월 19일
         const toLocalIso = (dateObj) => {
-            const d = dateObj instanceof Date ? dateObj : new Date();
+            const d = dateObj instanceof Date ? dateObj : nowKST();
             const p2 = (n) => String(n).padStart(2, '0');
             return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}` +
                    `T${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
@@ -1894,7 +1976,7 @@
         //   isPastLockedForStaff(dateStr) = 그 날짜가 당월 1일보다 이전이면 true(직원 잠금).
         //   ※ 관리자에게는 이 함수를 적용하지 않습니다(제한 없음).
         const currentMonthStart = () => {
-            const t = new Date();
+            const t = nowKST();
             return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-01`;
         };
         const isPastLockedForStaff = (dateStr) => {
@@ -1910,7 +1992,7 @@
         //   차감·합산은 종전과 동일하게 이뤄지되, 화면에서만 '예정'으로 구분해 보여줍니다.
         const isFutureLeave = (dateStr) => {
             if (!dateStr) return false;
-            return String(dateStr) > toLocalYMD(new Date());
+            return String(dateStr) > toLocalYMD(nowKST());
         };
         // ============================================================================
         // [v6.31.0-beta1 신규] '작년부터 이어지는 대상기간' 판정
@@ -1935,7 +2017,7 @@
             if (!leaveInfo || leaveInfo.notJoined || !leaveInfo.startDate) return false;
             const startYear = parseInt(String(leaveInfo.startDate).substring(0, 4), 10);
             if (isNaN(startYear)) return false;
-            return startYear < new Date().getFullYear();
+            return startYear < nowKST().getFullYear();
         };
         // [2번 ESC 닫기] 모달이 열려 있는 동안 ESC 키를 누르면 onClose를 호출하는 공통 훅.
         //   · enabled=false 면 리스너를 걸지 않습니다(확인·경고·비번강제 등 제외 대상).
@@ -1999,15 +2081,15 @@
             const taken = takenDates instanceof Set ? takenDates : new Set();
             const [viewDate, setViewDate] = useState(() => {
                 if (initialViewDate) { const iv = new Date(initialViewDate); if (!isNaN(iv.getTime())) return iv; }
-                const base = arr.length ? new Date(arr[arr.length - 1]) : new Date();
-                return isNaN(base.getTime()) ? new Date() : base;
+                const base = arr.length ? new Date(arr[arr.length - 1]) : nowKST();
+                return isNaN(base.getTime()) ? nowKST() : base;
             });
             const [rangeMode, setRangeMode] = useState(false);
             const [rangeAnchor, setRangeAnchor] = useState(null); // 범위 채우기 시작점
             const year = viewDate.getFullYear(); const month = viewDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
-            const todayStr = toLocalYMD(new Date());
+            const todayStr = toLocalYMD(nowKST());
             const off = offDays && offDays.length ? offDays : [0];
             const isSelected = (dateStr) => arr.includes(dateStr);
             // [v6.23.0-beta1] minDate/maxDate 범위를 벗어나는 날짜인지 판정
@@ -2040,7 +2122,7 @@
                         <button type="button" onClick={() => setViewDate(new Date(year, month - 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronLeft /></button>
                         <div className="flex items-center gap-2">
                             <span className="font-black text-slate-800 text-sm">{year}년 {month + 1}월</span>
-                            <button type="button" onClick={() => setViewDate(new Date())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">오늘</button>
+                            <button type="button" onClick={() => setViewDate(nowKST())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">오늘</button>
                         </div>
                         <button type="button" onClick={() => setViewDate(new Date(year, month + 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronRight /></button>
                     </div>
@@ -2463,7 +2545,7 @@
         const EditStaffModal = ({ staff, onClose, showAlert, showConfirm, adminName }) => {
             const [formData, setFormData] = useState({ ...staff }); const [msg, setMsg] = useState('');
             // [v6.30.0-beta1 신규] 근무시간 변경(효력 발생일 지정) 입력용 상태
-            const [whEffectiveDate, setWhEffectiveDate] = useState(toLocalYMD(new Date()));
+            const [whEffectiveDate, setWhEffectiveDate] = useState(toLocalYMD(nowKST()));
             const [whNewHours, setWhNewHours] = useState('');
             const [whMemo, setWhMemo] = useState('');
             const [whMsg, setWhMsg] = useState('');
@@ -2499,7 +2581,7 @@
                 const list = Array.isArray(staff.workHoursHistory) ? staff.workHoursHistory : [];
                 return [...list].sort((a, b) => String(b.effectiveDate).localeCompare(String(a.effectiveDate)));
             }, [staff.workHoursHistory]);
-            const currentWorkHours = useMemo(() => getWorkHoursForDate(staff, toLocalYMD(new Date())), [staff]);
+            const currentWorkHours = useMemo(() => getWorkHoursForDate(staff, toLocalYMD(nowKST())), [staff]);
             const handleAddWorkHoursChange = async () => {
                 const nh = safeParseFloat(whNewHours);
                 if (!whEffectiveDate) { setWhMsg('❌ 변경 시작일을 입력해주세요.'); return; }
@@ -2560,7 +2642,7 @@
         //   · shiftMonthStr()   : 한 달 앞/뒤로 이동 (연말·연초 넘김 자동 처리)
         // ────────────────────────────────────────────────────────────────
         const getPrevMonthStr = () => {
-            const now = new Date();
+            const now = nowKST();
             const t = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
         };
@@ -2597,7 +2679,7 @@
             const [onlyUsed, setOnlyUsed] = useState(false);
             const [sortKey, setSortKey] = useState('name'); // 'name'(이름순) | 'hours'(사용 많은 순)
             useEscClose(onClose); // [v6.17.0] ESC로 닫기
-            const thisMonth = toLocalYMD(new Date()).substring(0, 7);
+            const thisMonth = toLocalYMD(nowKST()).substring(0, 7);
             const prevMonth = getPrevMonthStr();
             const [yearNum, monthNum] = String(targetMonth || '').split('-').map(Number);
             const reportData = useMemo(() => staffList.map(staff => {
@@ -2636,7 +2718,7 @@
             }, [reportData, totalMonthHours]);
             const handleDownload = () => {
                 if (!visibleRows.length) { showAlert('내려받을 대상이 없습니다.'); return; }
-                const wsData = [ [`양지누림 ${targetMonth} 월간 연차 사용 현황`], [`조회 기준: ${targetMonth} / 출력 일자: ${new Date().toLocaleDateString()} / 출력 범위: ${onlyUsed ? '사용한 직원만' : '재직자 전원'} (${visibleRows.length}명)`], [], ['No.', '이름', '입사일', '일일 근무', '해당월 사용(일)', '해당월 사용(시간)', '등록 건수', '사용 내역 상세(일자 및 시간)'] ];
+                const wsData = [ [`양지누림 ${targetMonth} 월간 연차 사용 현황`], [`조회 기준: ${targetMonth} / 출력 일자: ${nowKST().toLocaleDateString()} / 출력 범위: ${onlyUsed ? '사용한 직원만' : '재직자 전원'} (${visibleRows.length}명)`], [], ['No.', '이름', '입사일', '일일 근무', '해당월 사용(일)', '해당월 사용(시간)', '등록 건수', '사용 내역 상세(일자 및 시간)'] ];
                 visibleRows.forEach((s, i) => wsData.push([ i + 1, s.name, safeDate(s.joinDate), `${s.workHours || 8}시간`, s.usedDays, s.usedHours, s.count, s.detailText || '-' ]));
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 45 }];
@@ -2650,7 +2732,7 @@
                     const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>table { border-collapse: collapse; width: 100%; font-family: 'Malgun Gothic', sans-serif; } th, td { border: 1px solid #d1d5db; text-align: center; vertical-align: middle; padding: 8px; font-size: 11pt; } th { background-color: #f3f4f6; font-weight: bold; } .title { font-size: 16pt; font-weight: bold; background-color: #3b82f6; color: white; padding: 15px; } .negative { color: #dc2626; font-weight: bold; } .positive { color: #16a34a; font-weight: bold; } .logo-row td { border: none; padding-top: 20px; text-align: right; }</style></head><body>${html}</body></html>`;
                     const blob = new Blob([template], { type: 'application/vnd.ms-excel;charset=utf-8' });
                     const link = document.createElement("a"); link.href = URL.createObjectURL(blob);
-                    link.download = `양지누림_전체연차현황_${toLocalYMD(new Date())}.xls`;
+                    link.download = `양지누림_전체연차현황_${toLocalYMD(nowKST())}.xls`;
                     document.body.appendChild(link); link.click(); document.body.removeChild(link);
                 } catch (err) { showAlert("엑셀 추출 중 오류가 발생했습니다."); } finally { setIsExporting(false); }
             };
@@ -2722,7 +2804,7 @@
                         <span className="text-[11px] font-bold text-slate-400 leading-relaxed">※ [+ 등록] 을 누르면 이 화면 위에 연차 등록창이 열리고, 닫으면 지금 보던 목록으로 그대로 돌아옵니다.<br/>※ [v6.32.0-beta2] 등록창의 달력은 지금 보고 있는 달로 맞춰져 열립니다. 해당 날짜만 눌러 선택하시면 됩니다.</span>
                         <span className="flex items-center gap-2 whitespace-nowrap"><span className="text-sm font-bold text-slate-500">해당월 총 사용 시간 합계:</span><span className="text-lg font-black text-red-500">{fmt(totalMonthHours)}h</span></span>
                     </div>
-                    <table id="premium-excel-table" style={{ display: 'none' }}><thead><tr><th colSpan="7" className="title" style={{ backgroundColor: '#1e3a8a', color: 'white', fontSize: '20px', padding: '15px' }}>사단법인 장애인의 양지누림 전체 임직원 연차 현황</th></tr><tr><th colSpan="7" style={{ textAlign: 'right', padding: '5px', backgroundColor: 'white', color: '#6b7280', fontSize: '12px' }}>출력일자: {new Date().toLocaleDateString()}</th></tr><tr><th style={{ backgroundColor: '#f3f4f6', width: '60px' }}>No</th><th style={{ backgroundColor: '#f3f4f6', width: '100px' }}>이름</th><th style={{ backgroundColor: '#f3f4f6', width: '120px' }}>입사일</th><th style={{ backgroundColor: '#f3f4f6', width: '200px' }}>연차 산정 기간</th><th style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', width: '100px' }}>총 발생 (일)</th><th style={{ backgroundColor: '#fef2f2', color: '#b91c1c', width: '100px' }}>사용 연차 (일)</th><th style={{ backgroundColor: '#f0fdf4', color: '#15803d', width: '100px' }}>잔 연차 (일)</th></tr></thead>
+                    <table id="premium-excel-table" style={{ display: 'none' }}><thead><tr><th colSpan="7" className="title" style={{ backgroundColor: '#1e3a8a', color: 'white', fontSize: '20px', padding: '15px' }}>사단법인 장애인의 양지누림 전체 임직원 연차 현황</th></tr><tr><th colSpan="7" style={{ textAlign: 'right', padding: '5px', backgroundColor: 'white', color: '#6b7280', fontSize: '12px' }}>출력일자: {nowKST().toLocaleDateString()}</th></tr><tr><th style={{ backgroundColor: '#f3f4f6', width: '60px' }}>No</th><th style={{ backgroundColor: '#f3f4f6', width: '100px' }}>이름</th><th style={{ backgroundColor: '#f3f4f6', width: '120px' }}>입사일</th><th style={{ backgroundColor: '#f3f4f6', width: '200px' }}>연차 산정 기간</th><th style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', width: '100px' }}>총 발생 (일)</th><th style={{ backgroundColor: '#fef2f2', color: '#b91c1c', width: '100px' }}>사용 연차 (일)</th><th style={{ backgroundColor: '#f0fdf4', color: '#15803d', width: '100px' }}>잔 연차 (일)</th></tr></thead>
                         <tbody>{staffList.filter(s => s.status !== 'resigned').map((staff, index) => {
                             const leaveInfo = calculateAnnualLeave(staff.joinDate);
                             const dailyHours = safeParseFloat(staff.workHours) || 8;
@@ -2740,8 +2822,8 @@
         // [v6.15.0] 개선점: 오차 내역의 [연차 등록] 버튼을 누를 때, 직원 ID뿐 아니라
         //           '누락된 오차 시간(r.diff)'까지 함께 모달로 전달합니다.
         //           → 연차 등록 모달이 '시간 직접 입력' 모드로 열리며 해당 시간이 미리 채워집니다.
-        const AdvancedAuditModal = ({ staffList, onClose, showAlert, onOpenModal, defaultPromoFilter = false }) => {
-            const today = new Date();
+        const AdvancedAuditModal = ({ staffList, onClose, showAlert, showConfirm, onOpenModal, onEditClick, adminName, isLeaveModalOpen = false, defaultPromoFilter = false }) => {
+            const today = nowKST();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const [step, setStep] = useState(1);
@@ -2990,10 +3072,78 @@
             const shownResults = useMemo(
                 () => hideResolved ? filteredResults.filter(r => getLiveStatus(r).state !== 'resolved') : filteredResults,
                 [filteredResults, hideResolved, liveHoursMap]);
+            // ════════════════════════════════════════════════════════════════
+            // [v6.36.0-beta1 신규] ① 그 달 등록 내역 보기·수정·삭제
+            //   오차의 원인이 '덜 넣은 것'이 아니라 '잘못 넣은 것'인 경우가 있습니다.
+            //   (엉뚱한 날짜, 시간 과다, 같은 날 두 번 등록 등)
+            //   그럴 때 창을 닫고 [연차 관리] 탭으로 돌아가지 않아도 되도록,
+            //   이 자리에서 그 직원의 그 달 기록을 열어 바로 고치거나 지울 수 있게 했습니다.
+            //   ※ 목록은 staffList(실시간 구독)에서 매번 다시 읽으므로 항상 최신입니다.
+            // ════════════════════════════════════════════════════════════════
+            const [recordPanel, setRecordPanel] = useState(null); // { staffId, name, month, excelHours }
+            const [deletingId, setDeletingId] = useState('');
+            const panelRecords = useMemo(() => {
+                if (!recordPanel) return [];
+                const staff = (staffList || []).find(s => s.id === recordPanel.staffId);
+                if (!staff) return [];
+                // 원본 배열에서의 위치(index)를 함께 들고 있어야 수정 화면으로 정확히 넘길 수 있습니다.
+                return (staff.leaveHistory || [])
+                    .map((rec, index) => ({ rec, index }))
+                    .filter(x => x.rec && x.rec.date && String(x.rec.date).substring(0, 7) === recordPanel.month)
+                    .sort((a, b) => String(a.rec.date).localeCompare(String(b.rec.date)));
+            }, [recordPanel, staffList]);
+            const panelTotal = useMemo(
+                () => Math.round(panelRecords.reduce((a, x) => a + safeParseFloat(x.rec.days), 0) * 100) / 100,
+                [panelRecords]);
+            const handleDeleteRecord = (x) => {
+                if (!recordPanel || deletingId) return;
+                showConfirm(
+                    `[${recordPanel.name}] ${x.rec.date} · ${fmt(x.rec.days)}시간 기록을 삭제하시겠습니까?\n\n` +
+                    `삭제하면 잔여 연차가 즉시 되돌아가고, 삭제 이력은 변경 이력(감사 로그)에 남습니다.`,
+                    async () => {
+                        setDeletingId(x.rec.id);
+                        try {
+                            await processLeaveTransaction(recordPanel.staffId, adminName || '관리자', {
+                                type: 'DELETE', leaves: [], targetId: x.rec.id,
+                                origin: 'AdvancedAuditModal.handleDeleteRecord'
+                            });
+                        } catch (e) { showAlert('삭제 오류: ' + e.message); }
+                        setDeletingId('');
+                    });
+            };
+            // ════════════════════════════════════════════════════════════════
+            // [v6.36.0-beta1 신규] ③ 처리 후 '다음 미처리 건'으로 자동 이동
+            //   한 명을 등록하고 창을 닫으면, 남은 오차 중 다음 건의 등록창을 자동으로 엽니다.
+            //   · 방금 처리한 줄이 '처리 완료(엑셀과 일치)'가 되었을 때에만 넘어갑니다.
+            //   · 등록창이 아직 열려 있는 동안에는 절대 열지 않습니다(isLeaveModalOpen 확인).
+            //   · 취소하고 닫으면 그 줄이 그대로 남으므로 자동 이동도 일어나지 않습니다.
+            // ════════════════════════════════════════════════════════════════
+            const [autoNext, setAutoNext] = useState(true);
+            const [lastRowKey, setLastRowKey] = useState('');
+            const advancingRef = useRef(false);
+            const openRowForFix = (r) => {
+                if (!r || !r.staffId) { showAlert("직원 명부에 등록되지 않은 인원입니다.\n[직원 명부] 탭에서 먼저 등록해주세요."); return; }
+                const live = getLiveStatus(r);
+                setLastRowKey(r.id);
+                onOpenModal(r.staffId, live.state === 'changed' ? live.remain : r.diff, r.month);
+            };
+            useEffect(() => {
+                if (!autoNext || !lastRowKey || isLeaveModalOpen || advancingRef.current) return;
+                const done = filteredResults.find(r => r.id === lastRowKey);
+                if (!done || getLiveStatus(done).state !== 'resolved') return;
+                const pool = filteredResults.filter(r => r.staffId && getLiveStatus(r).state !== 'resolved');
+                advancingRef.current = true;
+                const timer = setTimeout(() => {
+                    advancingRef.current = false;
+                    if (!pool.length) { setLastRowKey(''); showAlert('✅ 남은 오차를 모두 처리했습니다.'); return; }
+                    openRowForFix(pool[0]);
+                }, 500);
+                return () => { clearTimeout(timer); advancingRef.current = false; };
+            }, [autoNext, lastRowKey, isLeaveModalOpen, liveHoursMap, filteredResults]);
             const handleDownloadResults = () => {
                 // [v6.22.0] 다운로드도 '화면에 보이는 목록(filteredResults)' 기준으로 저장합니다.
                 if (!filteredResults || !filteredResults.length) { showAlert("다운로드할 오차 내역이 없습니다."); return; }
-                const wsData = [ [`양지누림 월별 연차 대조(Audit) 결과`], [`출력 일자: ${new Date().toLocaleDateString()} / 재직자 한정 대조 (퇴사자 ${skippedCount}건 제외)`], [`출력 범위: ${onlyCurrentPeriod ? '현재 연차 산정 기간에 해당하는 건만 (과거 기간 ' + hiddenByPeriodCount + '건 제외)' : '전체 기간 (필터 해제 상태)'}`], [], ['이름', '발생 월', '엑셀 사용시간', '시스템(DB) 내역', '오차 시간', '상태', '현재 처리 상태', '현재 시스템 시간'] ];
+                const wsData = [ [`양지누림 월별 연차 대조(Audit) 결과`], [`출력 일자: ${nowKST().toLocaleDateString()} / 재직자 한정 대조 (퇴사자 ${skippedCount}건 제외)`], [`출력 범위: ${onlyCurrentPeriod ? '현재 연차 산정 기간에 해당하는 건만 (과거 기간 ' + hiddenByPeriodCount + '건 제외)' : '전체 기간 (필터 해제 상태)'}`], [], ['이름', '발생 월', '엑셀 사용시간', '시스템(DB) 내역', '오차 시간', '상태', '현재 처리 상태', '현재 시스템 시간'] ];
                 // [v6.32.0-beta1] 엑셀에도 '지금 시점의 처리 상태'를 함께 담습니다.
                 filteredResults.forEach(r => {
                     const live = getLiveStatus(r);
@@ -3005,11 +3155,70 @@
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 ws['!cols'] = [{ wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 22 }, { wch: 16 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "오차리포트");
-                XLSX.writeFile(wb, `양지누림_사전대조_오차리포트_${toLocalYMD(new Date()).replace(/-/g, '')}.xlsx`);
+                XLSX.writeFile(wb, `양지누림_사전대조_오차리포트_${toLocalYMD(nowKST()).replace(/-/g, '')}.xlsx`);
             };
             return (
-                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl relative flex flex-col max-h-[90vh]"><button type="button" onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><Icons.X /></button>
-                    <div className="mb-6 border-b pb-4"><h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Icons.CheckCircle /> 다중 엑셀 정밀 대조 엔진</h3><p className="text-sm text-slate-500 font-bold mt-2">수십 개의 엑셀을 한 번에 올려 월별 누락을 핀포인트로 찾아내고 즉시 보완합니다.</p><p className="text-[11px] text-blue-600 font-bold mt-1.5 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">🛡️ 재직 중인 직원만 대조 · 🎯 [연차 등록] 시 오차 시간 자동 입력 · 🆕 v6.32.0 : 등록해서 엑셀과 값이 맞으면 그 줄이 즉시 ✅ 처리 완료로 바뀝니다</p></div>
+                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-[400] animate-fade-in backdrop-blur-sm p-4">
+                    {/* ═══ [v6.36.0-beta1 신규] 그 직원·그 달 등록 내역 (수정·삭제) ═══
+                        대조 창(z-400) 위에 뜨고, [수정]을 누르면 그 위에 연차 등록·수정 창(z-500)이 열립니다. */}
+                    {recordPanel && (
+                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-[450] animate-fade-in backdrop-blur-sm p-4" onClick={() => setRecordPanel(null)}>
+                            <div className="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-2xl relative flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+                                <button type="button" onClick={() => setRecordPanel(null)} className="absolute top-5 right-5 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                                <div className="border-b pb-4 mb-4 pr-8">
+                                    <h4 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.Edit /> {recordPanel.name} · {recordPanel.month} 등록 내역</h4>
+                                    <p className="text-xs font-bold text-slate-500 mt-1">
+                                        시스템 합계 <b className="text-slate-700">{fmt(panelTotal)}h</b> · 엑셀 <b className="text-slate-700">{fmt(recordPanel.excelHours)}h</b>
+                                        {Math.abs(panelTotal - recordPanel.excelHours) < 0.01
+                                            ? <span className="ml-2 px-2 py-0.5 rounded-lg bg-green-50 text-green-700 border border-green-200 text-[11px] font-black">일치</span>
+                                            : <span className="ml-2 px-2 py-0.5 rounded-lg bg-red-50 text-red-600 border border-red-200 text-[11px] font-black">{panelTotal > recordPanel.excelHours ? '초과' : '부족'} {fmt(Math.abs(panelTotal - recordPanel.excelHours))}h</span>}
+                                    </p>
+                                    <p className="text-[11px] font-bold text-slate-400 mt-1">잘못 들어간 기록을 고치거나 지우면 위 합계가 바로 바뀌고, 대조 목록의 처리 상태도 함께 갱신됩니다.</p>
+                                </div>
+                                <div className="flex-1 overflow-y-auto border border-slate-200 rounded-xl custom-scrollbar">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold sticky top-0 border-b border-slate-200 z-10">
+                                            <tr><th className="p-3">날짜</th><th className="p-3 text-center">차감</th><th className="p-3">구분 · 사유</th><th className="p-3">등록자</th><th className="p-3 text-center w-24">관리</th></tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {panelRecords.map(x => (
+                                                <tr key={x.rec.id || x.index} className="hover:bg-slate-50">
+                                                    <td className="p-3 font-bold text-slate-800">{x.rec.date}
+                                                        {(x.rec.startTime || x.rec.endTime) && <span className="block text-[10px] font-bold text-slate-400">{x.rec.startTime}~{x.rec.endTime}</span>}
+                                                    </td>
+                                                    <td className="p-3 text-center font-black text-blue-600">{fmt(x.rec.days)}h</td>
+                                                    <td className="p-3 text-xs font-bold text-slate-600">{x.rec.type || '-'}{x.rec.reason ? <span className="block text-slate-400 font-medium">{x.rec.reason}</span> : null}</td>
+                                                    <td className="p-3 text-[11px] font-bold text-slate-400">{x.rec.addedBy || '-'}</td>
+                                                    <td className="p-3 text-center">
+                                                        <div className="flex justify-center gap-1">
+                                                            <button type="button" title="수정" disabled={!!deletingId}
+                                                                onClick={() => { if (onEditClick) { onEditClick(recordPanel.staffId, x.index, x.rec); } else { showAlert('이 화면에서는 수정 기능을 쓸 수 없습니다.'); } }}
+                                                                className="text-blue-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-blue-50 transition disabled:opacity-40"><Icons.Edit /></button>
+                                                            <button type="button" title="삭제" disabled={!!deletingId}
+                                                                onClick={() => handleDeleteRecord(x)}
+                                                                className="text-red-500 p-1.5 bg-white rounded-md shadow-sm border hover:bg-red-50 transition disabled:opacity-40"><Icons.Trash /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {panelRecords.length === 0 && (
+                                                <tr><td colSpan="5" className="p-10 text-center text-slate-400 font-bold">
+                                                    {recordPanel.month} 에 등록된 연차 기록이 없습니다.<br />
+                                                    <span className="text-xs font-bold text-slate-400">엑셀에는 있는데 시스템에 없는 경우이니, 창을 닫고 [연차 등록]으로 넣어 주세요.</span>
+                                                </td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="mt-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+                                    <p className="text-[11px] font-bold text-slate-400">※ [수정]을 누르면 이 창 위에 연차 수정 화면이 열립니다. 삭제는 되돌릴 수 없지만 이력은 남습니다.</p>
+                                    <button type="button" onClick={() => setRecordPanel(null)} className="px-5 py-2.5 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition w-full sm:w-auto">닫기</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div className="bg-white p-6 md:p-8 rounded-3xl shadow-2xl w-full max-w-4xl relative flex flex-col max-h-[90vh]"><button type="button" onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                    <div className="mb-6 border-b pb-4"><h3 className="text-2xl font-black text-slate-800 flex items-center gap-2"><Icons.CheckCircle /> 다중 엑셀 정밀 대조 엔진</h3><p className="text-sm text-slate-500 font-bold mt-2">수십 개의 엑셀을 한 번에 올려 월별 누락을 핀포인트로 찾아내고 즉시 보완합니다.</p><p className="text-[11px] text-blue-600 font-bold mt-1.5 bg-blue-50 inline-block px-2 py-1 rounded border border-blue-100">🛡️ 재직 중인 직원만 대조 · 🎯 [연차 등록] 시 오차 시간 자동 입력 · ✅ 값이 맞으면 즉시 처리 완료 · 🆕 v6.36.0 : [내역 수정]으로 잘못 넣은 기록을 이 자리에서 고치고, 처리 후 다음 건이 자동으로 열립니다</p></div>
                     {isProcessing && (<div className="absolute inset-0 bg-white/80 z-10 flex flex-col items-center justify-center rounded-3xl backdrop-blur-sm"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div><p className="font-bold text-indigo-700">모든 엑셀 데이터를 월별로 병합하여 분석 중입니다...</p></div>)}
                     {!results && !isProcessing && (
                         <div className="mb-4 bg-orange-50 p-4 rounded-xl border border-orange-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -3072,9 +3281,16 @@
                                         <span className="font-black text-green-800 text-sm">처리 완료된 건 숨기기</span>
                                         <span className="text-[11px] font-bold text-green-600">— 연차를 등록해 엑셀과 값이 맞으면 그 줄은 자동으로 ✅ 표시됩니다</span>
                                     </label>
-                                    <span className="text-[11px] font-black text-green-700 bg-white border border-green-200 rounded-lg px-2.5 py-1 shrink-0 self-start sm:self-auto">
-                                        남은 오차 {Math.max(filteredResults.length - resolvedCount, 0)}건
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-auto">
+                                        {/* [v6.36.0-beta1 신규] 한 건 끝나면 다음 미처리 건을 자동으로 열어줍니다 */}
+                                        <label className="flex items-center gap-2 cursor-pointer select-none bg-white border border-green-200 rounded-lg px-2.5 py-1">
+                                            <input type="checkbox" checked={autoNext} onChange={(e) => setAutoNext(e.target.checked)} className="w-4 h-4 accent-green-600" />
+                                            <span className="text-[11px] font-black text-green-800 whitespace-nowrap">처리 후 다음 건 자동 열기</span>
+                                        </label>
+                                        <span className="text-[11px] font-black text-green-700 bg-white border border-green-200 rounded-lg px-2.5 py-1">
+                                            남은 오차 {Math.max(filteredResults.length - resolvedCount, 0)}건
+                                        </span>
+                                    </div>
                                 </div>
                             )}
                             {diag && (diag.failed.length > 0 || diag.autoFixed.length > 0 || diag.totalExcelHours <= 0 || (diag.ambiguous && diag.ambiguous.length > 0)) && (
@@ -3126,11 +3342,21 @@
                                                         {live.state === 'unknown' && (<span className="inline-block bg-slate-100 text-slate-400 border border-slate-200 px-2.5 py-1 rounded-lg text-[11px] font-black">명부 미등록</span>)}
                                                     </td>
                                                     <td className="p-3 text-center">
-                                                        <button onClick={() => { if (r.staffId) onOpenModal(r.staffId, live.state === 'changed' ? live.remain : r.diff, r.month); else showAlert("직원 명부에 등록되지 않은 인원입니다.\n[직원 명부] 탭에서 먼저 등록해주세요."); }}
-                                                            className={`text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 ${!r.staffId ? 'bg-slate-400 cursor-not-allowed' : (isDone ? 'bg-slate-300 hover:bg-slate-400' : 'bg-blue-600 hover:bg-blue-700')}`}
-                                                            title={isDone ? '이미 엑셀과 값이 맞습니다. 그래도 추가로 등록하려면 누르세요.' : '오차 시간이 미리 채워진 연차 등록창을 엽니다.'}>
-                                                            <Icons.Plus /> {isDone ? '추가 등록' : '연차 등록'}
-                                                        </button>
+                                                        {/* [v6.36.0-beta1] 등록(부족분 채우기) / 수정(잘못 넣은 것 고치기) 두 갈래로 나눴습니다 */}
+                                                        <div className="flex flex-col gap-1">
+                                                            <button onClick={() => openRowForFix(r)}
+                                                                className={`text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 ${!r.staffId ? 'bg-slate-400 cursor-not-allowed' : (isDone ? 'bg-slate-300 hover:bg-slate-400' : 'bg-blue-600 hover:bg-blue-700')}`}
+                                                                title={isDone ? '이미 엑셀과 값이 맞습니다. 그래도 추가로 등록하려면 누르세요.' : '오차 시간이 미리 채워진 연차 등록창을 엽니다.'}>
+                                                                <Icons.Plus /> {isDone ? '추가 등록' : '연차 등록'}
+                                                            </button>
+                                                            <button type="button"
+                                                                disabled={!r.staffId}
+                                                                onClick={() => setRecordPanel({ staffId: r.staffId, name: r.name, month: r.month, excelHours: safeParseFloat(r.excelHours) })}
+                                                                className="px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center gap-1 w-full active:scale-95 bg-white text-amber-700 border border-amber-300 hover:bg-amber-50 disabled:bg-slate-100 disabled:text-slate-300 disabled:border-slate-200 disabled:cursor-not-allowed"
+                                                                title="이 직원의 해당 월 등록 내역을 열어 잘못된 기록을 수정하거나 삭제합니다.">
+                                                                <Icons.Edit /> 내역 수정
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>);
                                             })}
@@ -3166,14 +3392,14 @@
         };
         // [공통화] 캘린더 헤더 네비게이션
         const CalendarNav = ({ year, month, setCurrentDate, compact }) => {
-            const yearOptions = useMemo(() => { const b = new Date().getFullYear(); return Array.from({ length: 15 }, (_, i) => b - 10 + i); }, []);
+            const yearOptions = useMemo(() => { const b = nowKST().getFullYear(); return Array.from({ length: 15 }, (_, i) => b - 10 + i); }, []);
             return (
                 <div className="flex items-center gap-1 md:gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-sm">
                     <button type="button" onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronLeft /></button>
                     <select value={year} onChange={e => setCurrentDate(new Date(parseInt(e.target.value), month, 1))} className="bg-white border border-slate-200 rounded-md px-1 md:px-2 py-1 text-xs md:text-sm font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">{yearOptions.map(y => <option key={y} value={y}>{y}년</option>)}</select>
                     <select value={month} onChange={e => setCurrentDate(new Date(year, parseInt(e.target.value), 1))} className="bg-white border border-slate-200 rounded-md px-1 md:px-2 py-1 text-xs md:text-sm font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer">{Array.from({ length: 12 }, (_, i) => i).map(m => <option key={m} value={m}>{m + 1}월</option>)}</select>
                     <button type="button" onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 text-slate-600 hover:bg-white rounded-lg transition shadow-sm"><Icons.ChevronRight /></button>
-                    <button type="button" onClick={() => setCurrentDate(new Date())} className={`font-bold text-blue-600 bg-white border border-blue-100 px-2 md:px-3 py-1.5 rounded-lg ml-1 md:ml-2 hover:bg-blue-50 transition shadow-sm ${compact ? 'text-xs' : 'text-[10px] md:text-xs'}`}>오늘</button>
+                    <button type="button" onClick={() => setCurrentDate(nowKST())} className={`font-bold text-blue-600 bg-white border border-blue-100 px-2 md:px-3 py-1.5 rounded-lg ml-1 md:ml-2 hover:bg-blue-50 transition shadow-sm ${compact ? 'text-xs' : 'text-[10px] md:text-xs'}`}>오늘</button>
                 </div>
             );
         };
@@ -3198,7 +3424,7 @@
         //     · 리스트 뷰에서도 기존과 동일하게 수정·개별삭제·다중삭제가 가능합니다.
         // ============================================================================
         const CalendarView = ({ staffList, onEditClick, showConfirm, showAlert, adminName }) => {
-            const [currentDate, setCurrentDate] = useState(new Date());
+            const [currentDate, setCurrentDate] = useState(nowKST());
             // [v6.16.0] 선택 모드 및 체크된 항목(id) 목록
             const [selectMode, setSelectMode] = useState(false);
             const [checkedIds, setCheckedIds] = useState([]);
@@ -3216,7 +3442,7 @@
                 return map;
             }, [staffList, prefix]);
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
-            const todayStr = toLocalYMD(new Date());
+            const todayStr = toLocalYMD(nowKST());
             // [v6.16.0] 이번 달 화면에 보이는 전체 휴가 건들을 평탄화 — 삭제 대상 조회용
             const monthLeaves = useMemo(() => Object.values(leaveMap).flat(), [leaveMap]);
             // [v6.19.0] 모바일 리스트 뷰용 — 휴가가 있는 날짜만 오름차순 정렬
@@ -3468,7 +3694,7 @@
             );
         };
         const PersonalCalendarModal = ({ staff, onClose, onOpenModal, onEditClick }) => {
-            const [currentDate, setCurrentDate] = useState(new Date());
+            const [currentDate, setCurrentDate] = useState(nowKST());
             useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
             const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -3480,7 +3706,7 @@
                 return map;
             }, [staff, prefix]);
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
-            const todayStr = toLocalYMD(new Date());
+            const todayStr = toLocalYMD(nowKST());
             // [v6.30.0-beta1 신규] 근무시간 변경(가장 최근 항목) 표시용 — 기존 시간 → 변경 시간, 변경일자
             const latestWhChange = useMemo(() => getLatestWorkHoursChange(staff), [staff]);
             const currentWorkHours = useMemo(() => getWorkHoursForDate(staff, todayStr), [staff, todayStr]);
@@ -3605,7 +3831,7 @@
             const validDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
             // [v6.30.0-beta1] 근무시간은 '오늘' 기준이 아니라, 실제 선택한 날짜(첫 날짜) 기준으로 적용해야 정확합니다.
             //   (예: 변경일 이전 날짜를 고르면 예전 시간, 변경일 이후 날짜를 고르면 새 시간이 표시됩니다)
-            const dailyHours = getWorkHoursForDate(selectedStaff, validDates[0] || toLocalYMD(new Date()));
+            const dailyHours = getWorkHoursForDate(selectedStaff, validDates[0] || toLocalYMD(nowKST()));
             // [v6.30.0-beta1 신규] 화면에 보여줄 '기존 근무시간 → 변경 근무시간 · 변경일자' 정보
             const latestWhChange = useMemo(() => getLatestWorkHoursChange(selectedStaff), [selectedStaff]);
             // ---- 실시간 차감 시간 계산 ----
@@ -3624,6 +3850,29 @@
             const dupDates = useMemo(() => validDates.filter(d => takenDates.has(d) || cartDates.has(d)), [validDates, takenDates, cartDates]);
             const calendarTaken = useMemo(() => new Set([...takenDates, ...cartDates]), [takenDates, cartDates]);
             const cartTotalDays = useMemo(() => cart.reduce((sum, it) => sum + it.dates.length, 0), [cart]);
+            // ════════════════════════════════════════════════════════════════
+            // [v6.36.0-beta1 신규] ② 대조에서 열었을 때만 걸리는 '합계 일치 잠금'
+            //   엑셀 대조 결과에서 [연차 등록]을 누르면 오차 시간(prefillHours)이 넘어옵니다.
+            //   그 값과 '이번에 실제로 등록될 총합'이 정확히 같을 때만 등록 버튼이 켜집니다.
+            //   왜 총합인가 : 오차 8시간을 4시간씩 이틀로 나눠 넣는 경우가 있으므로,
+            //                건별이 아니라 이번에 저장될 전체 합계로 판단해야 맞습니다.
+            //     · 장바구니에 담은 것이 있으면 → 담은 것들의 합계(현재 입력분은 담기 전까지 제외)
+            //     · 장바구니가 비어 있으면     → 선택 날짜 수 × 차감 시간
+            //   엑셀 자체가 틀린 달도 있으므로 [오차와 다르게 등록] 체크로 잠금을 풀 수 있습니다.
+            //   ※ 대조가 아닌 경로(직원 명부·달력·월간 보고서 등)로 연 등록창에는 걸리지 않습니다.
+            // ════════════════════════════════════════════════════════════════
+            const lockTargetHours = (!isEdit && prefillHours !== null && prefillHours !== undefined && safeParseFloat(prefillHours) > 0)
+                ? Math.round(safeParseFloat(prefillHours) * 100) / 100 : 0;
+            const [unlockMismatch, setUnlockMismatch] = useState(false);
+            const cartTotalHours = useMemo(
+                () => Math.round(cart.reduce((sum, it) => sum + it.dates.length * safeParseFloat(it.deductHours), 0) * 100) / 100,
+                [cart]);
+            const pendingHours = (!blockingError && deductHours > 0)
+                ? Math.round(validDates.length * deductHours * 100) / 100 : 0;
+            const plannedTotalHours = cart.length ? cartTotalHours : pendingHours;
+            const lockGap = Math.round((plannedTotalHours - lockTargetHours) * 100) / 100; // 음수=부족, 양수=초과
+            const lockMatched = lockTargetHours > 0 && Math.abs(lockGap) < 0.01;
+            const lockActive = lockTargetHours > 0 && !unlockMismatch && !lockMatched;
             // ---- [v6.15.0] 목록에 담기 (등록하지 않고 장바구니에만 추가) ----
             const addToCart = () => {
                 if (!selectedStaffId || !selectedStaff) { setMsg('❌ 먼저 직원을 검색·선택해주세요.'); return; }
@@ -3714,6 +3963,12 @@
             };
             // ---- 메인 제출 핸들러 ----
             const handleSubmit = async (e) => {
+                // [v6.36.0-beta1] 버튼이 비활성화돼 있어도 Enter 키로 제출될 수 있어 한 번 더 막습니다.
+                if (lockActive) {
+                    if (e && e.preventDefault) e.preventDefault();
+                    setMsg(`❌ 대조 오차 ${fmt(lockTargetHours)}h 와 ${lockGap < 0 ? fmt(Math.abs(lockGap)) + 'h 부족' : fmt(lockGap) + 'h 초과'} 합니다. 시간을 맞추거나 [오차와 다르게 등록] 에 체크해주세요.`);
+                    return;
+                }
                 e.preventDefault();
                 if (!selectedStaffId || !selectedStaff) { setMsg('❌ 직원을 검색하여 선택해주세요.'); return; }
                 if (blockingError) { setMsg('❌ ' + blockingError); return; }
@@ -3774,7 +4029,7 @@
                         <div className="space-y-4 md:flex md:flex-col">
                             {/* ── 직원 검색·선택 (기존 UI 유지) ── */}
                             <div className="relative" ref={dropdownRef}><label className="block text-xs font-bold text-slate-500 mb-1">직원 검색 및 선택</label><input type="text" className="w-full border rounded-xl p-3 text-sm bg-white outline-none focus:ring-2 focus:ring-blue-100 transition" placeholder={isEdit ? "" : "직원 이름 검색..."} value={staffSearch} onChange={(e) => { setStaffSearch(e.target.value); setIsStaffDropdownOpen(true); setSelectedStaffId(''); }} onFocus={() => { if(!isEdit) setIsStaffDropdownOpen(true); }} disabled={isEdit} required />
-                                {isStaffDropdownOpen && !isEdit && (<div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">{filteredStaffList.length > 0 ? filteredStaffList.map(s => (<div key={s.id} className="p-3 text-sm hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-slate-50" onClick={() => { setSelectedStaffId(s.id); setStaffSearch(s.name); setIsStaffDropdownOpen(false); }}><span className="font-bold text-slate-800">{s.name}</span> <span className="text-slate-500 text-xs">(일 {fmt(getWorkHoursForDate(s, toLocalYMD(new Date())))}h)</span></div>)) : <div className="p-3 text-sm text-slate-400 text-center">검색 결과가 없습니다.</div>}</div>)}
+                                {isStaffDropdownOpen && !isEdit && (<div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">{filteredStaffList.length > 0 ? filteredStaffList.map(s => (<div key={s.id} className="p-3 text-sm hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-slate-50" onClick={() => { setSelectedStaffId(s.id); setStaffSearch(s.name); setIsStaffDropdownOpen(false); }}><span className="font-bold text-slate-800">{s.name}</span> <span className="text-slate-500 text-xs">(일 {fmt(getWorkHoursForDate(s, toLocalYMD(nowKST())))}h)</span></div>)) : <div className="p-3 text-sm text-slate-400 text-center">검색 결과가 없습니다.</div>}</div>)}
                             </div>
                             {/* [v6.30.0-beta1 신규] 선택된 직원의 근무시간 변경 정보 (기존 시간 → 변경 시간 · 변경일자) */}
                             {selectedStaff && latestWhChange && (
@@ -3845,12 +4100,41 @@
                             )}
                             {/* ── 최종 등록/수정 버튼 (PC에서는 우측 컬럼 하단에 고정되도록 mt-auto) ── */}
                             <div className="md:mt-auto md:pt-2">
-                                <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95">
+                                {/* [v6.36.0-beta1] 대조에서 열었을 때만 나타나는 '오차 맞추기' 안내판 */}
+                                {lockTargetHours > 0 && (
+                                    <div className={`mb-2 rounded-xl border px-4 py-3 ${lockMatched ? 'bg-green-50 border-green-200' : (unlockMismatch ? 'bg-slate-50 border-slate-200' : 'bg-amber-50 border-amber-200')}`}>
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <p className="text-xs font-black text-slate-700">
+                                                대조 오차 <span className="text-blue-700">{fmt(lockTargetHours)}h</span>
+                                                <span className="text-slate-400 mx-1">·</span>
+                                                지금 등록될 <span className={lockMatched ? 'text-green-600' : 'text-amber-700'}>{fmt(plannedTotalHours)}h</span>
+                                            </p>
+                                            {lockMatched
+                                                ? <span className="px-2 py-0.5 rounded-lg text-[11px] font-black bg-green-600 text-white">✅ 일치</span>
+                                                : <span className="px-2 py-0.5 rounded-lg text-[11px] font-black bg-amber-500 text-white">{lockGap < 0 ? `${fmt(Math.abs(lockGap))}h 부족` : `${fmt(lockGap)}h 초과`}</span>}
+                                        </div>
+                                        {!lockMatched && (
+                                            <p className="text-[11px] font-bold text-amber-700 mt-1">
+                                                {cart.length > 0
+                                                    ? '담은 목록의 합계로 판단합니다. 지금 입력한 날짜는 [목록에 담기] 를 눌러야 합계에 포함됩니다.'
+                                                    : '날짜 수 × 차감 시간이 오차와 같아져야 등록할 수 있습니다. (예: 8h → 4h씩 2일)'}
+                                            </p>
+                                        )}
+                                        <label className="flex items-center gap-2 cursor-pointer select-none mt-2">
+                                            <input type="checkbox" checked={unlockMismatch} onChange={(e) => setUnlockMismatch(e.target.checked)} className="w-4 h-4 accent-slate-600" />
+                                            <span className="text-[11px] font-bold text-slate-600">오차와 다르게 등록 (엑셀이 틀렸거나 일부만 넣을 때)</span>
+                                        </label>
+                                    </div>
+                                )}
+                                <button type="submit" disabled={lockActive}
+                                    className="w-full bg-blue-600 text-white py-4 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 active:scale-95 disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100">
                                     {isEdit
                                         ? '수정 내용 저장'
-                                        : (cart.length > 0
-                                            ? `담은 ${cart.length}건 전체 등록하기 (총 ${cartTotalDays}일)`
-                                            : `연차 등록하기 ${validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}`)}
+                                        : (lockActive
+                                            ? `오차와 ${lockGap < 0 ? fmt(Math.abs(lockGap)) + 'h 부족' : fmt(lockGap) + 'h 초과'} — 맞추면 등록됩니다`
+                                            : (cart.length > 0
+                                                ? `담은 ${cart.length}건 전체 등록하기 (총 ${cartTotalDays}일)`
+                                                : `연차 등록하기 ${validDates.length > 0 && !blockingError ? `(${validDates.length}일 · 각 ${fmt(deductHours)}h)` : ''}`))}
                                 </button>
                                 {msg && <p className="text-xs text-center font-bold text-red-500 mt-2">{msg}</p>}
                             </div>
@@ -3874,7 +4158,7 @@
             const dailyHours = safeParseFloat(userData?.workHours) || 8;
             // 과거 신청 가능 범위: (당월 - 2개월)의 1일 ~ (당월 1일의 하루 전 = 전월 말일)
             const { minDateStr, maxDateStr } = useMemo(() => {
-                const now = new Date();
+                const now = nowKST();
                 const minD = new Date(now.getFullYear(), now.getMonth() - 2, 1);
                 const maxD = new Date(now.getFullYear(), now.getMonth(), 0); // 전월 말일
                 return { minDateStr: toLocalYMD(minD), maxDateStr: toLocalYMD(maxD) };
@@ -3985,9 +4269,9 @@
             if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1">⇅</span>;
             return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? <Icons.SortAsc /> : <Icons.SortDesc />}</span>;
         };
-        const LeaveManagementTab = ({ staffList, allStaffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert }) => {
+        const LeaveManagementTab = ({ staffList, allStaffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert, isLeaveModalOpen = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
-            const [selectedYear, setSelectedYear] = useState(new Date().getFullYear() - 1);
+            const [selectedYear, setSelectedYear] = useState(nowKST().getFullYear() - 1);
             const [showNegativeOnly, setShowNegativeOnly] = useState(false);
             const [showCheckOnly, setShowCheckOnly] = useState(false);
             // [v6.31.0-beta1 신규] '작년부터 이어지는 대상기간'만 보기 (연차 관리 탭 전용)
@@ -4000,7 +4284,7 @@
             const [showAdvancedAuditModal, setShowAdvancedAuditModal] = useState(false);
             // [v6.31.0-beta1] 이 필터를 쓸 수 있는 화면인지 (과년도·퇴사자 탭에서는 의미가 없어 표시하지 않음)
             const canUseCarryOver = !isPastMode && !isResignedTab;
-            const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setShowCarryOverOnly(false); setShowExpiringOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(new Date().getFullYear() - 1); };
+            const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setShowCarryOverOnly(false); setShowExpiringOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(nowKST().getFullYear() - 1); };
             // [v6.32.0-beta3] '전체 연차 초기화'는 되돌릴 수 없는 위험 작업이라,
             //   매일 쓰는 [연차 관리] 화면에서 빼고 [데이터 관리] 탭의 위험 구역으로 옮겼습니다.
             //   (기능·처리 방식은 그대로이며 SettingsTab 안에 있습니다)
@@ -4089,12 +4373,12 @@
                 <div className="space-y-6 relative">
                     {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} />}
-                    {showAdvancedAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={false} />}
+                    {showAdvancedAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={onOpenModal} onEditClick={onEditClick} adminName={adminName} isLeaveModalOpen={isLeaveModalOpen} defaultPromoFilter={false} />}
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
                                 <div><h3 className="font-bold text-lg text-slate-800">{isPastMode ? '과년도' : '연차 관리'}</h3><p className="text-xs text-slate-500 font-bold">시간 단위(Hour) 관리 · 총 <span className="text-blue-600">{filteredList.length}</span>명{canUseCarryOver && carryOverCount > 0 && <span> · 작년부터 이어짐 <span className="text-purple-600">{carryOverCount}</span>명</span>}{canUseCarryOver && expiringCount > 0 && <span> · 만료 임박 <span className="text-rose-600">{expiringCount}</span>명</span>}</p></div>
-                                {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}년</option>; })}</select>)}
+                                {isPastMode && (<select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-white border rounded-lg px-3 py-1.5 outline-none">{[...Array(5)].map((_, i) => { const y = nowKST().getFullYear() - i; return <option key={y} value={y}>{y}년</option>; })}</select>)}
                             </div>
                             <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                                 {/* [v6.31.0-beta1 신규] 연차 산정 대상기간이 '작년에 시작해 올해 끝나는' 직원만 보기 */}
@@ -4357,7 +4641,7 @@
                         // ── 여기서는 '계획'만 만들고 저장하지 않습니다 ──
                         const plan = { fileName: file.name, excelRows: excelStaffs.length, updates: [], restores: [], resigns: [], creates: [] };
                         const matchedIdx = new Set();
-                        const todayStr = toLocalYMD(new Date());
+                        const todayStr = toLocalYMD(nowKST());
                         staffList.forEach(dbStaff => {
                             const normDbName = normalizeString(dbStaff.name);
                             const idx = excelStaffs.findIndex((es, i) => !matchedIdx.has(i) && es.normName === normDbName);
@@ -4467,12 +4751,12 @@
                 });
             };
             const handleDownloadAccountInfo = () => {
-                const wsData = [ ['양지누림 직원 계정 안내 정보'], [`출력 일자: ${new Date().toLocaleDateString()}`], [], ['이름', '연락처', '로그인 ID', '초기 비밀번호', '계정 상태'] ];
+                const wsData = [ ['양지누림 직원 계정 안내 정보'], [`출력 일자: ${nowKST().toLocaleDateString()}`], [], ['이름', '연락처', '로그인 ID', '초기 비밀번호', '계정 상태'] ];
                 processedStaffList.forEach(s => wsData.push([ s.name, s.phone || '미입력', s.employeeId ? `${s.employeeId}@ygnurim.com` : '미발급', s.tempPw || '미발급', s.authStatus === 'success' ? '발급완료' : '미발급' ]));
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 ws['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "계정정보");
-                XLSX.writeFile(wb, `양지누림_직원계정안내_${toLocalYMD(new Date()).replace(/-/g, '')}.xlsx`);
+                XLSX.writeFile(wb, `양지누림_직원계정안내_${toLocalYMD(nowKST()).replace(/-/g, '')}.xlsx`);
             };
             const getSecondaryApp = () => firebase.apps.find(a => a.name === 'Secondary') ? firebase.app('Secondary') : firebase.initializeApp(firebaseConfig, 'Secondary');
             const issueAccount = async (staff, secondaryApp, assignedEmails) => {
@@ -4730,7 +5014,7 @@
         // ── ① [금일 휴가자] 팝업 ──
         const TodayLeaveModal = ({ staffList, adminName, onEditClick, onClose, showAlert, showConfirm }) => {
             const [busy, setBusy] = useState('');
-            const todayStr = toLocalYMD(new Date());
+            const todayStr = toLocalYMD(nowKST());
             const rows = useMemo(() => {
                 const list = [];
                 (staffList || []).forEach(staff => {
@@ -5003,7 +5287,7 @@
             // 서식 2의 표는 최소 10줄을 유지해 서식 형태가 무너지지 않게 합니다.
             const rows = [...items];
             while (rows.length < 10) rows.push(null);
-            const submittedYmd = String(plan.submittedAt || '').substring(0, 10);
+            const submittedYmd = kstText(plan.submittedAt, 'date');
             // [v6.29.0-beta1 버그수정] 1년 미만 촉진은 '이번 통지 대상 몫'을 미사용 연차로 표기
             const hasPortion = plan.promoCategory === 'under1'
                 && plan.portionRemainingHours !== undefined && plan.portionRemainingHours !== null;
@@ -5142,7 +5426,7 @@
                                 {/* [v6.30.0-beta3] v6.29.0-beta2 에서 제거했던 '문서번호' 표기가
                                     v6.30.0-beta1 분기 과정에서 되살아나 있었습니다. 다시 제거하고
                                     제출 일시만 남깁니다. */}
-                                (제출 일시 {String(plan.submittedAt || '').replace('T', ' ').substring(0, 19)})
+                                (제출 일시 {kstText(plan.submittedAt, 'full')})
                             </p>
                         </div>
                     </div>
@@ -5232,7 +5516,7 @@
             // 화면이 좁으면 기본 배율을 낮춰 문서 전체가 한눈에 들어오게 합니다.
             const [scale, setScale] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 900) ? 0.5 : 0.9);
             useEscClose(onClose, !busy);
-            const fileName = `연차사용계획서_${plan.staffName || ''}_${String(plan.submittedAt || '').substring(0, 10)}.pdf`;
+            const fileName = `연차사용계획서_${plan.staffName || ''}_${kstText(plan.submittedAt, 'date')}.pdf`;
             const handlePrint = () => {
                 // 브라우저 인쇄창 → 사용자가 '대상: PDF로 저장'을 골라도 됩니다.
                 setTimeout(() => { try { window.print(); } catch (e) { showAlert('인쇄창을 열지 못했습니다: ' + e.message); } }, 60);
@@ -5266,7 +5550,7 @@
                                 <div className="min-w-0">
                                     <h3 className="font-black text-slate-800 text-base md:text-lg truncate">연차 사용 계획서 미리보기</h3>
                                     <p className="text-[11px] md:text-xs font-bold text-slate-500 mt-0.5 truncate">
-                                        {plan.staffName} · {plan.promoType} · 제출 {String(plan.submittedAt || '').replace('T', ' ').substring(0, 16)}
+                                        {plan.staffName} · {plan.promoType} · 제출 {kstText(plan.submittedAt, 'datetime')}
                                     </p>
                                 </div>
                                 <button type="button" onClick={onClose} disabled={busy} className="text-slate-400 hover:text-slate-600 transition disabled:opacity-40 shrink-0"><Icons.X /></button>
@@ -5496,14 +5780,14 @@
             const monthOptions = useMemo(() => {
                 const counts = {};
                 allPlans.forEach(p => {
-                    const ym = String(p.submittedAt || '').substring(0, 7);
+                    const ym = kstText(p.submittedAt, 'ym');
                     if (ym.length === 7) counts[ym] = (counts[ym] || 0) + 1;
                 });
                 return Object.keys(counts).sort().reverse().map(ym => ({ ym, count: counts[ym] }));
             }, [allPlans]);
             const filtered = useMemo(() => allPlans.filter(p => {
                 if (categoryFilter !== 'all' && p.promoCategory !== categoryFilter) return false;
-                if (monthFilter !== 'all' && String(p.submittedAt || '').substring(0, 7) !== monthFilter) return false;
+                if (monthFilter !== 'all' && kstText(p.submittedAt, 'ym') !== monthFilter) return false;
                 if (search && !String(p.staffName || '').includes(search)) return false;
                 return true;
             }), [allPlans, categoryFilter, monthFilter, search]);
@@ -5513,7 +5797,7 @@
                     .map(it => `· ${it.date} ${planUnitLabel(it.unit)} ${fmt(it.hours)}시간`).join('\n');
                 showConfirm(
                     `[${plan.staffName}] 님이 제출한 계획서를 삭제하시겠습니까?\n\n` +
-                    `· 촉진 구분: ${plan.promoType}\n· 제출일: ${String(plan.submittedAt || '').substring(0, 10)}\n` +
+                    `· 촉진 구분: ${plan.promoType}\n· 제출일: ${kstText(plan.submittedAt, 'date')}\n` +
                     `· 계획 내용:\n${itemLines}\n\n` +
                     `삭제하면 해당 직원의 '계획서 제출 완료' 체크가 해제되어 직원이 다시 제출할 수 있습니다.\n` +
                     `이 작업은 되돌릴 수 없습니다. (삭제 이력은 감사 로그에 남습니다)`,
@@ -5535,7 +5819,7 @@
                 try {
                     const opt = {
                         margin: 10,
-                        filename: `연차사용계획서_${plan.staffName}_${String(plan.submittedAt || '').substring(0, 10)}.pdf`,
+                        filename: `연차사용계획서_${plan.staffName}_${kstText(plan.submittedAt, 'date')}.pdf`,
                         image: { type: 'jpeg', quality: 1.0 },
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -5597,7 +5881,7 @@
                                                     <span className="text-[11px] font-bold text-slate-400">{plan.period}</span>
                                                 </div>
                                                 <p className="text-[11px] font-bold text-slate-500">
-                                                    제출 {String(plan.submittedAt || '').replace('T', ' ').substring(0, 16)} · 지정 {(plan.items || []).length}일 ·
+                                                    제출 {kstText(plan.submittedAt, 'datetime')} · 지정 {(plan.items || []).length}일 ·
                                                     <span className="text-blue-600 font-black ml-1">합계 {fmt(sumPlanItems(plan.items, plan.dailyHours).hours)}시간</span> ·
                                                     <span className="ml-1">미사용 {fmt(plan.remainingDays)}일</span> · 서명 <b className="text-slate-700">{plan.signature}</b>
                                                 </p>
@@ -5707,7 +5991,7 @@
             const promoCategory = row.promoStatus.promoCategory;
             const portion = row.promoStatus.portion;
             const deadlineDate = row.promoStatus.deadlineDate;
-            const sentYmd = notice ? String(notice.sentAt || '').substring(0, 10) : toLocalYMD(new Date());
+            const sentYmd = notice ? kstText(notice.sentAt, 'date') : toLocalYMD(nowKST());
             const rawDates = notice ? (notice.designatedDates || []) : (previewDesignatedDates || []);
             const paddedDates = [...rawDates];
             while (paddedDates.length < 5) paddedDates.push({ month: '', date: '', days: '' });
@@ -5796,7 +6080,7 @@
                             </p>
                             {notice && (
                                 <p style={{ fontSize: '9px', color: '#6b7280', marginTop: '5px' }}>
-                                    ※ 본 통보서는 양지누림 연차 관리 시스템을 통해 {String(notice.sentAt || '').replace('T', ' ').substring(0, 19)}에 발송되었습니다. (발송자 {notice.sentBy})
+                                    ※ 본 통보서는 양지누림 연차 관리 시스템을 통해 {kstText(notice.sentAt, 'full')}에 발송되었습니다. (발송자 {notice.sentBy})
                                 </p>
                             )}
                         </div>
@@ -5804,8 +6088,8 @@
                 </div>
             );
         };
-        const PromotionTab = ({ staffList, allStaffList, showAlert, showConfirm, onOpenModal, adminName }) => {
-            const today = new Date();
+        const PromotionTab = ({ staffList, allStaffList, showAlert, showConfirm, onOpenModal, onEditClick, adminName, isLeaveModalOpen = false }) => {
+            const today = nowKST();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             const [startMonth, setStartMonth] = useState(defaultMonth);
             const [endMonth, setEndMonth] = useState(defaultMonth);
@@ -5875,7 +6159,7 @@
                             //   매월 10일 게이트를 면제합니다(실제 직원에게는 종전과 동일하게 적용).
                             const canSendByDate = status.isDemo
                                 ? true
-                                : (toLocalYMD(new Date()) >= toLocalYMD(sendGateDateObj));
+                                : (toLocalYMD(nowKST()) >= toLocalYMD(sendGateDateObj));
                             rows.push(Object.assign({}, staff, {
                                 rowKey,
                                 pdfId: `pdf-content-${staff.id}-${status.baseYear}-${status.portion}-${status.step}`,
@@ -6052,7 +6336,7 @@
                 XLSX.writeFile(wb, `1차촉진_통보대상_${viewTag}_${startMonth}_to_${endMonth}.xlsx`);
             };
             const generateDesignatedDates = (remainingDays, offDays = [0], leaveInfo) => {
-                const start = new Date(); start.setDate(start.getDate() + 7);
+                const start = nowKST(); start.setDate(start.getDate() + 7);
                 let endDateObj = null;
                 if (leaveInfo && leaveInfo.endDate) { const [ey, em, ed] = leaveInfo.endDate.split('-').map(Number); endDateObj = new Date(ey, em - 1, ed); }
                 const pool = [];
@@ -6209,7 +6493,7 @@
                             <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div><h2 className="text-2xl font-bold">통보서 압축 파일(ZIP) 생성 중...</h2><p className="mt-2 text-blue-200">대상자가 많을 경우 다소 시간이 소요될 수 있습니다.</p>
                         </div>
                     )}
-                    {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} defaultPromoFilter={true} />}
+                    {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={onOpenModal} onEditClick={onEditClick} adminName={adminName} isLeaveModalOpen={isLeaveModalOpen} defaultPromoFilter={true} />}
                     {previewNoticeRow && <PromotionNoticePreviewModal row={previewNoticeRow} onClose={() => setPreviewNoticeRow(null)} showAlert={showAlert}
                         previewDesignatedDates={previewNoticeRow.promoStatus.step === 2 ? getStableDesignatedDates(previewNoticeRow) : null} />}
                     {/* ═══ [v6.26.0-beta1 신규] 상위 뷰 전환 : 통보 관리 ↔ 제출된 계획서 관리 ═══ */}
@@ -6407,7 +6691,7 @@
                                                 {staff.isNoticeSent ? (
                                                     <div>
                                                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">발송됨</span>
-                                                        <p className="text-[9px] font-bold text-slate-400 mt-1">{String(staff.sentNotice.sentAt || '').substring(0, 10)}</p>
+                                                        <p className="text-[9px] font-bold text-slate-400 mt-1">{kstText(staff.sentNotice.sentAt, 'date')}</p>
                                                         <button type="button" onClick={() => setPreviewNoticeRow(staff)} className="mt-1 text-[10px] font-bold text-blue-600 underline">미리보기</button>
                                                         <button type="button" disabled={!!sendingKey} onClick={() => handleCancelNotice(staff)} className="mt-1 block w-full text-[10px] font-bold text-red-500 underline disabled:opacity-40">발송 취소</button>
                                                     </div>
@@ -6532,6 +6816,7 @@
             const filtered = useMemo(() => {
                 if (!logs) return [];
                 const cutoff = dayRange === 'all' ? '' : (() => {
+                    // 저장된 값이 UTC ISO 문자열이므로, 기준선도 같은 UTC 로 계산해 비교합니다.
                     const d = new Date(); d.setDate(d.getDate() - Number(dayRange));
                     return d.toISOString();
                 })();
@@ -6566,10 +6851,10 @@
             const handleDownload = () => {
                 if (!filtered.length) { showAlert('내려받을 이력이 없습니다.'); return; }
                 const wsData = [['양지누림 연차 시스템 변경 이력(감사 로그)'],
-                    [`출력 일자: ${new Date().toLocaleDateString()} / 표시 ${filtered.length}건 (불러온 ${logs.length}건 중)`], [],
+                    [`출력 일자: ${nowKST().toLocaleDateString()} / 표시 ${filtered.length}건 (불러온 ${logs.length}건 중)`], [],
                     ['일시', '대상 직원', '구분', '작업', '작업자', '내용 요약', '변경 전', '변경 후', '시스템 버전']];
                 filtered.forEach(l => wsData.push([
-                    String(l.timestamp || '').replace('T', ' ').substring(0, 19),
+                    kstText(l.timestamp, 'full'),
                     l.targetStaffName || '', (AUDIT_DOMAIN_LABEL[l.domain || 'LEAVE'] || {}).label || l.domain || '',
                     (AUDIT_ACTION_LABEL[l.actionType] || {}).label || l.actionType || '',
                     l.adminName || '', summarize(l),
@@ -6580,7 +6865,7 @@
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 30 }, { wch: 40 }, { wch: 40 }, { wch: 14 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '변경이력');
-                XLSX.writeFile(wb, `양지누림_변경이력_${toLocalYMD(new Date())}.xlsx`);
+                XLSX.writeFile(wb, `양지누림_변경이력_${toLocalYMD(nowKST())}.xlsx`);
             };
             return (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -6654,7 +6939,7 @@
                                                 return (
                                                     <React.Fragment key={l.id}>
                                                         <tr className="hover:bg-slate-50 transition">
-                                                            <td className="p-3 text-xs font-bold text-slate-500">{String(l.timestamp || '').replace('T', ' ').substring(0, 16)}</td>
+                                                            <td className="p-3 text-xs font-bold text-slate-500">{kstText(l.timestamp, 'datetime')}</td>
                                                             <td className="p-3 font-bold text-slate-800">{l.targetStaffName || '-'}</td>
                                                             <td className="p-3 text-center"><span className={`px-2 py-1 rounded-lg text-[11px] font-black border ${dom.color}`}>{dom.label}</span></td>
                                                             <td className="p-3 text-center"><span className={`px-2 py-1 rounded-lg text-[11px] font-black ${act.color}`}>{act.label}</span></td>
@@ -6712,7 +6997,7 @@
             const [openKey, setOpenKey] = useState('');
             const report = useMemo(() => {
                 const isOut = (s) => s.status === 'resigned' || !!(s.resignDate && String(s.resignDate).trim());
-                const todayStr = toLocalYMD(new Date());
+                const todayStr = toLocalYMD(nowKST());
                 const groups = {
                     negative:   { title: '잔여 연차 마이너스', desc: '발생한 연차보다 많이 사용한 상태입니다. 대조 오류이거나 실제 초과 사용일 수 있습니다.', where: '[연차 관리] 탭 · 초과자만 필터', items: [] },
                     dup:        { title: '같은 날 2건 이상 등록', desc: '중복 입력일 가능성이 높습니다. 실제로 오전·오후를 나눠 등록한 경우라면 정상입니다.', where: '[연차 관리] 탭 · 중복 확인 필터', items: [] },
@@ -6786,7 +7071,7 @@
             }, [allStaffList]);
             const handleDownload = () => {
                 if (!report.totalIssues) { showAlert('내려받을 점검 결과가 없습니다.'); return; }
-                const wsData = [['양지누림 연차 시스템 건강검진 결과'], [`점검 일자: ${new Date().toLocaleDateString()} / 대상 ${report.checked}명 / 발견 ${report.totalIssues}건`], [], ['점검 항목', '직원명', '내용', '어디서 고치나']];
+                const wsData = [['양지누림 연차 시스템 건강검진 결과'], [`점검 일자: ${nowKST().toLocaleDateString()} / 대상 ${report.checked}명 / 발견 ${report.totalIssues}건`], [], ['점검 항목', '직원명', '내용', '어디서 고치나']];
                 Object.keys(report.groups).forEach(k => {
                     const g = report.groups[k];
                     g.items.forEach(it => wsData.push([g.title, it.name, it.detail, g.where]));
@@ -6794,7 +7079,7 @@
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 ws['!cols'] = [{ wch: 24 }, { wch: 12 }, { wch: 50 }, { wch: 30 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '건강검진');
-                XLSX.writeFile(wb, `양지누림_건강검진_${toLocalYMD(new Date())}.xlsx`);
+                XLSX.writeFile(wb, `양지누림_건강검진_${toLocalYMD(nowKST())}.xlsx`);
             };
             const keys = Object.keys(report.groups);
             return (
@@ -6924,7 +7209,7 @@
                 setIsProcessing(true);
                 try {
                     const snapshot = await db.collection('users').get();
-                    const limit = new Date().getFullYear() - MIN_WORK_AGE;
+                    const limit = nowKST().getFullYear() - MIN_WORK_AGE;
                     const found = [];
                     snapshot.docs.forEach(doc => {
                         const d = doc.data();
@@ -6969,7 +7254,7 @@
                     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
-                    a.download = `ygnurim_db_backup_${toLocalYMD(new Date()).replace(/-/g, '')}.json`;
+                    a.download = `ygnurim_db_backup_${toLocalYMD(nowKST()).replace(/-/g, '')}.json`;
                     a.click();
                     showAlert("✅ 데이터베이스 백업 파일이 다운로드되었습니다.");
                 } catch (e) { showAlert("❌ 백업 실패: " + e.message); }
@@ -7206,7 +7491,7 @@
                                         <td className="p-4 text-center font-bold text-slate-700">{row.req.date}</td>
                                         <td className="p-4 text-center font-bold text-red-500">{fmt(row.req.days)}h <span className="text-[10px] font-normal text-slate-400">({row.req.type})</span></td>
                                         <td className="p-4 text-xs text-slate-500">{row.req.reason || <span className="text-slate-300">(사유 없음)</span>}</td>
-                                        <td className="p-4 text-center text-[11px] text-slate-400">{(row.req.requestedAt || row.req.createdAt || '').replace('T', ' ').substring(0, 16)}</td>
+                                        <td className="p-4 text-center text-[11px] text-slate-400">{kstText(row.req.requestedAt || row.req.createdAt, 'datetime')}</td>
                                         <td className="p-4">
                                             <div className="flex justify-center gap-2">
                                                 <button onClick={() => handleApprove(row)} disabled={processingId === row.req.id} className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 transition shadow-sm flex items-center gap-1 disabled:opacity-50"><Icons.CheckCircle /> 승인</button>
@@ -7306,7 +7591,7 @@
         };
         // [v6.12.0] 직원 본인 달력형 휴가 내역
         const StaffLeaveCalendar = ({ history, dailyHours, onSelect, onBulkDelete }) => {
-            const [currentDate, setCurrentDate] = useState(new Date());
+            const [currentDate, setCurrentDate] = useState(nowKST());
             const [selectMode, setSelectMode] = useState(false);
             const [checkedIds, setCheckedIds] = useState([]);
             const year = currentDate.getFullYear(); const month = currentDate.getMonth();
@@ -7320,7 +7605,7 @@
                 return map;
             }, [history, prefix]);
             const weeks = useMemo(() => buildWeeks(year, month), [year, month]);
-            const todayStr = toLocalYMD(new Date());
+            const todayStr = toLocalYMD(nowKST());
             const toggleCheck = (id) => setCheckedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
             const exitSelectMode = () => { setSelectMode(false); setCheckedIds([]); };
             const handleBlockClick = (l) => { if (selectMode) toggleCheck(l.id); else onSelect && onSelect(l); };
@@ -7335,7 +7620,7 @@
                         <button type="button" onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronLeft /></button>
                         <div className="flex items-center gap-2">
                             <span className="font-black text-slate-800 text-sm">{year}년 {month + 1}월</span>
-                            <button type="button" onClick={() => setCurrentDate(new Date())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">이번 달</button>
+                            <button type="button" onClick={() => setCurrentDate(nowKST())} className="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-md hover:bg-blue-100 transition">이번 달</button>
                         </div>
                         <button type="button" onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition"><Icons.ChevronRight /></button>
                     </div>
@@ -7426,14 +7711,14 @@
 
             // 달력이 처음 열릴 때 보여줄 달 — 오늘이 산정기간 안이면 오늘, 아니면 기간 시작월
             const initialView = useMemo(() => {
-                const t = toLocalYMD(new Date());
+                const t = toLocalYMD(nowKST());
                 if (t < leaveInfo.startDate) return leaveInfo.startDate;
                 if (t > leaveInfo.endDate) return leaveInfo.endDate;
                 return t;
             }, [leaveInfo]);
             // [버그수정] 계획 가능 최소 날짜 = 산정기간 시작일과 '오늘' 중 더 늦은 날
             const planMinDate = useMemo(() => {
-                const t = toLocalYMD(new Date());
+                const t = toLocalYMD(nowKST());
                 return t > leaveInfo.startDate ? t : leaveInfo.startDate;
             }, [leaveInfo]);
             const sortedDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
@@ -7787,7 +8072,7 @@
                                     </div>
                                     <p className="text-[11px] font-bold text-slate-500 mt-3 leading-relaxed bg-blue-50 border border-blue-100 rounded-lg px-3 py-2.5">
                                         위와 같이 연차유급휴가 사용 계획을 제출합니다.<br />
-                                        제출일: <b>{toKoreanDate(toLocalYMD(new Date()))}</b> · 작성자: <b>{userData.name}</b>
+                                        제출일: <b>{toKoreanDate(toLocalYMD(nowKST()))}</b> · 작성자: <b>{userData.name}</b>
                                     </p>
                                 </div>
                             )}
@@ -7871,7 +8156,7 @@
                                                 </p>
                                                 {st.sentNotice && (
                                                     <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                                        📨 {String(st.sentNotice.sentAt || '').substring(0, 10)}에 발송된 통보입니다.
+                                                        📨 {kstText(st.sentNotice.sentAt, 'date')}에 발송된 통보입니다.
                                                         {st.step === 1 && (
                                                             <button type="button" onClick={() => onPreviewNotice && onPreviewNotice(st)}
                                                                 className="ml-1.5 text-blue-600 underline">통보서 원문 보기</button>
@@ -7995,7 +8280,7 @@
                                             <span className="text-xs font-black text-blue-600">총 {fmt(sumPlanItems(p.items, p.dailyHours).hours)}시간 <span className="text-slate-400">({fmt(sumPlanItems(p.items, p.dailyHours).days)}일)</span></span>
                                         </div>
                                         <p className="text-[11px] font-bold text-slate-500 mt-1">
-                                            제출 {String(p.submittedAt || '').substring(0, 10)} · 서명 {p.signature} · {(p.items || []).length}일 지정
+                                            제출 {kstText(p.submittedAt, 'date')} · 서명 {p.signature} · {(p.items || []).length}일 지정
                                         </p>
                                         <p className="text-[11px] font-bold text-slate-400 mt-1 break-all">
                                             {sumPlanItems(p.items, p.dailyHours).list.map(it => `${it.date}(${planUnitLabel(it.unit)} ${fmt(it.hours)}h)`).join(', ')}
@@ -8060,7 +8345,7 @@
             }, []);
             // [v6.30.0-beta1] '오늘' 기준 하루 근무시간(대시보드 통계 등에서 사용) — 실제 연차 등록 시의 차감 계산은
             //   아래 fullDayHours(선택한 날짜 기준)를 따로 계산해 사용합니다.
-            const dailyHours = getWorkHoursForDate(userData, toLocalYMD(new Date()));
+            const dailyHours = getWorkHoursForDate(userData, toLocalYMD(nowKST()));
             const leaveStats = useMemo(() => {
                 if (!userData || !userData.joinDate) return null;
                 const leaveInfo = calculateAnnualLeave(userData.joinDate);
@@ -8086,7 +8371,7 @@
             // ────────────────────────────────────────────────────────────────
             const myPromoList = useMemo(() => {
                 if (!userData || !userData.joinDate) return [];
-                const now = new Date();
+                const now = nowKST();
                 const list = []; const seen = new Set();
                 for (let offset = -1; offset <= 1; offset++) {
                     const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
@@ -8122,7 +8407,7 @@
             }, [validDates, userData]);
             const useTimeInput = !isConsecutiveRange || forceTimeInput;
             // [v6.30.0-beta1] '하루 전체' 차감 시간도 오늘이 아니라 실제 선택한 날짜 기준으로 정확히 계산합니다.
-            const fullDayHours = getWorkHoursForDate(userData, validDates[0] || toLocalYMD(new Date()));
+            const fullDayHours = getWorkHoursForDate(userData, validDates[0] || toLocalYMD(nowKST()));
             const deductHours = useTimeInput ? calc.hours : fullDayHours;
             const ratio = dailyHours > 0 ? Math.min(1, deductHours / dailyHours) : 0;
             // [v6.30.0-beta1 신규] 화면에 보여줄 '기존 근무시간 → 변경 근무시간 · 변경일자' 정보 (직원 본인 포털)
@@ -8398,7 +8683,7 @@
                         {/* [v6.17.0] 월별 마감 안내 — 직원은 당월 1일부터만 등록/수정 가능 */}
                         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2 text-[11px] md:text-xs font-bold text-blue-700">
                             <span className="text-sm leading-none mt-0.5">🔒</span>
-                            <span>이번 달 <b>{new Date().getMonth() + 1}월 1일</b>부터의 연차만 직접 등록·수정할 수 있어요. 지난달 이전 내역 변경이 필요하면 관리자에게 요청해주세요. <span className="font-normal text-blue-500">(달력의 미래 날짜 연차는 지금 바로 잔여에서 차감되며 <span className="text-orange-500 font-bold">'예정'</span>으로 표시됩니다)</span></span>
+                            <span>이번 달 <b>{nowKST().getMonth() + 1}월 1일</b>부터의 연차만 직접 등록·수정할 수 있어요. 지난달 이전 내역 변경이 필요하면 관리자에게 요청해주세요. <span className="font-normal text-blue-500">(달력의 미래 날짜 연차는 지금 바로 잔여에서 차감되며 <span className="text-orange-500 font-bold">'예정'</span>으로 표시됩니다)</span></span>
                         </div>
                         {/* [v6.30.0-beta1 신규] 근무시간 변경 안내 — 기존 시간 → 변경 시간 · 변경일자 */}
                         {latestWhChange && (
@@ -8517,7 +8802,7 @@
                                                 <div key={req.id} className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
                                                     <div className="min-w-0">
                                                         <p className="font-bold text-slate-800 text-sm">{req.date} <span className="text-amber-600 font-black ml-1">{fmt(req.days)}시간</span> <span className="text-[11px] font-normal text-slate-500">({req.type})</span></p>
-                                                        <p className="text-[11px] text-slate-500 font-bold mt-0.5">{req.reason ? req.reason : '(사유 없음)'} · 요청일 {String(req.requestedAt || req.createdAt || '').substring(0, 10)}</p>
+                                                        <p className="text-[11px] text-slate-500 font-bold mt-0.5">{req.reason ? req.reason : '(사유 없음)'} · 요청일 {kstText(req.requestedAt || req.createdAt, 'date')}</p>
                                                     </div>
                                                     <button type="button" onClick={() => handleCancelPendingRequest(req)} className="flex-shrink-0 bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition">요청 취소</button>
                                                 </div>
@@ -8533,7 +8818,7 @@
                                                 <div key={req.id} className="bg-red-50 border border-red-200 rounded-xl p-3">
                                                     <p className="font-bold text-slate-800 text-sm">{req.date} <span className="text-red-500 font-black ml-1">{fmt(req.days)}시간</span> <span className="text-[11px] font-normal text-slate-500">({req.type})</span></p>
                                                     <p className="text-[11px] text-red-600 font-bold mt-1">반려 사유: {req.rejectReason || '(사유 없음)'}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">반려일 {String(req.rejectedAt || '').substring(0, 10)}</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">반려일 {kstText(req.rejectedAt, 'date')}</p>
                                                 </div>
                                             ))}
                                         </div>
@@ -8559,7 +8844,7 @@
             if (!ymd || String(ymd).length < 10) return null;
             const [y, m, d] = String(ymd).split('-').map(Number);
             if (!y || !m || !d) return null;
-            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const today = nowKST(); today.setHours(0, 0, 0, 0);
             const target = new Date(y, m - 1, d); target.setHours(0, 0, 0, 0);
             return Math.round((target - today) / 86400000);
         };
@@ -8567,7 +8852,7 @@
             if (!staff) return null;
             const info = calculateAnnualLeave(staff.joinDate);
             if (!info || info.notJoined || !info.endDate || info.endDate.length < 10) return null;
-            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const today = nowKST(); today.setHours(0, 0, 0, 0);
             const [ey, em, ed] = info.endDate.split('-').map(Number);
             const end = new Date(ey, em - 1, ed); end.setHours(0, 0, 0, 0);
             const daysLeft = Math.round((end - today) / 86400000);
@@ -8594,7 +8879,7 @@
         const TodayTaskWidget = ({ activeStaffs, pendingApprovalCount, onGoTab }) => {
             const items = useMemo(() => {
                 const list = activeStaffs || [];
-                const now = new Date();
+                const now = nowKST();
                 const y = now.getFullYear(), m = now.getMonth() + 1;
                 const prevM = new Date(now.getFullYear(), now.getMonth() - 1, 1);
                 const prevYm = `${prevM.getFullYear()}-${String(prevM.getMonth() + 1).padStart(2, '0')}`;
@@ -8859,7 +9144,7 @@
             // [v6.23.0-beta1 신규] 전 직원의 pendingRequests 합계 — 사이드바 '결재 관리' 배지 및 데이터 소스로 사용
             const pendingApprovalCount = useMemo(() => staffList.reduce((sum, s) => sum + ((s.pendingRequests || []).length), 0), [staffList]);
             const dashStats = useMemo(() => {
-                const todayStr = toLocalYMD(new Date());
+                const todayStr = toLocalYMD(nowKST());
                 return {
                     totalStaff: activeStaffs.length,
                     todayLeaves: activeStaffs.filter(s => (s.leaveHistory || []).some(h => h.date === todayStr)).length,
@@ -8872,7 +9157,7 @@
             }, [activeStaffs]);
             const monthlyStats = useMemo(() => {
                 if (activeTab !== 'dashboard') return [];
-                const yearPrefix = `${new Date().getFullYear()}-`;
+                const yearPrefix = `${nowKST().getFullYear()}-`;
                 const stats = Array.from({ length: 12 }, (_, i) => ({ month: String(i + 1).padStart(2, '0'), hours: 0 }));
                 activeStaffs.forEach(staff => {
                     (staff.leaveHistory || []).forEach(leave => {
@@ -9020,7 +9305,7 @@
                                     </div>
                                     <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 animate-fade-in">
                                         <div className="flex justify-between items-center mb-6">
-                                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base"><Icons.Grid /> 전사 월별 연차 소진율 추이 ({new Date().getFullYear()}년)</h3>
+                                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base"><Icons.Grid /> 전사 월별 연차 소진율 추이 ({nowKST().getFullYear()}년)</h3>
                                             <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-1 rounded font-bold">막대에 마우스를 올리면 상세 시간이 표시됩니다.</span>
                                         </div>
                                         <div className="flex items-end justify-between gap-2 md:gap-4 h-48 md:h-64 mt-4 pt-8 border-b border-slate-200 pb-2 px-2">
@@ -9040,10 +9325,10 @@
                                     </div>
                                 </div>
                             )}
-                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
-                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
+                            {activeTab === 'leave' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} isLeaveModalOpen={showLeaveModal} />}
+                            {activeTab === 'past' && <LeaveManagementTab staffList={activeStaffs} allStaffList={staffList} adminName={adminName} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} isPastMode={true} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} isLeaveModalOpen={showLeaveModal} />}
                             {activeTab === 'staff' && <StaffTab staffList={staffList} showConfirm={showConfirm} showAlert={showAlert} adminName={adminName} />}
-                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={handleOpenModal} adminName={adminName} />}
+                            {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} adminName={adminName} isLeaveModalOpen={showLeaveModal} />}
                             {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'settings' && <SettingsTab showAlert={showAlert} showConfirm={showConfirm} staffList={activeStaffs} allStaffList={staffList} adminName={adminName} />}
                             {/* [v6.23.0-beta1 신규] 결재 관리 탭 — 전 직원의 pendingRequests를 모아 승인/반려 처리 */}
