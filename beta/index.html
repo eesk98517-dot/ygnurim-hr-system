@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Beta v6.37.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (Beta v6.38.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -397,7 +397,30 @@
         //   ※ 촉진 대상·기한 산정 규칙, 통보서 서식과 지정 날짜 산출, 연차 계산·차감 로직,
         //     저장 데이터 구조(sentNotices·audit_logs), 직원 화면은 v6.36.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.37.0-beta1";
+        // ============================================================================
+        // [v6.38.0-beta1] 연차 사용 계획서 '관리자 대리 등록' 1건 (베타)
+        //   ▣ 왜 필요한가
+        //     시스템 사용이 어려운 분은 서면·유선·싸인오케이로 계획서를 내십니다.
+        //     종전에는 그 내용을 넣을 자리가 없어 [계획서 제출 완료] 체크만 눌러 두었고,
+        //     '언제 며칠을 쓰기로 했는지'는 어디에도 남지 않았습니다.
+        //     이제 관리자가 날짜·구분까지 입력해 정식 계획서로 등록할 수 있습니다.
+        //   ▣ 저장 경로는 직원 제출과 완전히 동일합니다 (AdminPlanProxyModal)
+        //     같은 processPromotionPlanTransaction 으로 submittedPlans 에 계획서를 넣고
+        //     promoPlanKey=true(제출 완료)까지 한 트랜잭션으로 처리합니다.
+        //     → 제출된 계획서 관리·통계·2차 촉진 제외 판정에 그대로 반영됩니다.
+        //   ▣ 본인 제출과 구분되는 표식을 함께 저장합니다
+        //     submittedVia:'admin_proxy' · proxyBy(등록 관리자) · proxyMethod/Label(접수 경로)
+        //     · proxyReceivedAt(실제 접수일) · proxyNote(비고)
+        //     · signature 는 '홍길동 (관리자 대리 등록)' 으로 남겨 전자서명본과 혼동되지 않게 했습니다.
+        //     계획서 출력물 하단과 [제출된 사용 계획서 관리] 목록에도 대리 등록 표시가 붙습니다.
+        //   ▣ 입력 화면 : 접수 경로 4종(서면·싸인오케이·유선·기타) + 접수일 + 비고,
+        //     MiniCalendar 로 날짜 선택(산정기간 밖 선택 불가 · 이미 연차 등록된 날 표시),
+        //     날짜별 구분(연차/반차/시휴) 지정, 합계가 대상 잔여를 넘으면 등록 버튼 잠금.
+        //   ▣ 진입 : [촉진 대상 통보 관리] 목록의 계획서 칸 · [절차 진행 현황] 의 계획서 대기 줄
+        //   ※ 연차를 차감하지는 않습니다 — '계획'만 기록하며 실제 사용분은 종전대로 연차 등록으로 처리합니다.
+        //   ※ 촉진 판정·통보서 서식·연차 계산 로직·저장 구조는 v6.37.0 과 동일합니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.38.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -410,6 +433,17 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.38.0-beta1 : 연차 사용 계획서 관리자 대리 등록 (관리자 전용 · 베타)
+            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
+            { version: "6.38.0-beta1", date: "2026-09-15", details: [
+                "✎ [계획서 대리 등록 신설] 시스템 사용이 어려워 서면·유선·싸인오케이로 계획서를 내신 분의 내용을 관리자가 대신 입력할 수 있습니다. [연차 촉진] 탭 목록의 계획서 칸과 [절차 진행 현황]의 계획서 대기 줄에 [계획서 대리 등록] 버튼이 생겼습니다",
+                "🗓️ [내용까지 그대로 기록] 지금까지는 체크만 눌러 '제출함' 표시만 남고 어느 날 며칠을 쓰기로 했는지는 남지 않았습니다. 이제 달력에서 날짜를 고르고 날짜별로 연차·반차·시휴를 지정해 정식 계획서로 등록됩니다. 등록된 계획서는 [제출된 사용 계획서 관리]에서 직원이 낸 것과 똑같이 조회·인쇄할 수 있습니다",
+                "📋 [접수 경로를 함께 남깁니다] 서면 접수 / 싸인오케이 / 유선 접수 / 기타 중에서 고르고, 실제로 받은 날짜와 비고(예: 종이 원본 사무국 보관)를 적어 둘 수 있습니다",
+                "🏷️ [본인 제출과 구분] 대리 등록한 건은 목록에 '✎ 대리 등록 · 서면' 배지가 붙고, 계획서 출력물 아래에도 누가 어떤 경로로 받아 대신 입력했는지 표시됩니다. 서명란도 '홍길동 (관리자 대리 등록)'으로 남아 본인 전자서명본과 혼동되지 않습니다",
+                "🛡️ [실수 방지] 산정 기간을 벗어난 날짜는 고를 수 없고, 이미 연차가 등록된 날은 달력에 표시됩니다. 계획 합계가 그 직원의 대상 잔여를 넘으면 등록 버튼이 잠깁니다",
+                "ℹ️ [연차는 차감되지 않습니다] 이 기능은 '계획'만 기록합니다. 실제로 쉰 날은 종전대로 [연차 관리]에서 등록하셔야 하며, 서면으로 받은 원본은 기관에 보관해 주세요",
+                "🛡️ [호환] 저장 경로가 직원 제출과 동일해 2차 촉진 제외 판정, 제출 건수 집계, 계획서 조회·삭제가 모두 종전 그대로 동작합니다. 촉진 판정·통보서 서식·연차 계산 로직·데이터 구조는 v6.37.0 과 100% 동일합니다"
+            ] },
             // ▼ v6.37.0-beta1 : 연차 촉진 업무 자동화 4건 (관리자 전용 · 베타)
             //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
             { version: "6.37.0-beta1", date: "2026-09-10", details: [
@@ -5468,8 +5502,17 @@
                                     전자서명 「{plan.signature}」
                                 </span>
                             </p>
+                            {/* [v6.38.0-beta1] 관리자가 대신 입력한 건은 본인 전자서명본과 구분해 표시합니다 */}
+                            {plan.submittedVia === 'admin_proxy' && (
+                                <p style={{ fontSize: '9px', color: '#b45309', marginTop: '4px', fontWeight: 700 }}>
+                                    ※ 본 계획서는 관리자({plan.proxyBy || '-'})가 대신 입력한 건입니다.
+                                    (접수 경로 : {plan.proxyMethodLabel || '서면 접수'} · 접수일 : {plan.proxyReceivedAt || '-'}{plan.proxyNote ? ` · ${plan.proxyNote}` : ''})
+                                </p>
+                            )}
                             <p style={{ fontSize: '9px', color: '#6b7280', marginTop: '5px' }}>
-                                ※ 본 문서는 양지누림 연차 관리 시스템에서 본인 확인을 거쳐 전자적으로 제출되었습니다.
+                                {plan.submittedVia === 'admin_proxy'
+                                    ? '※ 본 문서는 양지누림 연차 관리 시스템에 관리자가 대리 등록한 기록입니다.'
+                                    : '※ 본 문서는 양지누림 연차 관리 시스템에서 본인 확인을 거쳐 전자적으로 제출되었습니다.'}
                                 {/* [v6.30.0-beta3] v6.29.0-beta2 에서 제거했던 '문서번호' 표기가
                                     v6.30.0-beta1 분기 과정에서 되살아나 있었습니다. 다시 제거하고
                                     제출 일시만 남깁니다. */}
@@ -5926,6 +5969,13 @@
                                                     <span className="font-black text-slate-800 text-sm">{plan.staffName}</span>
                                                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${plan.promoCategory === 'under1' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{plan.promoType}</span>
                                                     <span className="text-[11px] font-bold text-slate-400">{plan.period}</span>
+                                                    {/* [v6.38.0-beta1] 관리자가 대신 등록한 건은 한눈에 구분되게 */}
+                                                    {plan.submittedVia === 'admin_proxy' && (
+                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 border border-amber-200"
+                                                            title={`${plan.proxyMethodLabel || '서면'} 접수분을 ${plan.proxyBy || '관리자'} 님이 대리 등록 (접수일 ${plan.proxyReceivedAt || '-'})`}>
+                                                            ✎ 대리 등록 · {plan.proxyMethodLabel || '서면'}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <p className="text-[11px] font-bold text-slate-500">
                                                     제출 {kstText(plan.submittedAt, 'datetime')} · 지정 {(plan.items || []).length}일 ·
@@ -6135,6 +6185,270 @@
                 </div>
             );
         };
+        // ============================================================================
+        // [v6.38.0-beta1 신규] AdminPlanProxyModal — 연차 사용 계획서 '관리자 대리 등록'
+        //   ▣ 왜 필요한가
+        //     시스템 사용이 어려운 분은 서면·유선·싸인오케이로 계획서를 내십니다. 종전에는
+        //     그 내용을 시스템에 넣을 방법이 없어 [계획서 제출 완료] 체크만 눌러 두었고,
+        //     정작 '언제 며칠을 쓰기로 했는지'는 어디에도 남지 않았습니다.
+        //     이제 관리자가 직원 대신 날짜·구분까지 입력해 정식 계획서로 등록합니다.
+        //   ▣ 저장 방식은 직원 제출과 완전히 동일합니다
+        //     같은 processPromotionPlanTransaction 을 써서 submittedPlans 에 계획서를 넣고
+        //     promoPlanKey=true(제출 완료)까지 한 트랜잭션으로 처리합니다.
+        //     → 제출된 계획서 관리 화면·통계·촉진 판정에 그대로 잡힙니다.
+        //   ▣ 다만 '본인이 직접 낸 것'과 구분되도록 아래를 함께 저장합니다
+        //     submittedVia:'admin_proxy' · proxyBy(등록한 관리자) · proxyMethod(접수 경로)
+        //     · proxyReceivedAt(실제 접수일) · proxyNote(비고)
+        //     계획서 출력물에도 '대리 등록' 안내가 표시되어, 본인 전자서명본과 혼동되지 않습니다.
+        //   ▣ 연차를 차감하지는 않습니다 — '계획'일 뿐이며, 실제 사용은 종전대로 연차 등록으로 처리합니다.
+        // ============================================================================
+        const PROXY_METHODS = [
+            { value: 'paper', label: '서면 접수', desc: '종이 계획서를 받아 보관' },
+            { value: 'signok', label: '싸인오케이', desc: '전자 서명으로 회신' },
+            { value: 'phone', label: '유선 접수', desc: '전화로 사용일 확인' },
+            { value: 'etc', label: '기타', desc: '그 밖의 방법' }
+        ];
+        const PROXY_METHOD_LABEL = { paper: '서면 접수', signok: '싸인오케이', phone: '유선 접수', etc: '기타' };
+        const AdminPlanProxyModal = ({ row, adminName, onClose, onSubmitted, showAlert, showConfirm }) => {
+            useEscClose(onClose);
+            const dailyHours = safeParseFloat(row.dailyHours) || 8;
+            const leaveInfo = row.leaveInfo || {};
+            const status = row.promoStatus || {};
+            // 이 촉진 건이 다루는 몫의 잔여(시간) — 계획으로 담을 수 있는 한도입니다.
+            const budgetHours = Math.round(safeParseFloat(row.portionRemainingDays) * dailyHours * 100) / 100;
+
+            const [method, setMethod] = useState('paper');
+            const [receivedAt, setReceivedAt] = useState(toLocalYMD(nowKST()));
+            const [note, setNote] = useState('');
+            const [selectedDates, setSelectedDates] = useState([]);
+            const [unitMap, setUnitMap] = useState({});
+            const [hourMap, setHourMap] = useState({});
+            const [saving, setSaving] = useState(false);
+            const [msg, setMsg] = useState('');
+
+            const hourlyOptions = useMemo(() => buildHourlyOptions(dailyHours), [dailyHours]);
+            const sortedDates = useMemo(() => [...selectedDates].sort(), [selectedDates]);
+            const planItems = useMemo(() => sortedDates.map(d => {
+                const unit = unitMap[d] || PLAN_UNIT_ANNUAL;
+                const hours = planUnitToHours(unit, dailyHours, hourMap[d]);
+                return { date: d, unit, hours, days: dailyHours > 0 ? Math.round((hours / dailyHours) * 100) / 100 : 0 };
+            }), [sortedDates, unitMap, hourMap, dailyHours]);
+            const plannedHours = useMemo(() => Math.round(planItems.reduce((a, c) => a + c.hours, 0) * 100) / 100, [planItems]);
+            const plannedDays = useMemo(() => dailyHours > 0 ? Math.round((plannedHours / dailyHours) * 100) / 100 : 0, [plannedHours, dailyHours]);
+            const overBudget = plannedHours > budgetHours + 1e-9;
+            // 이미 연차가 등록된 날은 달력에 표시해 중복 지정을 막습니다.
+            const takenDates = useMemo(() => {
+                const s = new Set();
+                (row.leaveHistory || []).forEach(h => { if (h && h.date) s.add(h.date); });
+                return s;
+            }, [row]);
+
+            const setUnit = (date, val) => {
+                setMsg('');
+                setUnitMap(prev => Object.assign({}, prev, { [date]: val }));
+                if (val === PLAN_UNIT_HOURLY && !hourMap[date]) {
+                    setHourMap(prev => Object.assign({}, prev, { [date]: hourlyOptions[0] }));
+                }
+            };
+            const setHours = (date, val) => { setMsg(''); setHourMap(prev => Object.assign({}, prev, { [date]: safeParseFloat(val) })); };
+            const removeDate = (date) => { setMsg(''); setSelectedDates(prev => prev.filter(d => d !== date)); };
+
+            const handleSave = () => {
+                if (saving) return;
+                if (!planItems.length) { setMsg('❌ 사용할 날짜를 최소 1일 이상 선택해주세요.'); return; }
+                if (overBudget) { setMsg(`❌ 대상 잔여(${fmt(budgetHours)}시간)를 넘었습니다. 날짜나 구분을 조정해주세요.`); return; }
+                if (!receivedAt) { setMsg('❌ 접수일을 입력해주세요.'); return; }
+                const lines = planItems.map(it => `· ${it.date} ${planUnitLabel(it.unit)} ${fmt(it.hours)}시간`).join('\n');
+                showConfirm(
+                    `[${row.name}] 직원의 연차 사용 계획서를 대신 등록합니다.\n\n` +
+                    `· 접수 경로 : ${PROXY_METHOD_LABEL[method]}\n· 접수일 : ${receivedAt}\n` +
+                    `· 계획 내용 :\n${lines}\n· 합계 : ${fmt(plannedHours)}시간 (${fmt(plannedDays)}일)\n\n` +
+                    `등록하면 [계획서 제출 완료]로 처리되어 2차 통보 대상에서 제외됩니다.\n` +
+                    `연차가 차감되지는 않으며, 실제 사용분은 종전대로 연차 등록으로 넣으셔야 합니다.\n\n` +
+                    `진행하시겠습니까?`,
+                    async () => {
+                        setSaving(true);
+                        try {
+                            const nowIso = toLocalIso();
+                            const planRecord = {
+                                id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+                                submittedAt: nowIso,
+                                staffId: row.id, staffName: row.name || '',
+                                // 본인 전자서명이 아니므로 서명란에 대리 등록임을 명시합니다.
+                                signature: `${row.name || ''} (관리자 대리 등록)`,
+                                promoPlanKey: status.promoPlanKey, promoType: status.type,
+                                promoCategory: status.promoCategory, portion: status.portion,
+                                step: status.step, baseYear: status.baseYear,
+                                periodStart: leaveInfo.startDate, periodEnd: leaveInfo.endDate, period: leaveInfo.period || '',
+                                joinDate: safeDate(row.joinDate), dailyHours,
+                                totalDays: row.totalDays, usedDays: row.usedDays,
+                                remainingDays: row.remainingDays, portionRemainingDays: row.portionRemainingDays,
+                                totalHours: row.totalHours, usedHours: row.usedHours, remainingHours: row.remainingHours,
+                                portionRemainingHours: budgetHours,
+                                items: planItems, plannedDays, plannedHours,
+                                status: 'submitted', systemVersion: SYSTEM_VERSION,
+                                // ── 대리 등록 표식 ──
+                                submittedVia: 'admin_proxy',
+                                proxyBy: adminName || '관리자',
+                                proxyMethod: method,
+                                proxyMethodLabel: PROXY_METHOD_LABEL[method],
+                                proxyReceivedAt: receivedAt,
+                                proxyNote: note.trim()
+                            };
+                            await processPromotionPlanTransaction(row.id, adminName || '관리자', {
+                                promoPlanKey: status.promoPlanKey,
+                                legacyPlanKey: status.legacyPlanKey,
+                                nextValue: true,
+                                promoType: status.type, promoCategory: status.promoCategory,
+                                portion: status.portion, step: status.step, baseYear: status.baseYear,
+                                origin: 'AdminPlanProxyModal.save',
+                                extraUpdates: (fresh) => ({
+                                    submittedPlans: [...(Array.isArray(fresh.submittedPlans) ? fresh.submittedPlans : []), planRecord]
+                                })
+                            });
+                            showAlert(`✅ [${row.name}] 직원의 계획서를 대리 등록했습니다.\n\n[제출된 사용 계획서 관리] 에서 확인·인쇄하실 수 있습니다.`);
+                            if (onSubmitted) onSubmitted(planRecord);
+                            onClose();
+                        } catch (err) { showAlert('❌ 등록 실패: ' + err.message); }
+                        finally { setSaving(false); }
+                    });
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black/60 flex items-start md:items-center justify-center z-[520] animate-fade-in backdrop-blur-sm p-3 md:p-4 overflow-y-auto pt-16 md:pt-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative my-auto flex flex-col max-h-[92vh]">
+                        {/* 헤더 */}
+                        <div className="px-5 md:px-6 py-4 border-b border-slate-100">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h3 className="font-black text-slate-800 text-lg flex items-center gap-2"><Icons.FileText /> 연차 사용 계획서 대리 등록</h3>
+                                    <p className="text-xs font-bold text-slate-500 mt-1">
+                                        서면·유선·싸인오케이로 받은 계획서를 관리자가 대신 입력합니다.
+                                        <span className="block text-[11px] text-slate-400 mt-0.5">직원이 직접 제출한 것과 구분되도록 '대리 등록' 표시가 함께 남습니다.</span>
+                                    </p>
+                                </div>
+                                <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 shrink-0"><Icons.X /></button>
+                            </div>
+                            <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-1">
+                                <span className="text-sm font-black text-slate-800">{row.name}</span>
+                                <span className="text-[11px] font-bold text-slate-500">{status.type}</span>
+                                <span className="text-[11px] font-bold text-slate-500">산정기간 {leaveInfo.period || '-'}</span>
+                                <span className="text-[11px] font-black text-red-600">대상 잔여 {fmt(budgetHours)}시간 ({fmt(row.portionRemainingDays)}일)</span>
+                            </div>
+                        </div>
+
+                        <div className="px-5 md:px-6 py-4 overflow-y-auto custom-scrollbar space-y-5">
+                            {/* ① 접수 정보 */}
+                            <div>
+                                <label className="block text-xs font-black text-slate-700 mb-2">① 어떻게 접수했습니까?</label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    {PROXY_METHODS.map(m => (
+                                        <button type="button" key={m.value} onClick={() => setMethod(m.value)}
+                                            className={`p-3 rounded-xl border-2 text-left transition ${method === m.value ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                                            <p className={`text-xs font-black ${method === m.value ? 'text-blue-700' : 'text-slate-700'}`}>{m.label}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">{m.desc}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-3 mt-3">
+                                    <div className="flex-1">
+                                        <label className="block text-[11px] font-bold text-slate-500 mb-1">접수일 <span className="font-normal text-slate-400">(실제로 받은 날)</span></label>
+                                        <input type="date" value={receivedAt} onChange={e => setReceivedAt(e.target.value)}
+                                            className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500" />
+                                    </div>
+                                    <div className="flex-[2]">
+                                        <label className="block text-[11px] font-bold text-slate-500 mb-1">비고 <span className="font-normal text-slate-400">(선택)</span></label>
+                                        <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="예) 종이 계획서 사무국 보관"
+                                            className="w-full border-2 border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-blue-500" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ② 날짜 선택 */}
+                            <div>
+                                <label className="block text-xs font-black text-slate-700 mb-2">② 사용하기로 한 날짜를 고르세요</label>
+                                <MiniCalendar value={selectedDates} onChange={setSelectedDates} offDays={row.offDays}
+                                    takenDates={takenDates}
+                                    minDate={leaveInfo.startDate || null} maxDate={leaveInfo.endDate || null}
+                                    initialViewDate={leaveInfo.endDate || null} />
+                                <div className="flex items-center justify-center gap-1.5 mt-1.5 text-[10px] font-bold text-slate-400">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span> 이미 연차가 등록된 날
+                                    <span className="ml-2">· 산정기간({leaveInfo.period || '-'}) 안에서만 고를 수 있습니다</span>
+                                </div>
+                            </div>
+
+                            {/* ③ 날짜별 구분 */}
+                            {planItems.length > 0 && (
+                                <div>
+                                    <label className="block text-xs font-black text-slate-700 mb-2">③ 날짜별로 얼마나 쓰기로 했습니까?</label>
+                                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+                                                <tr><th className="p-2.5 text-left">날짜</th><th className="p-2.5">구분</th><th className="p-2.5">시간</th><th className="p-2.5 w-12"></th></tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {planItems.map(it => (
+                                                    <tr key={it.date} className="hover:bg-slate-50">
+                                                        <td className="p-2.5 font-bold text-slate-800">{it.date}</td>
+                                                        <td className="p-2.5 text-center">
+                                                            <select value={it.unit} onChange={e => setUnit(it.date, e.target.value)}
+                                                                className="border rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none">
+                                                                {PLAN_UNIT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                                            </select>
+                                                        </td>
+                                                        <td className="p-2.5 text-center">
+                                                            {it.unit === PLAN_UNIT_HOURLY ? (
+                                                                <select value={hourMap[it.date] || hourlyOptions[0]} onChange={e => setHours(it.date, e.target.value)}
+                                                                    className="border rounded-lg px-2 py-1.5 text-xs font-bold text-slate-700 outline-none">
+                                                                    {hourlyOptions.map(h => <option key={h} value={h}>{fmt(h)}시간</option>)}
+                                                                </select>
+                                                            ) : (<span className="text-xs font-black text-blue-600">{fmt(it.hours)}시간</span>)}
+                                                        </td>
+                                                        <td className="p-2.5 text-center">
+                                                            <button type="button" onClick={() => removeDate(it.date)} className="text-red-400 hover:text-red-600"><Icons.X /></button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className={`mt-2 rounded-xl border px-4 py-3 flex flex-wrap items-center justify-between gap-2 ${overBudget ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                                        <span className="text-xs font-black text-slate-700">
+                                            계획 합계 <span className={overBudget ? 'text-red-600' : 'text-green-700'}>{fmt(plannedHours)}시간 ({fmt(plannedDays)}일)</span>
+                                            <span className="text-slate-400 mx-1">/</span>대상 잔여 {fmt(budgetHours)}시간
+                                        </span>
+                                        <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${overBudget ? 'bg-red-600 text-white' : 'bg-green-600 text-white'}`}>
+                                            {overBudget ? `${fmt(plannedHours - budgetHours)}시간 초과` : `남은 ${fmt(budgetHours - plannedHours)}시간`}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                                <p className="text-[11px] font-bold text-amber-800 leading-relaxed">
+                                    ※ 이 등록은 <b>계획</b>만 남깁니다. 연차가 차감되지는 않으며, 실제로 쉰 날은 종전대로 [연차 관리]에서 등록하셔야 합니다.<br />
+                                    ※ 등록하면 [계획서 제출 완료]로 처리되어 2차(회사 지정) 통보 대상에서 빠집니다.<br />
+                                    ※ 서면으로 받으신 원본은 기관에 보관해 주세요. 시스템 기록만으로는 자필 서명 증빙이 되지 않습니다.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 하단 */}
+                        <div className="px-5 md:px-6 py-4 border-t border-slate-100">
+                            {msg && <p className="text-xs font-bold text-red-500 mb-2 text-center">{msg}</p>}
+                            <div className="flex gap-2">
+                                <button type="button" onClick={onClose} disabled={saving}
+                                    className="flex-1 sm:flex-none px-5 py-3 rounded-xl text-sm font-bold border-2 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition disabled:opacity-50">취소</button>
+                                <button type="button" onClick={handleSave} disabled={saving || !planItems.length || overBudget}
+                                    className="flex-1 px-6 py-3 rounded-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg shadow-blue-200 disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed">
+                                    {saving ? '등록 중...' : `계획서 대리 등록${planItems.length ? ` (${planItems.length}일 · ${fmt(plannedHours)}시간)` : ''}`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
         const PromotionTab = ({ staffList, allStaffList, showAlert, showConfirm, onOpenModal, onEditClick, adminName, isLeaveModalOpen = false }) => {
             const today = nowKST();
             const defaultMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -6157,6 +6471,8 @@
             // [v6.30.0-beta1 신규] 통보 발송 처리 중인 rowKey (중복 클릭 방지) + 미리보기 대상
             const [sendingKey, setSendingKey] = useState('');
             const [previewNoticeRow, setPreviewNoticeRow] = useState(null);
+            // [v6.38.0-beta1] 계획서 대리 등록 대상 행 (null 이면 닫힘)
+            const [proxyPlanRow, setProxyPlanRow] = useState(null);
             // [v6.30.0-beta3] 아직 발송하지 않은 2차 통보서의 '회사 지정 사용날짜'를
             //   화면이 다시 그려질 때마다 새로 뽑지 않도록 rowKey 별로 고정해 두는 캐시입니다.
             //   (종전에는 렌더링마다 Math.random 이 다시 돌아, 미리보기에서 본 날짜와
@@ -6879,6 +7195,9 @@
                         </div>
                     )}
                     {showAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAuditModal(false)} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={onOpenModal} onEditClick={onEditClick} adminName={adminName} isLeaveModalOpen={isLeaveModalOpen} defaultPromoFilter={true} />}
+                    {/* [v6.38.0-beta1 신규] 서면·유선·싸인오케이로 받은 계획서를 관리자가 대신 등록 */}
+                    {proxyPlanRow && <AdminPlanProxyModal row={proxyPlanRow} adminName={adminName}
+                        onClose={() => setProxyPlanRow(null)} showAlert={showAlert} showConfirm={showConfirm} />}
                     {previewNoticeRow && <PromotionNoticePreviewModal row={previewNoticeRow} onClose={() => setPreviewNoticeRow(null)} showAlert={showAlert}
                         previewDesignatedDates={previewNoticeRow.promoStatus.step === 2 ? getStableDesignatedDates(previewNoticeRow) : null} />}
                     {/* ═══ [v6.26.0-beta1 신규] 상위 뷰 전환 : 통보 관리 ↔ 제출된 계획서 관리 ═══ */}
@@ -6976,6 +7295,12 @@
                                                         )}
                                                         {(g.firstSent || g.secondSent) && (
                                                             <button type="button" onClick={() => setPreviewNoticeRow(g.secondSent ? g.second : g.first)} className="px-3 py-1.5 rounded-lg text-[11px] font-black bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 transition">통보서 보기</button>
+                                                        )}
+                                                        {/* [v6.38.0-beta1] 계획서를 기다리는 단계에서 바로 대리 등록 */}
+                                                        {!g.planSubmitted && g.firstSent && g.portionRemainingDays > 0 && (g.first || g.second) && (
+                                                            <button type="button" onClick={() => setProxyPlanRow(g.first || g.second)}
+                                                                className="px-3 py-1.5 rounded-lg text-[11px] font-black bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 transition"
+                                                                title="서면·유선으로 받은 계획서를 대신 등록합니다.">✎ 계획서 대리 등록</button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -7165,6 +7490,14 @@
                                                     <span className={`text-xs font-bold ${staff.isPlanSubmitted ? 'text-green-600' : 'text-red-500'}`}>{staff.isPlanSubmitted ? '제출됨' : '미제출'}</span>
                                                 </label>
                                                 {staff.isLegacyPlan && <p className="text-[9px] font-bold text-amber-600 mt-1">이전 버전 기록 승계</p>}
+                                                {/* [v6.38.0-beta1] 서면·유선으로 받은 계획서를 관리자가 대신 입력 */}
+                                                {!staff.isPlanSubmitted && staff.portionRemainingDays > 0 && (
+                                                    <button type="button" onClick={() => setProxyPlanRow(staff)}
+                                                        className="mt-1.5 w-full px-2 py-1 rounded-lg text-[10px] font-black bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 transition"
+                                                        title="서면·유선·싸인오케이로 받은 계획서를 관리자가 대신 등록합니다.">
+                                                        ✎ 계획서 대리 등록
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
