@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (Beta v6.39.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (v6.40.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -446,7 +446,26 @@
         //     · 통보 일자 : 이미 발송한 건은 실제 발송일, 아직이면 그 달 통보 기준일(10일).
         //   ※ 촉진 판정·통보서 서식·연차 계산 로직·저장 구조는 v6.38.0 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.39.0-beta1";
+        // ============================================================================
+        // [v6.40.0-stable] 정식 릴리즈 (2026-09-15)
+        //   v6.38.0-beta1 · v6.39.0-beta1 과 이번 작업분을 하나의 정식으로 묶었습니다.
+        //   ① 계획서 대리 등록 (AdminPlanProxyModal) — v6.38.0
+        //   ② 싸인오케이 대량전송 엑셀 12열 서식 (SIGNOK_HEADER/buildSignOkRow) — v6.39.0
+        //   ③ [이번] 싸인오케이 다운로드 대상에서 제외 — 계획서 제출자 · 데모 계정
+        //      (양지누림) · 대상 잔여 없음. isDemoStaff() 유틸을 신설해 재안내 대상과
+        //      대시보드 미제출 집계에서도 데모 계정을 함께 걸러냅니다.
+        //   ④ [이번] 2차 통보 예정 명단 (mainView 'second')
+        //      : '그 달에 1차 통보를 보냈는데 기한까지 계획서를 내지 않은 분'을 모아
+        //        각자의 2차 통보 예정일·기한을 함께 보여줍니다(매월 20일경 확인용).
+        //      : 2차 예정일은 새 계산식 없이 findSecondStatus() 가 1차 발송 달부터 12개월을
+        //        훑으며 기존 getPromotionStatusList 의 step 2 판정을 찾아 그대로 씁니다.
+        //      : 제외 = 계획서 제출자 · 이미 2차 발송 · 대상 잔여 없음 · 데모 계정
+        //      : 집계 시작 달 SECOND_PLAN_LIST_FROM = '2026-08' (그 이전은 조회 불가)
+        //      : 기한 경과 여부를 'N일 경과 / 기한 내'로 구분하고 기본은 경과자만 표시.
+        //   ※ 촉진 대상·기한 산정, 통보서 서식과 발송, 연차 계산·차감, 저장 구조,
+        //     직원 화면은 v6.37.0-beta1 과 동일합니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.40.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -459,26 +478,20 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
-            // ▼ v6.39.0-beta1 : 싸인오케이 대량전송 엑셀 서식 교체 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.39.0-beta1", date: "2026-09-15", details: [
-                "📤 [싸인오케이 엑셀이 새 양식에 맞춰집니다] 싸인오케이에 올린 1차 통보서 템플릿에서 내려받은 '대량전송 양식'(12열)과 똑같은 형태로 엑셀이 만들어집니다. 내려받아 그대로 올리시면 이름·입사일·연차 수치·기한이 통보서의 각 자리에 자동으로 채워집니다",
-                "🧾 [담기는 값] 휴대폰번호 · 이름 · 입사일 · 성명 · 연차 사용 대상기간 · 발생/사용/미사용 연차(120시간 (15일) 형식) · 제출 기한 · 통보 일자 · 수령확인 성명. 1년 미만 직원은 9일분·2일분 중 그 통보가 다루는 몫만 미사용으로 적혀 통보서 내용과 일치합니다",
-                "📅 [날짜 규칙] 제출 기한은 통보 시 확정된 법정 기한을 한글 날짜로 적습니다. 통보 일자는 이미 발송한 건이면 실제 발송일, 아직 보내기 전이면 그 달 통보 기준일(매월 10일, 주말·공휴일이면 그 전 평일)이 들어갑니다",
-                "🔁 [재안내 엑셀도 같은 양식] [싸인오케이 재안내](계획서 미제출자) 도 같은 12열로 바뀌었습니다. 기한은 임의로 늘리지 않고 원래 기한을 그대로 쓰며, '남길말' 칸에 미제출 안내 문구가 자동으로 들어갑니다",
-                "🛠️ [앞으로 양식이 바뀌어도] 열 정의를 한 곳(SIGNOK_HEADER)에 모아 두어, 싸인오케이 양식이 바뀌면 그 한 곳만 고치면 두 버튼이 동시에 맞춰집니다",
-                "🛡️ [호환] 촉진 대상·기한 산정, 통보서 서식과 발송 기능, 연차 계산·차감 로직, 저장 구조는 v6.38.0 과 100% 동일합니다. 바뀐 것은 내려받는 엑셀의 열 구성뿐입니다"
-            ] },
-            // ▼ v6.38.0-beta1 : 연차 사용 계획서 관리자 대리 등록 (관리자 전용 · 베타)
-            //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
-            { version: "6.38.0-beta1", date: "2026-09-15", details: [
-                "✎ [계획서 대리 등록 신설] 시스템 사용이 어려워 서면·유선·싸인오케이로 계획서를 내신 분의 내용을 관리자가 대신 입력할 수 있습니다. [연차 촉진] 탭 목록의 계획서 칸과 [절차 진행 현황]의 계획서 대기 줄에 [계획서 대리 등록] 버튼이 생겼습니다",
-                "🗓️ [내용까지 그대로 기록] 지금까지는 체크만 눌러 '제출함' 표시만 남고 어느 날 며칠을 쓰기로 했는지는 남지 않았습니다. 이제 달력에서 날짜를 고르고 날짜별로 연차·반차·시휴를 지정해 정식 계획서로 등록됩니다. 등록된 계획서는 [제출된 사용 계획서 관리]에서 직원이 낸 것과 똑같이 조회·인쇄할 수 있습니다",
-                "📋 [접수 경로를 함께 남깁니다] 서면 접수 / 싸인오케이 / 유선 접수 / 기타 중에서 고르고, 실제로 받은 날짜와 비고(예: 종이 원본 사무국 보관)를 적어 둘 수 있습니다",
-                "🏷️ [본인 제출과 구분] 대리 등록한 건은 목록에 '✎ 대리 등록 · 서면' 배지가 붙고, 계획서 출력물 아래에도 누가 어떤 경로로 받아 대신 입력했는지 표시됩니다. 서명란도 '홍길동 (관리자 대리 등록)'으로 남아 본인 전자서명본과 혼동되지 않습니다",
-                "🛡️ [실수 방지] 산정 기간을 벗어난 날짜는 고를 수 없고, 이미 연차가 등록된 날은 달력에 표시됩니다. 계획 합계가 그 직원의 대상 잔여를 넘으면 등록 버튼이 잠깁니다",
-                "ℹ️ [연차는 차감되지 않습니다] 이 기능은 '계획'만 기록합니다. 실제로 쉰 날은 종전대로 [연차 관리]에서 등록하셔야 하며, 서면으로 받은 원본은 기관에 보관해 주세요",
-                "🛡️ [호환] 저장 경로가 직원 제출과 동일해 2차 촉진 제외 판정, 제출 건수 집계, 계획서 조회·삭제가 모두 종전 그대로 동작합니다. 촉진 판정·통보서 서식·연차 계산 로직·데이터 구조는 v6.37.0 과 100% 동일합니다"
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.40.0-stable : 정식 릴리즈
+            //   v6.38.0-beta1(계획서 대리 등록) · v6.39.0-beta1(싸인오케이 서식 교체) ·
+            //   v6.40.0(2차 통보 예정 명단 · 다운로드 제외 규칙)을 하나로 묶었습니다.
+            //   전부 관리자 화면이라 직원 화면에는 변화가 없어 staffDetails 를 넣지 않았습니다.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.40.0-stable", date: "2026-09-15", details: [
+                "✎ [계획서 대리 등록 신설] 시스템 사용이 어려워 서면·유선·싸인오케이로 계획서를 내신 분의 내용을 관리자가 대신 입력할 수 있습니다. [연차 촉진] 목록의 계획서 칸과 [절차 진행 현황]의 계획서 대기 줄에 [계획서 대리 등록] 버튼이 생겼습니다. 달력에서 날짜를 고르고 날짜별로 연차·반차·시휴를 지정하면 정식 계획서로 등록되어, 직원이 낸 것과 똑같이 조회·인쇄되고 2차 촉진 대상에서도 빠집니다",
+                "🏷️ [대리 등록은 구분 표시] 접수 경로(서면·싸인오케이·유선·기타)와 접수일·비고를 함께 남기고, 목록에는 '✎ 대리 등록 · 서면 접수' 배지가, 출력물에는 누가 어떤 경로로 받아 입력했는지가 표시됩니다. 서명란도 '홍길동 (관리자 대리 등록)'으로 남아 본인 전자서명본과 혼동되지 않습니다",
+                "📤 [싸인오케이 엑셀 새 양식 적용] 싸인오케이에 올린 1차 통보서 템플릿에서 내려받은 대량전송 양식(12열)과 똑같이 엑셀이 만들어집니다. 휴대폰번호·이름·입사일·성명·연차 사용 대상기간·발생/사용/미사용 연차·제출 기한·통보 일자·수령확인 성명이 채워져, 내려받아 그대로 올리시면 통보서 각 자리에 자동으로 들어갑니다",
+                "🚫 [발송 대상 자동 정리] 싸인오케이 엑셀에서 계획서를 이미 제출한 분, 데모 계정(양지누림), 대상 잔여가 없는 분이 자동으로 빠집니다. 재안내 엑셀·미제출자 명단·대시보드 [오늘 할 일]의 미제출 건수에서도 데모 계정이 제외됩니다",
+                "🗓️ [2차 통보 예정 명단 신설] [연차 촉진] 탭에 [2차 통보 예정] 화면이 생겼습니다. 선택한 달에 1차 통보를 받고도 계획서를 내지 않은 분과, 그분들의 2차(회사 사용시기 지정) 통보가 언제 예정되어 있는지를 날짜와 함께 보여줍니다. 매월 20일 무렵 확인하시면 됩니다",
+                "⏰ [기한 경과 표시] 제출 기한이 지난 분은 '12일 경과'로, 아직 기한 전인 분은 '기한 내'로 구분됩니다. 기본은 기한이 지난 분만 보이며, 체크를 해제하면 전체가 나옵니다. 명단은 엑셀로도 받으실 수 있고 2026년 8월 1차 통보분부터 집계됩니다",
+                "🛡️ [호환] 촉진 대상·기한 산정 규칙, 통보서 서식과 발송 기능, 연차 계산·차감 로직, 저장 데이터 구조와 감사 로그, 직원 화면은 v6.37.0 과 100% 동일합니다"
             ] },
             // ▼ v6.37.0-beta1 : 연차 촉진 업무 자동화 4건 (관리자 전용 · 베타)
             //   직원 화면에는 변화가 없으므로 staffDetails 를 넣지 않았습니다.
@@ -6748,8 +6761,18 @@
                 XLSX.writeFile(wb, fileName);
             };
             const handleDownloadSignOK = () => {
-                const targets = promotionList.filter(p => p.promoStatus.step === 1);
-                if (!targets.length) { showAlert(`현재 [${promoView === 'under1' ? '1년 미만 신입 촉진' : '1년 이상 정기 촉진'}] 탭의 해당 기간에 1차 촉진 대상자가 없습니다.`); return; }
+                // [v6.40.0-beta1] 이미 계획서를 낸 분과 '양지누림' 데모 계정은 발송 대상에서 뺍니다.
+                //   (대상 잔여가 없는 건도 보낼 이유가 없어 함께 제외합니다)
+                const all1st = promotionList.filter(p => p.promoStatus.step === 1);
+                const targets = all1st.filter(p => !p.isPlanSubmitted && !isDemoStaff(p) && p.portionRemainingDays > 0);
+                if (!targets.length) {
+                    const submitted = all1st.filter(p => p.isPlanSubmitted).length;
+                    showAlert(`지금 내려받을 1차 통보 대상자가 없습니다.\n\n` +
+                        `· [${promoView === 'under1' ? '1년 미만 신입 촉진' : '1년 이상 정기 촉진'}] 탭 · ${startMonth} ~ ${endMonth}\n` +
+                        (submitted > 0 ? `· 계획서를 이미 제출한 ${submitted}명은 대상에서 제외됩니다.\n` : '') +
+                        `· 데모 계정(양지누림)과 대상 잔여가 없는 분도 제외됩니다.`);
+                    return;
+                }
                 const rows = targets.map(p => buildSignOkRow(p, ''));
                 const viewTag = promoView === 'under1' ? '1년미만' : '1년이상';
                 saveSignOkExcel(rows, "싸인오케이_대량전송", `1차통보서_대량전송_${viewTag}_${startMonth}_to_${endMonth}.xlsx`);
@@ -6847,6 +6870,119 @@
                 });
             };
             // ════════════════════════════════════════════════════════════════
+            // [v6.40.0-beta1 신규] 2차 통보 예정 명단 (월별)
+            //   ▣ 무엇을 보여주나
+            //     '그 달에 1차 통보를 보냈는데 기한까지 계획서를 내지 않은 분'을 모아,
+            //     각자의 2차(회사가 사용시기를 지정하는) 통보가 언제 예정되어 있는지
+            //     날짜와 함께 보여줍니다. 매월 20일 무렵 확인해 미리 준비하시는 용도입니다.
+            //   ▣ 왜 '1차 보낸 달' 기준인가
+            //     실무가 '이번 달에 보낸 통보 → 이번 달 20일 기한 → 미제출자 정리' 순서로
+            //     돌아가기 때문입니다. 2차 예정일은 사람마다 달라(만료 시기 기준) 뒤에 옵니다.
+            //   ▣ 2차 예정일은 어떻게 구하나
+            //     새 계산식을 만들지 않고, 1차를 보낸 달부터 12개월을 훑으며 기존
+            //     getPromotionStatusList 가 같은 촉진 건(promoPlanKey·몫)의 step 2 를
+            //     언제 잡는지 찾아 그 달의 통보 기준일·기한을 그대로 씁니다.
+            //   ▣ 제외 : 계획서 제출자 · 이미 2차를 보낸 건 · 대상 잔여 없음 · 데모 계정
+            //   ▣ 집계 시작 달은 SECOND_PLAN_LIST_FROM(2026-08) 입니다.
+            // ════════════════════════════════════════════════════════════════
+            const [secondPlanMonth, setSecondPlanMonth] = useState(() => {
+                const cur = toLocalYMD(nowKST()).substring(0, 7);
+                return cur < SECOND_PLAN_LIST_FROM ? SECOND_PLAN_LIST_FROM : cur;
+            });
+            const [secondPlanOverdueOnly, setSecondPlanOverdueOnly] = useState(true);
+            // 같은 촉진 건의 2차가 잡히는 달과 그 status 를 찾습니다 (기존 판정 엔진 재사용)
+            const findSecondStatus = (staff, n) => {
+                if (!staff || !n || !n.targetY || !n.targetM) return null;
+                for (let i = 0; i <= 12; i++) {
+                    const d = new Date(n.targetY, n.targetM - 1 + i, 1);
+                    const y = d.getFullYear(), m = d.getMonth() + 1;
+                    const list = getPromotionStatusList(staff, y, m) || [];
+                    const hit = list.find(st => st.step === 2 && st.portion === n.portion && st.promoPlanKey === n.promoPlanKey);
+                    if (hit) return { status: hit, y, m };
+                }
+                return null;
+            };
+            const secondPlanRows = useMemo(() => {
+                const out = [];
+                const todayYmd = toLocalYMD(nowKST());
+                (allStaffList || staffList || []).forEach(staff => {
+                    if (isDemoStaff(staff)) return;
+                    const notices = Array.isArray(staff.sentNotices) ? staff.sentNotices : [];
+                    notices.forEach(n => {
+                        if (!n || n.step !== 1 || !n.sentAt) return;
+                        if (kstText(n.sentAt, 'ym') !== secondPlanMonth) return;                       // 그 달에 보낸 1차만
+                        if (staff[n.promoPlanKey] === true) return;                                    // 계획서 제출 완료
+                        if (notices.some(o => o && o.step === 2 && o.promoPlanKey === n.promoPlanKey)) return; // 2차 이미 발송
+                        // 1차 판정을 되살려 기한·잔여를 정확히 복원합니다.
+                        const firstList = getPromotionStatusList(staff, n.targetY, n.targetM) || [];
+                        const first = firstList.find(st => st.step === 1 && st.portion === n.portion) || null;
+                        const snap = n.noticeSnapshot || {};
+                        const dailyHours = safeParseFloat(staff.workHours) || safeParseFloat(snap.dailyHours) || 8;
+                        let portionRemainingDays = safeParseFloat(snap.portionRemainingDays);
+                        let period = snap.period || '-';
+                        if (first && first.leaveInfo && first.leaveInfo.startDate) {
+                            const li = first.leaveInfo;
+                            period = li.period || period;
+                            const totalDays = li.total || 0;
+                            const usedHours = sumUsedHours(staff.leaveHistory, li.startDate, li.endDate);
+                            const remainingDays = dailyHours > 0 ? Math.round(((totalDays * dailyHours - usedHours) / dailyHours) * 10) / 10 : 0;
+                            portionRemainingDays = remainingDays;
+                            if (first.promoCategory === 'under1') {
+                                const split = splitUnder1Portion(totalDays, remainingDays);
+                                portionRemainingDays = first.portion === '9days' ? split.nineRemaining : split.twoRemaining;
+                            }
+                        }
+                        if (!(portionRemainingDays > 0)) return;   // 남은 연차가 없으면 2차를 보낼 이유가 없습니다.
+                        const deadline = first ? first.deadlineDate : '';
+                        const second = findSecondStatus(staff, n);
+                        out.push({
+                            key: `${staff.id}__${n.noticeKey}`,
+                            staffId: staff.id, name: staff.name || '', phone: staff.phone || '',
+                            promoType: n.promoType || (first ? first.type : ''),
+                            promoCategory: n.promoCategory || (first ? first.promoCategory : 'over1'),
+                            baseYear: n.baseYear || (first ? first.baseYear : ''),
+                            period,
+                            portionRemainingDays,
+                            portionRemainingHours: Math.round(portionRemainingDays * dailyHours * 100) / 100,
+                            firstSentYmd: kstText(n.sentAt, 'date'),
+                            deadline,
+                            overdue: !!(deadline && deadline < todayYmd),
+                            daysOver: deadline ? Math.max(0, -daysUntilDate(deadline)) : 0,
+                            secondNoticeDate: second ? second.status.noticeDate : '',
+                            secondDeadline: second ? second.status.deadlineDate : '',
+                            secondYm: second ? `${second.y}년 ${second.m}월` : '',
+                            resigned: (staff.status === 'resigned' || !!(staff.resignDate && String(staff.resignDate).trim()))
+                        });
+                    });
+                });
+                out.sort((a, b) => String(a.secondNoticeDate || '9999').localeCompare(String(b.secondNoticeDate || '9999'))
+                    || String(a.name).localeCompare(String(b.name), 'ko'));
+                return out;
+            }, [allStaffList, staffList, secondPlanMonth]);
+            const secondPlanShown = useMemo(
+                () => secondPlanOverdueOnly ? secondPlanRows.filter(r => r.overdue) : secondPlanRows,
+                [secondPlanRows, secondPlanOverdueOnly]);
+            const handleDownloadSecondPlanList = () => {
+                if (!secondPlanShown.length) { showAlert('내려받을 명단이 없습니다.'); return; }
+                const wsData = [
+                    [`양지누림 2차 통보 예정 명단 (${secondPlanMonth} 1차 통보분)`],
+                    [`출력 일자: ${nowKST().toLocaleDateString()} / 총 ${secondPlanShown.length}명${secondPlanOverdueOnly ? ' (제출 기한 경과자만)' : ' (기한 전 포함 전체)'}`],
+                    [`※ 그 달에 1차 통보를 받고 아직 계획서를 제출하지 않은 분입니다. 계획서 제출자·데모 계정·잔여 없는 분은 제외됩니다.`],
+                    [],
+                    ['No.', '이름', '휴대폰', '촉진 유형', '연차 사용 대상기간', '1차 발송일', '제출 기한', '기한 경과', '2차 통보 예정일', '2차 통보 기한', '대상 잔여(일)', '재직상태']
+                ];
+                secondPlanShown.forEach((r, i) => wsData.push([
+                    i + 1, r.name, r.phone, r.promoType, r.period, r.firstSentYmd, r.deadline || '-',
+                    r.overdue ? `${r.daysOver}일 경과` : '기한 내', r.secondNoticeDate || '-', r.secondDeadline || '-',
+                    fmt(r.portionRemainingDays), r.resigned ? '퇴사' : '재직'
+                ]));
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 20 }, { wch: 26 }, { wch: 13 }, { wch: 13 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 10 }];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, '2차통보예정');
+                XLSX.writeFile(wb, `2차통보_예정명단_${secondPlanMonth}.xlsx`);
+            };
+            // ════════════════════════════════════════════════════════════════
             // [v6.37.0-beta1 신규] ③ 계획서 미제출자 재안내 (매월 15일경 리마인드)
             //   1차 통보를 받고도 계획서를 내지 않는 분이 매달 남습니다. 2차(회사 지정)로
             //   넘어가기 전에 한 번 더 안내하면 대부분 제출하시므로, 중순에 담당자에게
@@ -6863,6 +6999,7 @@
             const remindRows = useMemo(() => {
                 const out = [];
                 (staffList || []).forEach(staff => {
+                    if (isDemoStaff(staff)) return;   // [v6.40.0-beta1] 데모 계정 제외
                     const notices = Array.isArray(staff.sentNotices) ? staff.sentNotices : [];
                     notices.forEach(n => {
                         if (!n || n.step !== 1 || !n.promoPlanKey) return;
@@ -7255,8 +7392,114 @@
                                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${mainView === 'timeline' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'}`}>{timelineGroups.length}건</span>
                             )}
                         </button>
+                        {/* [v6.40.0-beta1 신규] 그 달 1차 미제출자의 2차 통보 예정일을 월별로 확인 */}
+                        <button type="button" onClick={() => setMainView('second')}
+                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-black transition ${mainView === 'second' ? 'bg-slate-800 text-white shadow-lg shadow-slate-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+                            <Icons.Alert /> 2차 통보 예정
+                            {secondPlanRows.length > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${mainView === 'second' ? 'bg-white/25 text-white' : 'bg-red-100 text-red-600'}`}>{secondPlanRows.length}명</span>
+                            )}
+                        </button>
                     </div>
                     {mainView === 'plans' && <SubmittedPlansView staffList={allStaffList || staffList} showAlert={showAlert} showConfirm={showConfirm} adminName={adminName} />}
+                    {/* ═══ [v6.40.0-beta1 신규] 2차 통보 예정 명단 (월별) ═══ */}
+                    {mainView === 'second' && (
+                        <div className="space-y-4 animate-fade-in">
+                            <div className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                                <div>
+                                    <h3 className="font-bold text-lg text-slate-800 mb-1 flex items-center gap-2"><Icons.Alert /> 2차 통보 예정 명단</h3>
+                                    <p className="text-xs md:text-sm text-slate-500">
+                                        선택한 달에 <b className="text-slate-700">1차 통보를 받고도 계획서를 내지 않은 분</b>과, 그분들의 2차(회사 사용시기 지정) 통보 예정일을 보여줍니다.
+                                        <span className="block text-[11px] text-slate-400 mt-0.5">매월 20일 무렵(제출 기한 경과 후) 확인하시면 됩니다. 계획서 제출자·데모 계정·대상 잔여가 없는 분은 자동으로 빠집니다.</span>
+                                    </p>
+                                </div>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                                        <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">1차 통보한 달</span>
+                                        <input type="month" value={secondPlanMonth} min={SECOND_PLAN_LIST_FROM}
+                                            onChange={e => setSecondPlanMonth(e.target.value < SECOND_PLAN_LIST_FROM ? SECOND_PLAN_LIST_FROM : e.target.value)}
+                                            className="bg-white border rounded-lg px-2 py-1 text-sm font-bold text-slate-700 outline-none w-full sm:w-36" />
+                                    </div>
+                                    <button type="button" onClick={handleDownloadSecondPlanList}
+                                        className="bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-slate-700 transition shadow-sm">
+                                        <Icons.Download /> 명단 엑셀
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+                                {[
+                                    { label: '미제출 전체', n: secondPlanRows.length, cls: 'text-slate-800' },
+                                    { label: '제출 기한 경과', n: secondPlanRows.filter(r => r.overdue).length, cls: 'text-red-600' },
+                                    { label: '아직 기한 내', n: secondPlanRows.filter(r => !r.overdue).length, cls: 'text-blue-600' }
+                                ].map(c => (
+                                    <div key={c.label} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                                        <p className="text-[11px] font-bold text-slate-500 mb-0.5">{c.label}</p>
+                                        <p className={`text-2xl font-black ${c.n === 0 ? 'text-slate-300' : c.cls}`}>{c.n}<span className="text-xs font-bold text-slate-400 ml-1">명</span></p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-3 border-b border-slate-100">
+                                    <p className="text-xs font-bold text-slate-500">표시 <span className="text-blue-600">{secondPlanShown.length}명</span> · {secondPlanMonth} 1차 통보분</p>
+                                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition self-start md:self-auto">
+                                        <input type="checkbox" checked={secondPlanOverdueOnly} onChange={(e) => setSecondPlanOverdueOnly(e.target.checked)} />
+                                        <span className="text-[11px] font-bold text-slate-600 whitespace-nowrap">제출 기한이 지난 분만 보기</span>
+                                    </label>
+                                </div>
+                                <div className="overflow-x-auto whitespace-nowrap">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                            <tr>
+                                                <th className="p-4 w-12 text-center">No.</th><th className="p-4">이름</th><th className="p-4">휴대폰</th>
+                                                <th className="p-4 text-center">촉진 유형</th><th className="p-4 text-center">1차 발송일</th>
+                                                <th className="p-4 text-center">제출 기한</th>
+                                                <th className="p-4 text-center bg-red-50/50">2차 통보 예정일</th>
+                                                <th className="p-4 text-center">2차 기한</th><th className="p-4 text-center">대상 잔여</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {secondPlanShown.map((r, i) => (
+                                                <tr key={r.key} className="hover:bg-slate-50 transition">
+                                                    <td className="p-4 text-center text-xs font-bold text-slate-400">{i + 1}</td>
+                                                    <td className="p-4 font-bold text-slate-800">{r.name}
+                                                        {r.resigned && <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200">퇴사</span>}
+                                                    </td>
+                                                    <td className="p-4 text-xs font-bold text-slate-500">{r.phone || '-'}</td>
+                                                    <td className="p-4 text-center"><span className={`px-2 py-1 rounded-lg text-[11px] font-black ${r.promoCategory === 'under1' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{r.promoType}</span></td>
+                                                    <td className="p-4 text-center text-xs font-bold text-slate-600">{r.firstSentYmd}</td>
+                                                    <td className="p-4 text-center">
+                                                        <p className="text-xs font-bold text-slate-600">{r.deadline || '-'}</p>
+                                                        {r.overdue
+                                                            ? <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-black bg-red-50 text-red-600 border border-red-200">{r.daysOver}일 경과</span>
+                                                            : <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-black bg-blue-50 text-blue-600 border border-blue-200">기한 내</span>}
+                                                    </td>
+                                                    <td className="p-4 text-center bg-red-50/20">
+                                                        <p className="text-sm font-black text-red-600">{r.secondNoticeDate || '—'}</p>
+                                                        {r.secondYm && <p className="text-[10px] font-bold text-slate-400 mt-0.5">{r.secondYm}</p>}
+                                                    </td>
+                                                    <td className="p-4 text-center text-xs font-bold text-slate-600">{r.secondDeadline || '-'}</td>
+                                                    <td className="p-4 text-center text-xs font-black text-slate-700">{fmt(r.portionRemainingDays)}일</td>
+                                                </tr>
+                                            ))}
+                                            {secondPlanShown.length === 0 && (
+                                                <tr><td colSpan="9" className="p-12 text-center text-slate-400 font-bold">
+                                                    {secondPlanRows.length === 0
+                                                        ? `${secondPlanMonth} 에 1차 통보를 받고 미제출인 분이 없습니다.`
+                                                        : '제출 기한이 지난 분이 아직 없습니다. (위 체크를 해제하면 기한 전 대상자도 보입니다)'}
+                                                </td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="px-4 py-3 border-t border-slate-100 bg-slate-50/60 rounded-b-2xl">
+                                    <p className="text-[11px] font-bold text-slate-400 leading-relaxed">
+                                        ※ 2차 통보 예정일은 근로기준법 제61조의 촉진 시기(만료 2개월 전 등)를 기준으로 시스템이 계산한 날짜입니다. 실제 발송은 그 시기가 되면 [촉진 대상 통보 관리] 화면에서 하시면 됩니다.<br />
+                                        ※ 이 명단은 {SECOND_PLAN_LIST_FROM} 1차 통보분부터 집계합니다. 그 이전 달은 조회할 수 없습니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {/* ═══ [v6.34.0-beta1 신규] 절차 진행 타임라인 — 한 사람 한 줄 ═══ */}
                     {mainView === 'timeline' && (
                         <div className="space-y-4 animate-fade-in">
@@ -7380,7 +7623,7 @@
                                     title={`1차를 발송한 직원 중 계획서 미제출자에게 2차(사용시기 지정) 통보를 한 번에 보냅니다. (현재 ${bulkTargets(2).length}명)`}>
                                     📌 2차 일괄발송{bulkTargets(2).length > 0 && <span className="bg-white/25 px-1.5 py-0.5 rounded text-[11px] font-black">{bulkTargets(2).length}</span>}
                                 </button>
-                                <button type="button" onClick={handleDownloadSignOK} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-3 md:py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition shadow-sm" title="1차 촉진 대상자용 싸인오케이 엑셀 다운로드"><Icons.FileText /> 싸인오케이(1차)</button>
+                                <button type="button" onClick={handleDownloadSignOK} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-3 md:py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-green-700 transition shadow-sm" title="1차 촉진 대상자용 싸인오케이 대량전송 엑셀입니다. 계획서를 이미 제출한 분과 데모 계정(양지누림)은 자동으로 빠집니다."><Icons.FileText /> 싸인오케이(1차)</button>
                                 <button type="button" onClick={() => handleDownloadNoticePdfZip('auto')} className="flex-1 md:flex-none bg-red-500 text-white px-4 py-3 md:py-2.5 rounded-xl text-sm font-bold flex justify-center items-center gap-2 hover:bg-red-600 transition shadow-sm" title="각 직원의 실제 단계(1차 통지서 / 2차 지정통보서)에 맞는 통보서를 개별 PDF로 만들어 ZIP으로 압축 다운로드합니다."><span className="text-lg">🗂️</span> 통보서 압축(ZIP)</button>
                                 {/* [v6.30.0-beta3 신규] 대상자 전원을 '2차 사용시기 지정 통보서'(회사가 날짜 지정)로
                                     통일해 내려받습니다. 사용자 요청으로 추가된 별도 버튼이며, 위 [통보서 압축(ZIP)]
@@ -9664,6 +9907,11 @@
         const EXPIRY_SOON_DAYS = 30;
         // [v6.37.0-beta1] 연차 사용 계획서 미제출자 재안내를 띄우기 시작하는 날(매월 N일)
         const REMIND_DAY = 15;
+        // [v6.40.0-beta1] '양지누림' 데모(테스트) 계정 판정 — 실제 발송·다운로드 대상에서 제외합니다.
+        //   이 계정은 촉진 의무 6종을 항상 보여주는 점검용이라, 명단·엑셀에 섞이면 안 됩니다.
+        const isDemoStaff = (s) => cleanName(s && s.name) === '양지누림';
+        // [v6.40.0-beta1] 2차 통보 예정 명단을 집계하기 시작하는 달 (사용자 지정)
+        const SECOND_PLAN_LIST_FROM = '2026-08';
         // 'YYYY-MM-DD' 까지 남은 일수 (오늘=0, 지났으면 음수)
         const daysUntilDate = (ymd) => {
             if (!ymd || String(ymd).length < 10) return null;
@@ -9736,6 +9984,7 @@
                 //    (같은 촉진 건의 2차가 이미 발송됐으면 절차가 넘어간 것이므로 제외)
                 let planPending = 0;
                 list.forEach(staff => {
+                    if (isDemoStaff(staff)) return;   // [v6.40.0-beta1] 데모 계정 제외
                     const notices = Array.isArray(staff.sentNotices) ? staff.sentNotices : [];
                     notices.forEach(n => {
                         if (!n || n.step !== 1 || !n.promoPlanKey) return;
