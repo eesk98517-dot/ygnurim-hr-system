@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.40.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (v6.41.0-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -465,7 +465,41 @@
         //   ※ 촉진 대상·기한 산정, 통보서 서식과 발송, 연차 계산·차감, 저장 구조,
         //     직원 화면은 v6.37.0-beta1 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.40.0-stable";
+        // ============================================================================
+        // [v6.41.0-beta1] v6.40.0-stable 기반 근무시간 관리 3건 (베타 — 테스트 후 정식 승격)
+        //
+        //  ▣ 왜 이 작업이 필요했나
+        //     v6.30.0 에서 '근무시간 변경일' 기능이 들어와, 직원마다 "언제부터 몇 시간"이라는
+        //     변경 이력(workHoursHistory)을 쌓고 연차를 쓴 날짜 기준으로 그날의 근무시간을
+        //     적용하게 되었습니다. 그런데 명부 엑셀 업로드(handleFileUpload)는 그 전에 만들어진
+        //     코드라 기존 직원의 workHours 까지 엑셀 값으로 덮어쓰고 있었습니다.
+        //     → 매달 명부를 올릴 때마다 애써 등록한 변경 이력과 현재 값이 어긋나고,
+        //       과거 연차의 '일수 환산'이 조용히 틀어질 수 있는 상태였습니다.
+        //
+        //  ① [엑셀 업로드] 기존 직원·재직 복구 직원의 workHours 를 upd 에서 아예 빼서
+        //     엑셀이 건드리지 못하게 했습니다. 신규 등록(creates)만 엑셀 값을 씁니다.
+        //     엑셀 값과 시스템 값이 다르면 미리보기에 'N명 — 시스템 값을 그대로 둡니다'
+        //     안내 배너와 줄별 '근무시간 유지 (엑셀 6h · 시스템 8h)' 표시가 나옵니다.
+        //
+        //  ② [근무시간 정정] processWorkHoursCorrectionTransaction(mode:'base') 신설.
+        //     '변경'(실제로 바뀜 → 이력 생성)과 '정정'(처음부터 잘못 들어감 → 이력 없이 수정)을
+        //     분리했습니다. 정정은 workHoursBase(첫 변경 이전 기준값)를 고칩니다.
+        //     변경 이력이 없는 직원이라면 그 값이 곧 현재 근무시간입니다.
+        //
+        //  ③ [이력 1건 수정 + 수정 기록] mode:'entry' 로 변경 시작일·변경 후 시간·메모를
+        //     고칠 수 있습니다(종전엔 삭제 후 재등록만 가능).
+        //     · rebuildWorkHoursChain(base, entries) : 이력을 시행일 순으로 줄 세우고
+        //       '앞 항목의 변경 후 값 = 뒤 항목의 변경 전 값'이 되도록 다시 이어 붙입니다.
+        //       추가·수정·삭제 어느 쪽이든 끝에 이걸 돌려 전/후 값이 어긋나지 않게 합니다.
+        //     · workHoursLog : 직원 문서 안에 누가·언제·무엇을(ADD/EDIT/DELETE/CORRECT)
+        //       바꿨는지 최근 60건을 남겨 [수정] 화면에서 바로 봅니다. audit_logs 기록은
+        //       종전대로 함께 남으므로, 중앙 조회는 [데이터 관리] → [변경 이력 조회] 유지.
+        //
+        //  ※ getWorkHoursForDate() 의 판정 규칙, 연차 계산·차감 로직, 감사 로그 스키마,
+        //    직원 화면은 v6.40.0-stable 과 100% 동일합니다. 기존에 쌓인 workHoursHistory 는
+        //    workHoursBase 가 없어도 가장 이른 항목의 oldWorkHours 로 거슬러 올라가 그대로 씁니다.
+        // ============================================================================
+        const SYSTEM_VERSION = "6.41.0-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -478,6 +512,21 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.41.0-beta1 : 근무시간 관리 3건 (관리자 전용 · 베타)
+            //   ① 명부 엑셀이 기존 직원의 근무시간을 덮어쓰던 동작을 막음(이력 보호)
+            //   ② [수정] 화면에 '근무시간 정정' 칸 신설 — 이력 없이 잘못된 값만 바로잡기
+            //   ③ 변경 이력 1건 수정 + '근무시간 수정 기록'(누가·언제·무엇을) 조회
+            //   직원 화면에는 변화가 없어 staffDetails 를 넣지 않았습니다.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.41.0-beta1", date: "2026-10-06", details: [
+                "🛡️ [명부 엑셀이 근무시간을 덮어쓰지 않습니다] 그동안 명부 엑셀을 올리면 기존 직원의 근무시간까지 엑셀 값으로 바뀌어, 어렵게 등록해 둔 '언제부터 몇 시간으로 바뀌었다'는 변경 이력과 어긋나고 과거 연차 계산이 틀어질 수 있었습니다. 이제 기존 직원(재직 복구 포함)의 근무시간은 시스템 값을 그대로 둡니다. 생년월일·휴대폰·입사일은 종전처럼 갱신되고, 새로 등록되는 분은 엑셀의 근무시간이 그대로 들어갑니다",
+                "👀 [미리보기에서 바로 확인] 엑셀 근무시간이 시스템 값과 다른 분이 있으면 [명부 반영 미리보기] 위쪽에 '근무시간이 엑셀과 다른 분 N명 — 시스템 값을 그대로 둡니다' 안내가 뜨고, 각 줄에도 '근무시간 유지 (엑셀 6h · 시스템 8h)' 로 표시됩니다",
+                "🛠️ [근무시간 정정 칸 신설] 직원 [수정] 화면에 근무시간을 직접 고치는 칸이 생겼습니다. 처음부터 값이 잘못 들어간 경우에 쓰는 기능으로, '언제부터 바뀌었다'는 이력을 만들지 않고 값만 바로잡습니다. 변경 이력이 있는 직원은 '첫 변경 이전에 적용되던 기준 값'을 고치게 되며, 이후 이력의 변경 전·후 값은 자동으로 다시 이어 붙습니다",
+                "✏️ [변경 이력도 수정 가능] 등록해 둔 근무시간 변경 이력의 [수정] 버튼으로 변경 시작일·변경 후 근무시간·메모를 고칠 수 있습니다. 종전에는 삭제 후 다시 등록해야 했습니다. 이력을 고치거나 지워도 앞뒤 항목의 '변경 전' 값이 어긋나지 않도록 전체가 다시 계산됩니다",
+                "📜 [근무시간 수정 기록 신설] [수정] 화면 맨 아래에서 이 직원의 근무시간을 누가·언제·무엇을 바꿨는지 목록으로 확인할 수 있습니다. 변경 등록 / 변경 내용 수정 / 변경 삭제 / 근무시간 정정이 시각과 작업자 이름과 함께 남고, 변경 이력 줄에도 '등록 2026-10-06 14:20 · 홍길동'이 함께 보입니다",
+                "🛡️ [호환] 연차 계산·차감 로직, 날짜별 근무시간 적용 방식(getWorkHoursForDate), 감사 로그 구조, 직원 화면은 v6.40.0 과 동일합니다. 지금까지 쌓인 변경 이력도 그대로 쓰이며, 이 기능 적용 이전의 작업 기록은 [데이터 관리] → [변경 이력 조회]에서 확인하실 수 있습니다"
+            ] },
             // ════════════════════════════════════════════════════════════════
             // ▼ v6.40.0-stable : 정식 릴리즈
             //   v6.38.0-beta1(계획서 대리 등록) · v6.39.0-beta1(싸인오케이 서식 교체) ·
@@ -1036,6 +1085,51 @@
             // 선택한 날짜가 가장 이른 변경 항목보다도 이전이면, 그 항목이 기록해둔 '변경 전' 값을 사용합니다.
             return safeParseFloat(sorted[0].oldWorkHours) || fallback;
         };
+        // ────────────────────────────────────────────────────────────────
+        // [v6.41.0-beta1 신규] 근무시간 '기준값(base)' · 이력 체인 · 수정 기록 유틸
+        //   · workHoursBase   : 첫 번째 변경 이력보다 더 이전(= 입사 이후 쭉)에 적용되던 값.
+        //                       예전 데이터에는 이 값이 없으므로 가장 이른 이력의 oldWorkHours,
+        //                       그마저 없으면 staff.workHours 로 거슬러 올라가 구합니다.
+        //   · rebuildWorkHoursChain : 이력을 시행일 순으로 줄 세우고 '앞 항목의 변경 후 값'이
+        //                       '뒤 항목의 변경 전 값'이 되도록 old/new 를 다시 이어 붙입니다.
+        //                       (이력을 삭제·수정해도 전/후 값이 어긋나지 않게 하기 위함)
+        //   · workHoursLog    : 누가 · 언제 · 무엇을 바꿨는지 직원 문서 안에 남기는 수정 기록.
+        //                       감사 로그(audit_logs)와 별도로, 수정창에서 바로 보이도록 둡니다.
+        // ────────────────────────────────────────────────────────────────
+        const getWorkHoursBase = (staff) => {
+            const explicit = safeParseFloat(staff && staff.workHoursBase);
+            if (explicit && explicit > 0) return explicit;
+            const history = (staff && Array.isArray(staff.workHoursHistory)) ? staff.workHoursHistory.filter(h => h && h.effectiveDate) : [];
+            if (history.length) {
+                const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
+                const v = safeParseFloat(sorted[0].oldWorkHours);
+                if (v && v > 0) return v;
+            }
+            return safeParseFloat(staff && staff.workHours) || 8;
+        };
+        const rebuildWorkHoursChain = (baseHours, entries) => {
+            const sorted = [...(entries || [])].filter(h => h && h.effectiveDate)
+                .sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
+            let prev = safeParseFloat(baseHours) || 8;
+            return sorted.map(h => {
+                const nw = safeParseFloat(h.newWorkHours) || prev;
+                const out = { ...h, oldWorkHours: prev, newWorkHours: nw };
+                prev = nw;
+                return out;
+            });
+        };
+        const WORK_HOURS_LOG_MAX = 60;
+        const WH_ACTION_LABELS = { ADD: '변경 등록', EDIT: '변경 내용 수정', DELETE: '변경 삭제', CORRECT: '근무시간 정정' };
+        const appendWorkHoursLog = (list, item) => {
+            const arr = Array.isArray(list) ? list.map(x => ({ ...x })) : [];
+            arr.push(item);
+            return arr.length > WORK_HOURS_LOG_MAX ? arr.slice(arr.length - WORK_HOURS_LOG_MAX) : arr;
+        };
+        const makeWorkHoursLogEntry = (action, actorName, detail, extra) => ({
+            id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+            action, by: actorName || '알 수 없음', at: new Date().toISOString(),
+            detail: detail || '', ...(extra || {})
+        });
         // 화면에 '기존 → 변경' 정보를 보여줄 때 쓰는, 가장 최근(효력 발생일이 가장 늦은) 변경 항목 1건
         const getLatestWorkHoursChange = (staff) => {
             const history = (staff && Array.isArray(staff.workHoursHistory)) ? staff.workHoursHistory.filter(h => h && h.effectiveDate) : [];
@@ -1457,9 +1551,17 @@
                     effectiveDate, oldWorkHours, newWorkHours,
                     memo: p.memo || '', setBy: actorName, setAt: new Date().toISOString()
                 };
-                const afterHistory = [...beforeHistory, entry];
+                // [v6.41.0-beta1] 기준값(base)을 명시적으로 보존하고, 이력 전/후 값을 다시 이어 붙입니다.
+                const baseHours = getWorkHoursBase({ workHours: freshData.workHours, workHoursBase: freshData.workHoursBase, workHoursHistory: beforeHistory });
+                const afterHistory = rebuildWorkHoursChain(baseHours, [...beforeHistory, entry]);
                 const todayWorkHours = getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: afterHistory }, toLocalYMD(nowKST()));
-                const userUpdates = { workHoursHistory: afterHistory, workHours: todayWorkHours };
+                const logEntry = makeWorkHoursLogEntry('ADD', actorName,
+                    `${effectiveDate}부터 ${fmt(oldWorkHours)}시간 → ${fmt(newWorkHours)}시간으로 변경 등록`,
+                    { effectiveDate, oldWorkHours, newWorkHours, memo: p.memo || '', entryId: entry.id });
+                const userUpdates = {
+                    workHoursHistory: afterHistory, workHours: todayWorkHours, workHoursBase: baseHours,
+                    workHoursLog: appendWorkHoursLog(freshData.workHoursLog, logEntry)
+                };
                 transaction.update(userRef, userUpdates);
                 transaction.set(auditRef, {
                     timestamp: new Date().toISOString(),
@@ -1495,9 +1597,17 @@
                 const list = Array.isArray(freshData.workHoursHistory) ? freshData.workHoursHistory : [];
                 const target = list.find(h => String(h.id) === String(entryId));
                 if (!target) throw new Error('삭제하려는 변경 이력이 이미 삭제되었거나 존재하지 않습니다.');
-                const rest = list.filter(h => String(h.id) !== String(entryId));
+                // [v6.41.0-beta1] 한 건을 빼고 나면 남은 이력의 '변경 전' 값이 어긋나므로 다시 이어 붙입니다.
+                const baseHours = getWorkHoursBase({ workHours: freshData.workHours, workHoursBase: freshData.workHoursBase, workHoursHistory: list });
+                const rest = rebuildWorkHoursChain(baseHours, list.filter(h => String(h.id) !== String(entryId)));
                 const todayWorkHours = getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: rest }, toLocalYMD(nowKST()));
-                const userUpdates = { workHoursHistory: rest, workHours: todayWorkHours };
+                const logEntry = makeWorkHoursLogEntry('DELETE', actorName,
+                    `${target.effectiveDate}부터 ${fmt(target.oldWorkHours)}시간 → ${fmt(target.newWorkHours)}시간 이던 변경 이력을 삭제`,
+                    { effectiveDate: target.effectiveDate, oldWorkHours: target.oldWorkHours, newWorkHours: target.newWorkHours, entryId: String(entryId) });
+                const userUpdates = {
+                    workHoursHistory: rest, workHours: todayWorkHours, workHoursBase: baseHours,
+                    workHoursLog: appendWorkHoursLog(freshData.workHoursLog, logEntry)
+                };
                 transaction.update(userRef, userUpdates);
                 transaction.set(auditRef, {
                     timestamp: new Date().toISOString(),
@@ -1514,6 +1624,108 @@
                     systemVersion: SYSTEM_VERSION
                 });
                 txResult = { deleted: true, entryId: String(entryId), workHours: todayWorkHours, remaining: rest.length, auditLogId: auditRef.id };
+            });
+            return txResult;
+        };
+        // ============================================================================
+        // [v6.41.0-beta1 신규] 근무시간 '정정' 트랜잭션 (잘못 들어간 값 바로잡기)
+        // ----------------------------------------------------------------------------
+        //  ▣ '변경'과 '정정'의 차이
+        //     · 변경(processWorkHoursChangeTransaction) : 실제로 근무시간이 바뀐 경우.
+        //       "언제부터 몇 시간" 이라는 이력이 새로 쌓이고, 그 날짜 전후로 연차가 달리 계산됩니다.
+        //     · 정정(이 함수) : 처음부터 값이 잘못 들어가 있던 경우. 이력을 새로 만들지 않고
+        //       기존 값 자체를 바로잡습니다. (엑셀 오타, 초기 등록 실수 등)
+        //
+        //  ▣ mode
+        //     · 'base'  : 첫 변경 이력보다 이전에 적용되던 '기준 근무시간'을 바로잡습니다.
+        //                 변경 이력이 하나도 없는 직원이라면 곧 '현재 근무시간'입니다.
+        //     · 'entry' : 등록해 둔 변경 이력 1건의 시작일·근무시간·메모를 바로잡습니다.
+        //     어느 쪽이든 끝에 체인을 다시 이어 붙여 전/후 값이 어긋나지 않게 합니다.
+        // ============================================================================
+        const processWorkHoursCorrectionTransaction = async (staffId, adminName, payload) => {
+            if (!staffId) throw new Error('처리 대상 직원 ID가 없습니다.');
+            const p = payload || {};
+            const mode = p.mode === 'entry' ? 'entry' : 'base';
+            const actorName = (adminName === undefined || adminName === null || String(adminName).trim() === '')
+                ? '알 수 없음' : String(adminName);
+            const userRef = db.collection('users').doc(staffId);
+            const auditRef = db.collection(AUDIT_COLLECTION).doc();
+            let txResult = null;
+            await db.runTransaction(async (transaction) => {
+                const snap = await transaction.get(userRef);
+                if (!snap.exists) throw new Error('대상 직원 문서를 찾을 수 없습니다. (퇴사 처리되었거나 삭제되었을 수 있습니다)');
+                const freshData = snap.data() || {};
+                const beforeHistory = Array.isArray(freshData.workHoursHistory) ? freshData.workHoursHistory.map(h => ({ ...h })) : [];
+                const beforeBase = getWorkHoursBase({ workHours: freshData.workHours, workHoursBase: freshData.workHoursBase, workHoursHistory: beforeHistory });
+                let nextBase = beforeBase;
+                let nextList = beforeHistory;
+                let detail = '';
+                let targetIds = [];
+                let beforeSnap = [];
+                let afterSnap = [];
+
+                if (mode === 'base') {
+                    const nv = safeParseFloat(p.newWorkHours);
+                    if (!nv || nv <= 0) throw new Error('정정할 근무시간을 올바르게 입력해주세요.');
+                    if (Number(nv) === Number(beforeBase)) throw new Error('지금 값과 같습니다. 다른 값을 입력해주세요.');
+                    nextBase = nv;
+                    detail = beforeHistory.length
+                        ? `기준 근무시간(첫 변경 이전) ${fmt(beforeBase)}시간 → ${fmt(nv)}시간으로 정정`
+                        : `근무시간 ${fmt(beforeBase)}시간 → ${fmt(nv)}시간으로 정정`;
+                    beforeSnap = [{ workHoursBase: beforeBase }];
+                    afterSnap = [{ workHoursBase: nv }];
+                } else {
+                    const entryId = String(p.entryId || '');
+                    const target = beforeHistory.find(h => String(h.id) === entryId);
+                    if (!target) throw new Error('정정하려는 변경 이력을 찾을 수 없습니다. (이미 삭제되었을 수 있습니다)');
+                    const nd = safeDate(p.effectiveDate) || target.effectiveDate;
+                    if (!nd) throw new Error('변경 시작일을 올바르게 입력해주세요.');
+                    const nv = safeParseFloat(p.newWorkHours);
+                    if (!nv || nv <= 0) throw new Error('변경 후 근무시간을 올바르게 입력해주세요.');
+                    const nextMemo = (p.memo === undefined || p.memo === null) ? (target.memo || '') : String(p.memo);
+                    if (String(nd) === String(target.effectiveDate) && Number(nv) === Number(target.newWorkHours) && nextMemo === (target.memo || '')) {
+                        throw new Error('바뀐 내용이 없습니다.');
+                    }
+                    nextList = beforeHistory.map(h => String(h.id) === entryId
+                        ? { ...h, effectiveDate: nd, newWorkHours: nv, memo: nextMemo }
+                        : h);
+                    const parts = [];
+                    if (String(nd) !== String(target.effectiveDate)) parts.push(`시작일 ${target.effectiveDate} → ${nd}`);
+                    if (Number(nv) !== Number(target.newWorkHours)) parts.push(`변경 후 ${fmt(target.newWorkHours)}시간 → ${fmt(nv)}시간`);
+                    if (nextMemo !== (target.memo || '')) parts.push('메모 수정');
+                    detail = `변경 이력 정정 (${parts.join(' · ')})`;
+                    targetIds = [entryId];
+                    beforeSnap = [target];
+                    afterSnap = [{ ...target, effectiveDate: nd, newWorkHours: nv, memo: nextMemo }];
+                }
+
+                const afterHistory = rebuildWorkHoursChain(nextBase, nextList);
+                const todayWorkHours = afterHistory.length
+                    ? getWorkHoursForDate({ workHours: freshData.workHours, workHoursHistory: afterHistory }, toLocalYMD(nowKST()))
+                    : nextBase;
+                const logEntry = makeWorkHoursLogEntry('CORRECT', actorName, detail, {
+                    mode, memo: p.memo || '',
+                    ...(mode === 'base' ? { oldWorkHours: beforeBase, newWorkHours: nextBase } : {})
+                });
+                transaction.update(userRef, {
+                    workHoursHistory: afterHistory, workHours: todayWorkHours, workHoursBase: nextBase,
+                    workHoursLog: appendWorkHoursLog(freshData.workHoursLog, logEntry)
+                });
+                transaction.set(auditRef, {
+                    timestamp: new Date().toISOString(),
+                    targetStaffId: staffId,
+                    actionType: 'UPDATE',
+                    adminName: actorName,
+                    beforeData: sanitizeForAudit(beforeSnap),
+                    afterData: sanitizeForAudit(afterSnap),
+                    domain: 'WORK_HOURS',
+                    targetStaffName: freshData.name || '',
+                    targetIds,
+                    changedCount: 1,
+                    origin: p.origin || ('EditStaffModal.workHoursCorrect.' + mode),
+                    systemVersion: SYSTEM_VERSION
+                });
+                txResult = { mode, workHours: todayWorkHours, workHoursBase: nextBase, detail, auditLogId: auditRef.id };
             });
             return txResult;
         };
@@ -2680,6 +2892,15 @@
             const [whMemo, setWhMemo] = useState('');
             const [whMsg, setWhMsg] = useState('');
             const [whSaving, setWhSaving] = useState(false);
+            // [v6.41.0-beta1 신규] 근무시간 '정정' · 이력 1건 수정 · 수정 기록 보기
+            const [whFixHours, setWhFixHours] = useState('');
+            const [whFixSaving, setWhFixSaving] = useState(false);
+            const [whEditId, setWhEditId] = useState(null);
+            const [whEditDate, setWhEditDate] = useState('');
+            const [whEditHours, setWhEditHours] = useState('');
+            const [whEditMemo, setWhEditMemo] = useState('');
+            const [whEditSaving, setWhEditSaving] = useState(false);
+            const [showWhLog, setShowWhLog] = useState(false);
             useEscClose(onClose); // [v6.17.0] ESC로 닫기
             const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
             const handleOffDayChange = (val) => {
@@ -2736,11 +2957,73 @@
                 if (showConfirm) showConfirm(`${entry.effectiveDate}부터 ${entry.newWorkHours}시간으로 바뀌는 변경 이력을 삭제할까요?`, doDelete);
                 else doDelete();
             };
+            // ── [v6.41.0-beta1 신규] 잘못 들어간 근무시간 정정 ──────────────────
+            const whBase = useMemo(() => getWorkHoursBase(staff), [staff]);
+            const whLog = useMemo(() => {
+                const list = Array.isArray(staff.workHoursLog) ? staff.workHoursLog : [];
+                return [...list].sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+            }, [staff.workHoursLog]);
+            useEffect(() => { setWhFixHours(String(whBase)); }, [whBase]);
+            const handleFixWorkHours = () => {
+                const nv = safeParseFloat(whFixHours);
+                if (!nv || nv <= 0) { setWhMsg('❌ 정정할 근무시간을 입력해주세요. (예: 8)'); return; }
+                if (Number(nv) === Number(whBase)) { setWhMsg('❌ 지금 값과 같습니다.'); return; }
+                const label = whHistory.length
+                    ? `기준 근무시간(첫 변경 이전)을 ${fmt(whBase)}시간 → ${fmt(nv)}시간으로 바로잡을까요?\n\n변경 이력은 그대로 두고, 이력의 '변경 전' 값만 다시 이어 붙입니다.`
+                    : `근무시간을 ${fmt(whBase)}시간 → ${fmt(nv)}시간으로 바로잡을까요?\n\n'언제부터 바뀌었다'는 이력은 남지 않습니다. 실제로 근무시간이 바뀐 경우라면 아래 [근무시간 변경 등록]을 사용하세요.`;
+                const doFix = async () => {
+                    setWhFixSaving(true); setWhMsg('정정 중...');
+                    try {
+                        await processWorkHoursCorrectionTransaction(staff.id, adminName || '관리자', {
+                            mode: 'base', newWorkHours: nv, origin: 'EditStaffModal.handleFixWorkHours'
+                        });
+                        setWhMsg('✅ 근무시간을 정정했습니다.'); setTimeout(() => setWhMsg(''), 2500);
+                    } catch (err) { setWhMsg('❌ 오류: ' + err.message); } finally { setWhFixSaving(false); }
+                };
+                if (showConfirm) showConfirm(label, doFix); else doFix();
+            };
+            const startEditWhEntry = (h) => {
+                setWhEditId(h.id); setWhEditDate(h.effectiveDate || '');
+                setWhEditHours(String(h.newWorkHours || '')); setWhEditMemo(h.memo || '');
+            };
+            const cancelEditWhEntry = () => { setWhEditId(null); setWhEditDate(''); setWhEditHours(''); setWhEditMemo(''); };
+            const handleSaveWhEntry = async () => {
+                if (!whEditId) return;
+                setWhEditSaving(true); setWhMsg('저장 중...');
+                try {
+                    await processWorkHoursCorrectionTransaction(staff.id, adminName || '관리자', {
+                        mode: 'entry', entryId: whEditId, effectiveDate: whEditDate,
+                        newWorkHours: whEditHours, memo: whEditMemo,
+                        origin: 'EditStaffModal.handleSaveWhEntry'
+                    });
+                    setWhMsg('✅ 변경 이력을 수정했습니다.'); cancelEditWhEntry();
+                    setTimeout(() => setWhMsg(''), 2500);
+                } catch (err) { setWhMsg('❌ 오류: ' + err.message); } finally { setWhEditSaving(false); }
+            };
             return (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in backdrop-blur-sm p-4 overflow-y-auto py-10"><div className="bg-white p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm relative my-auto"><button type="button" onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><Icons.X /></button><h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">직원 정보 수정</h3><form onSubmit={handleSave} className="space-y-4"><div><label className="block text-xs font-bold text-slate-500 mb-1">이름</label><input type="text" name="name" value={formData.name || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">휴대폰번호</label><input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" /></div><div><label className="block text-xs font-bold text-slate-500 mb-2">고정 휴무일 (다중 선택 가능)</label><div className="flex gap-2 flex-wrap justify-between">{WEEK_LABELS.map((label, value) => (<label key={value} className={`flex-1 text-center py-2 rounded-lg border text-sm cursor-pointer transition select-none ${(formData.offDays || [0]).includes(value) ? 'bg-red-50 border-red-200 text-red-600 font-bold shadow-inner' : 'bg-white text-slate-400 hover:bg-slate-50'}`}><input type="checkbox" className="hidden" checked={(formData.offDays || [0]).includes(value)} onChange={() => handleOffDayChange(value)} />{label}</label>))}</div></div><div><label className="block text-xs font-bold text-slate-500 mb-1">입사일</label><input type="date" name="joinDate" value={safeDateRecent(formData.joinDate) || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" required /></div><div><label className="block text-xs font-bold text-slate-500 mb-1">생년월일</label><input type="text" name="birth" value={formData.birth || ''} onChange={handleChange} className="w-full border rounded-xl p-3 text-sm outline-none" placeholder="YYYY-MM-DD" /></div><div><label className="block text-xs font-bold text-red-500 mb-1">퇴사일 (선택)</label><input type="date" name="resignDate" value={safeDateRecent(formData.resignDate) || ''} onChange={handleChange} className="w-full border border-red-200 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-red-200" /></div><button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 mt-2">수정 내용 저장</button>{msg && <p className="text-xs text-center font-bold text-blue-600">{msg}</p>}</form>
+                {/* [v6.41.0-beta1 신규] 근무시간 정정 — 잘못 들어간 값을 '이력 없이' 바로잡습니다 */}
+                <div className="mt-6 pt-5 border-t border-slate-100">
+                    <h4 className="font-bold text-slate-700 text-sm mb-1 flex items-center gap-1.5">🛠️ 근무시간 정정</h4>
+                    <p className="text-[11px] text-slate-400 font-medium mb-2">
+                        지금 적용 중인 하루 근무시간: <b className="text-slate-600">{fmt(currentWorkHours)}시간</b><br/>
+                        {whHistory.length > 0
+                            ? <>변경 이력이 {whHistory.length}건 있어 <b>현재 값은 아래 이력에서 결정</b>됩니다. 여기서는 <b>첫 변경 이전에 적용되던 기준 값</b>({fmt(whBase)}시간)을 바로잡습니다.</>
+                            : <>처음부터 값이 <b>잘못 들어간 경우</b>에만 사용하세요. 실제로 근무시간이 바뀐 경우라면 아래 [근무시간 변경 등록]을 써야 변경 전·후 연차가 정확히 계산됩니다.</>}
+                    </p>
+                    <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 flex items-end gap-2">
+                        <div className="flex-1">
+                            <label className="block text-[11px] font-bold text-amber-700 mb-1">{whHistory.length > 0 ? '기준 근무시간 (첫 변경 이전)' : '근무시간'}</label>
+                            <input type="number" step="0.5" min="0.5" value={whFixHours} onChange={e => setWhFixHours(e.target.value)} className="w-full border border-amber-200 rounded-lg p-2 text-sm outline-none bg-white" />
+                        </div>
+                        <button type="button" onClick={handleFixWorkHours} disabled={whFixSaving} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-amber-700 transition disabled:opacity-50 flex-shrink-0">{whFixSaving ? '정정 중...' : '정정 저장'}</button>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-medium mt-1.5">※ 명부 엑셀을 올려도 기존 직원의 근무시간은 바뀌지 않습니다. 고치실 때는 이 칸을 사용하세요.</p>
+                </div>
+
                 {/* [v6.30.0-beta1 신규] 근무시간 변경(효력 발생일 지정) 영역 — 입사일/이름과는 별도로 즉시 저장됩니다 */}
                 <div className="mt-6 pt-5 border-t border-slate-100">
                     <h4 className="font-bold text-slate-700 text-sm mb-1 flex items-center gap-1.5">⏱️ 근무시간 변경</h4>
-                    <p className="text-[11px] text-slate-400 font-medium mb-3">지금 적용 중인 하루 근무시간: <b className="text-slate-600">{fmt(currentWorkHours)}시간</b><br/>변경 시작일 <b>이전</b> 날짜의 연차는 예전 시간, 시작일 <b>당일부터</b>는 새 시간으로 계산됩니다.</p>
+                    <p className="text-[11px] text-slate-400 font-medium mb-3">실제로 근무시간이 바뀐 경우에 등록합니다. 변경 시작일 <b>이전</b> 날짜의 연차는 예전 시간, 시작일 <b>당일부터</b>는 새 시간으로 계산됩니다.</p>
                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                             <div><label className="block text-[11px] font-bold text-slate-500 mb-1">변경 시작일</label><input type="date" value={whEffectiveDate} onChange={e => setWhEffectiveDate(e.target.value)} className="w-full border rounded-lg p-2 text-sm outline-none" /></div>
@@ -2751,17 +3034,64 @@
                         {whMsg && <p className="text-[11px] text-center font-bold text-blue-600">{whMsg}</p>}
                     </div>
                     {whHistory.length > 0 && (
-                        <div className="mt-3 space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+                        <div className="mt-3 space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar">
                             {whHistory.map(h => (
-                                <div key={h.id} className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg p-2">
-                                    <div className="text-[11px] font-bold text-slate-600">
-                                        <span className="text-slate-400">{h.effectiveDate}부터</span> {fmt(h.oldWorkHours)}h → <span className="text-blue-600">{fmt(h.newWorkHours)}h</span>
-                                        {h.memo && <span className="block text-[10px] font-normal text-slate-400 mt-0.5">{h.memo}</span>}
+                                whEditId === h.id ? (
+                                    /* [v6.41.0-beta1 신규] 변경 이력 1건 수정 */
+                                    <div key={h.id} className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 space-y-2">
+                                        <p className="text-[10px] font-black text-blue-700">변경 이력 수정</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1">변경 시작일</label><input type="date" value={whEditDate} onChange={e => setWhEditDate(e.target.value)} className="w-full border rounded-lg p-1.5 text-xs outline-none" /></div>
+                                            <div><label className="block text-[10px] font-bold text-slate-500 mb-1">변경 후 근무시간</label><input type="number" step="0.5" min="0.5" value={whEditHours} onChange={e => setWhEditHours(e.target.value)} className="w-full border rounded-lg p-1.5 text-xs outline-none" /></div>
+                                        </div>
+                                        <input type="text" placeholder="메모 (선택)" value={whEditMemo} onChange={e => setWhEditMemo(e.target.value)} className="w-full border rounded-lg p-1.5 text-xs outline-none" />
+                                        <div className="flex gap-1.5">
+                                            <button type="button" onClick={handleSaveWhEntry} disabled={whEditSaving} className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-[11px] font-bold hover:bg-blue-700 transition disabled:opacity-50">{whEditSaving ? '저장 중...' : '저장'}</button>
+                                            <button type="button" onClick={cancelEditWhEntry} className="px-3 bg-white border border-slate-200 text-slate-500 py-1.5 rounded-lg text-[11px] font-bold hover:bg-slate-50 transition">취소</button>
+                                        </div>
+                                        <p className="text-[10px] font-medium text-blue-600">※ '변경 전' 값은 바로 앞 이력에 맞춰 자동으로 다시 계산됩니다.</p>
                                     </div>
-                                    <button type="button" onClick={() => handleDeleteWorkHoursChange(h)} className="p-1 text-red-400 hover:bg-red-50 rounded-md transition flex-shrink-0"><Icons.Trash /></button>
+                                ) : (
+                                <div key={h.id} className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg p-2">
+                                    <div className="text-[11px] font-bold text-slate-600 min-w-0">
+                                        <span className="text-slate-400">{h.effectiveDate}부터</span> {fmt(h.oldWorkHours)}h → <span className="text-blue-600">{fmt(h.newWorkHours)}h</span>
+                                        {h.memo && <span className="block text-[10px] font-normal text-slate-400 mt-0.5 truncate">{h.memo}</span>}
+                                        {h.setAt && <span className="block text-[10px] font-normal text-slate-300 mt-0.5">등록 {kstText(h.setAt, 'datetime')} · {h.setBy || '알 수 없음'}</span>}
+                                    </div>
+                                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                                        <button type="button" onClick={() => startEditWhEntry(h)} className="px-2 py-1 text-[10px] font-bold text-blue-500 hover:bg-blue-50 rounded-md transition">수정</button>
+                                        <button type="button" onClick={() => handleDeleteWorkHoursChange(h)} className="p-1 text-red-400 hover:bg-red-50 rounded-md transition"><Icons.Trash /></button>
+                                    </div>
                                 </div>
+                                )
                             ))}
                         </div>
+                    )}
+                </div>
+
+                {/* [v6.41.0-beta1 신규] 근무시간 수정 기록 — 누가 · 언제 · 무엇을 바꿨는지 */}
+                <div className="mt-5 pt-4 border-t border-slate-100">
+                    <button type="button" onClick={() => setShowWhLog(v => !v)} className="w-full flex items-center justify-between text-left">
+                        <span className="font-bold text-slate-700 text-sm flex items-center gap-1.5">📜 근무시간 수정 기록 <span className="text-[11px] font-bold text-slate-400">({whLog.length}건)</span></span>
+                        <span className="text-[11px] font-bold text-slate-400">{showWhLog ? '접기 ▲' : '펼치기 ▼'}</span>
+                    </button>
+                    {showWhLog && (
+                        whLog.length === 0 ? (
+                            <p className="text-[11px] font-medium text-slate-400 mt-2 bg-slate-50 rounded-lg p-3">아직 기록이 없습니다. 이 화면에서 근무시간을 정정하거나 변경을 등록·수정·삭제하면 그때부터 이곳에 남습니다. (이 기능 적용 이전에 한 작업은 [데이터 관리] → [변경 이력 조회]에서 확인하실 수 있습니다)</p>
+                        ) : (
+                            <div className="mt-2 space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar">
+                                {whLog.map(l => (
+                                    <div key={l.id} className="bg-slate-50 border border-slate-100 rounded-lg p-2">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${l.action === 'DELETE' ? 'bg-red-100 text-red-600' : (l.action === 'CORRECT' ? 'bg-amber-100 text-amber-700' : (l.action === 'EDIT' ? 'bg-blue-100 text-blue-700' : 'bg-slate-200 text-slate-600'))}`}>{WH_ACTION_LABELS[l.action] || l.action}</span>
+                                            <span className="text-[10px] font-bold text-slate-400">{kstText(l.at, 'datetime')} · {l.by || '알 수 없음'}</span>
+                                        </div>
+                                        <p className="text-[11px] font-bold text-slate-600 mt-1">{l.detail}</p>
+                                        {l.memo && <p className="text-[10px] font-normal text-slate-400 mt-0.5">메모 : {l.memo}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        )
                     )}
                 </div>
             </div></div>);
@@ -4636,7 +4966,7 @@
                 { key: 'creates',  title: '신규 등록',      items: plan.creates,  tone: 'bg-blue-50 text-blue-700 border-blue-200',   desc: '명부에 없던 사람입니다. 새로 등록되고 로그인 계정은 [개별 발급]으로 따로 만들어야 합니다.' },
                 { key: 'resigns',  title: '자동 퇴사 처리', items: plan.resigns,  tone: 'bg-red-50 text-red-700 border-red-200',      desc: '이번 엑셀에 이름이 없어 퇴사 처리됩니다. 파일을 잘못 골랐거나 일부만 담긴 엑셀이면 여기에 멀쩡한 직원이 잡힙니다 — 꼭 확인하세요. (연차 이력은 지워지지 않습니다)' },
                 { key: 'restores', title: '재직 복구',      items: plan.restores, tone: 'bg-green-50 text-green-700 border-green-200', desc: '퇴사 처리돼 있었는데 이번 엑셀에 다시 나타난 사람입니다. 재직 상태로 되돌아가며 연차 이력은 그대로입니다.' },
-                { key: 'updates',  title: '정보 갱신(유지)', items: plan.updates, tone: 'bg-slate-100 text-slate-600 border-slate-200', desc: '계속 재직 중인 사람입니다. 엑셀 값으로 인사 정보만 갱신됩니다.' }
+                { key: 'updates',  title: '정보 갱신(유지)', items: plan.updates, tone: 'bg-slate-100 text-slate-600 border-slate-200', desc: '계속 재직 중인 사람입니다. 생년월일·휴대폰·입사일만 엑셀 값으로 갱신되고, 근무시간은 시스템에 등록된 값을 그대로 둡니다.' }
             ];
             const open = groups.find(g => g.key === openKey) || groups[0];
             const changedUpdates = plan.updates.filter(u => u.changed).length;
@@ -4662,6 +4992,12 @@
                                 </button>
                             ))}
                         </div>
+                        {plan.whKeptCount > 0 && (
+                            <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                                <p className="text-xs font-black text-amber-700">⏱️ 근무시간이 엑셀과 다른 분이 {plan.whKeptCount}명 있습니다 — 시스템 값을 그대로 둡니다.</p>
+                                <p className="text-[11px] font-bold text-amber-700 mt-0.5">기존 직원의 근무시간은 엑셀로 덮어쓰지 않습니다. 덮어쓰면 '언제부터 몇 시간으로 바뀌었다'는 변경 이력과 어긋나 과거 연차 계산이 틀어지기 때문입니다. 실제로 고쳐야 한다면 해당 직원 [수정] 화면의 [근무시간 정정] 또는 [근무시간 변경 등록]을 사용해 주세요. (신규 등록되는 분은 엑셀의 근무시간이 그대로 들어갑니다)</p>
+                            </div>
+                        )}
                         {plan.resigns.length > 0 && (
                             <div className="mb-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                                 <p className="text-xs font-black text-red-700">⚠️ 이번 반영으로 {plan.resigns.length}명이 퇴사 처리됩니다.</p>
@@ -4780,18 +5116,25 @@
                                 matchedIdx.add(idx); const es = excelStaffs[idx];
                                 const joinDate = safeDateRecent(es.joinRaw) || dbStaff.joinDate;
                                 const leaveInfo = calculateAnnualLeave(joinDate);
-                                const upd = { birth: safeDate(es.birthRaw) || dbStaff.birth || '', phone: es.phoneRaw || dbStaff.phone || '', workHours: es.workRaw || dbStaff.workHours || '', joinDate, annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0, annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-' };
+                                // [v6.41.0-beta1] 기존(또는 복구) 직원의 근무시간은 엑셀로 덮어쓰지 않습니다.
+                                //   근무시간은 '근무시간 변경 이력(workHoursHistory)'과 짝을 이루는 값이라
+                                //   엑셀 값으로 덮어쓰면 변경 전·후 이력과 어긋나 과거 연차 계산이 틀어집니다.
+                                //   고칠 일이 있으면 [수정] 화면의 [근무시간 정정] / [근무시간 변경 등록]을 사용합니다.
+                                const upd = { birth: safeDate(es.birthRaw) || dbStaff.birth || '', phone: es.phoneRaw || dbStaff.phone || '', joinDate, annualLeaveTotal: leaveInfo.total || dbStaff.annualLeaveTotal || 0, annualLeavePeriod: leaveInfo.period || dbStaff.annualLeavePeriod || '-' };
+                                const excelWh = safeParseFloat(es.workRaw);
+                                const dbWh = safeParseFloat(dbStaff.workHours);
+                                const whDiffers = !!(excelWh && excelWh > 0 && dbWh && Number(excelWh) !== Number(dbWh));
                                 if (wasResigned) {
                                     upd.status = 'active'; upd.resignDate = '';
-                                    plan.restores.push({ id: dbStaff.id, name: dbStaff.name, upd, detail: `퇴사 상태 → 재직 복구 (연차 이력 유지)` });
+                                    plan.restores.push({ id: dbStaff.id, name: dbStaff.name, upd, detail: `퇴사 상태 → 재직 복구 (연차 이력·근무시간 유지)`, whKept: whDiffers });
                                 } else {
                                     // 실제로 값이 달라지는 항목만 골라 '무엇이 바뀌는지' 보여줍니다(저장 값은 종전과 동일).
                                     const changes = [];
                                     if (String(dbStaff.joinDate || '') !== String(upd.joinDate || '')) changes.push(`입사일 ${safeDate(dbStaff.joinDate) || '없음'} → ${safeDate(upd.joinDate) || '없음'}`);
-                                    if (String(dbStaff.workHours || '') !== String(upd.workHours || '')) changes.push(`근무시간 ${dbStaff.workHours || '없음'} → ${upd.workHours || '없음'}`);
+                                    if (whDiffers) changes.push(`근무시간 유지 (엑셀 ${fmt(excelWh)}h · 시스템 ${fmt(dbWh)}h)`);
                                     if (String(dbStaff.phone || '') !== String(upd.phone || '')) changes.push('휴대폰 변경');
                                     if (String(safeDate(dbStaff.birth) || '') !== String(upd.birth || '')) changes.push(`생년월일 ${safeDate(dbStaff.birth) || '없음'} → ${upd.birth || '없음'}`);
-                                    plan.updates.push({ id: dbStaff.id, name: dbStaff.name, upd, detail: changes.length ? changes.join(' · ') : '변경 없음(그대로 유지)', changed: changes.length > 0 });
+                                    plan.updates.push({ id: dbStaff.id, name: dbStaff.name, upd, detail: changes.length ? changes.join(' · ') : '변경 없음(그대로 유지)', changed: changes.length > 0, whKept: whDiffers });
                                 }
                             } else if (!wasResigned) {
                                 plan.resigns.push({ id: dbStaff.id, name: dbStaff.name, upd: { status: 'resigned', resignDate: todayStr }, detail: `엑셀에 없음 → ${todayStr} 자로 퇴사 처리 (연차 이력은 보존)` });
@@ -4808,6 +5151,7 @@
                             const payload = { name: es.name, birth: safeDate(es.birthRaw), phone: es.phoneRaw || '', workHours: es.workRaw || '', joinDate, employeeId: uniqueKey, role: 'staff', tempPw: '123456', annualLeaveTotal: leaveInfo.total || 0, annualLeavePeriod: leaveInfo.period || '-', status: 'active', resignDate: '', offDays: [0], leaveHistory: [], annualLeaveUsed: 0, authStatus: 'pending' };
                             plan.creates.push({ id: email, name: es.name, payload, detail: `입사일 ${safeDate(joinDate) || '없음'} · 근무시간 ${es.workRaw || '없음'} · 로그인 ID ${uniqueKey}` });
                         });
+                        plan.whKeptCount = plan.updates.filter(u => u.whKept).length + plan.restores.filter(r => r.whKept).length;
                         setUploadPlan(plan);
                         setUploadMsg('');
                         e.target.value = '';
