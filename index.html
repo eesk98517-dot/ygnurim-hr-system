@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.41.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (v6.43.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -502,7 +502,58 @@
         //    직원 화면은 v6.40.0-stable 과 100% 동일합니다. 기존에 쌓인 workHoursHistory 는
         //    workHoursBase 가 없어도 가장 이른 항목의 oldWorkHours 로 거슬러 올라가 그대로 씁니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.41.0-stable";
+        // ============================================================================
+        // [v6.42.0-beta1] v6.41.0-stable 기반 직원 명부 2건 (베타 — 테스트 후 정식 승격)
+        //   ① [직원 명부] 목록에 '입사일' 열 신설
+        //      : 종전에는 입사일을 보려면 이름을 눌러 상세 팝업을 열거나 [수정] 화면에
+        //        들어가야 했습니다. 이제 목록에서 바로 보이고, 열 제목을 누르면 입사일
+        //        순으로 정렬됩니다(joinSort 키 — 저장 값은 건드리지 않고 표시용으로만 만듦).
+        //        입사 1년 미만이면 '입사 N일째', 입사일이 미래면 '입사 예정',
+        //        비어 있으면 빨간 '미입력'으로 표시해 누락을 바로 찾을 수 있게 했습니다.
+        //   ② [직원 명부] 상단 '신규 입사자 확인' 카드 신설
+        //      : 기본은 이번 달이며 [◀][▶][이번 달로]로 달을 옮겨 볼 수 있습니다.
+        //      : 그 달 입사자 이름·입사일을 칩으로 나열하고, 계정이 아직 없는 분은
+        //        '계정 미발급' 빨간 표시 + 아래 경고 줄로 알려 발급 누락을 막습니다.
+        //      : [이 달 입사자만 보기] 체크로 아래 목록을 그 달 입사자로 좁힙니다.
+        //      : 집계는 재직자 기준이며 검색·다른 필터의 영향을 받지 않습니다.
+        //   ③ [계정 정보 다운] 엑셀에 '입사일' 열 추가(이름 다음) — 신규 입사자 안내문을
+        //      만들 때 바로 쓰도록. 나머지 열과 파일명은 종전과 동일합니다.
+        //   ※ 연차 계산·차감 로직, 명부 엑셀 업로드 판정 규칙, 저장 데이터 구조,
+        //     감사 로그, 직원 화면은 v6.41.0-stable 과 100% 동일합니다.
+        // ============================================================================
+        // ============================================================================
+        // [v6.43.0-stable] 정식 릴리즈 (2026-10-07)
+        //   v6.42.0-beta1(직원 명부 — 입사일 열 · 신규 입사자 확인)과 이번 작업분을
+        //   하나의 정식으로 묶었습니다. 베타 테스트 결과 이상이 없어 코드 변경 없이
+        //   버전 표기와 업데이트 내역만 정식으로 승격했습니다.
+        //   (본문 중 [v6.42.0-beta1]·[v6.43.0-beta1] 주석 마커는 작업 이력으로 그대로 둡니다)
+        //
+        //   ▣ 이번 작업분 — '2차 촉진 대상' 기준일 보정
+        //
+        //  ▣ 무엇이 문제였나
+        //     촉진 판정 엔진(getPromotionStatusList)은 입사일과 근로기준법 날짜 공식만으로
+        //     1차·2차 시기를 계산합니다. 1차 통보를 실제로 보냈는지는 보지 않습니다.
+        //     그래서 이 시스템으로 촉진을 시작하기 전(2026년 7월 이전)에 1차 시기가
+        //     지나간 분들까지 지금 와서 '2차 촉진 대상'으로 잡혔고, 대시보드
+        //     [오늘 할 일]의 '이번 달 촉진 대상' 건수가 부풀어 업무 체크가 안 됐습니다.
+        //
+        //  ▣ 어떻게 고쳤나
+        //     ① 엔진이 2차 행을 만들 때 짝이 되는 '1차 통보 기준일'을 함께 담습니다
+        //        (status.firstNoticeDate). 1년 이상 = 만료 6개월 전 / 9일분 = 1년 도래
+        //        3개월 전 / 2일분 = 1년 도래 1개월 전.
+        //     ② PROMO_SYSTEM_START = '2026-08' 과 비교하는 isPrePromoSystemSecond(status).
+        //        그 달보다 이른 1차분의 2차 행을 '시행 이전 1차분'으로 표시합니다.
+        //     ③ 보여주는 쪽에서만 거릅니다 — 촉진 대상 목록 / 탭 옆 건수 /
+        //        1·2차 일괄발송 대상 / 절차 진행 현황(+요약 카드) / 대시보드 '오늘 할 일'.
+        //        촉진 대상 목록에 [2026년 8월 이전 1차분의 2차 숨기기] 체크(기본 ON)를 두어
+        //        필요하면 다시 펼쳐 볼 수 있고, 그때는 노란 '시행 이전 1차분' 배지가 붙습니다.
+        //
+        //  ▣ 건드리지 않은 것
+        //     판정 엔진의 날짜 공식, 통보서 서식과 발송, 연차 계산·차감, 저장 구조,
+        //     감사 로그, 직원 화면. [2차 통보 예정] 화면도 종전 그대로입니다
+        //     (그 화면은 실제 1차 발송 기록을 근거로 집계하므로 영향이 없습니다).
+        // ============================================================================
+        const SYSTEM_VERSION = "6.43.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -515,6 +566,23 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.43.0-stable : 정식 릴리즈
+            //   v6.42.0-beta1(직원 명부 — 입사일 열 · 신규 입사자 확인)과
+            //   v6.43.0(2차 촉진 대상 기준일 보정)을 하나로 묶었습니다.
+            //   전부 관리자 화면이라 직원 화면에는 변화가 없어 staffDetails 를 넣지 않았습니다.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.43.0-stable", date: "2026-10-07", details: [
+                "🎯 [2차 촉진 대상이 2026년 8월 1차 통보분부터 표시됩니다] 그동안 촉진 화면은 입사일과 근로기준법 날짜 공식만으로 2차 시기를 계산해서, 이 시스템으로 촉진을 시작하기 전(2026년 7월 이전)에 1차 시기가 지나간 분들까지 '2차 촉진 대상'으로 잡혔습니다. 시스템에 1차 통보 기록이 없는 건이라 지금 처리할 일이 아닌데도 목록에 섞여 있었습니다",
+                "🧮 [대시보드 '오늘 할 일' 건수가 정확해졌습니다] '이번 달 촉진 대상' 건수에서 시행 이전 1차분의 2차 건이 빠집니다. 제외된 건이 있으면 '(2026년 8월 이전 1차분의 2차 N건은 제외 — [2차 통보 예정]에서 확인)' 안내가 함께 표시되어, 없어진 것이 아니라 다른 화면에 있다는 것을 바로 알 수 있습니다",
+                "📘🐣 [두 탭 모두 적용] [1년 이상 정기 촉진] 과 [1년 미만 신입 촉진] 탭의 목록과 탭 옆 건수가 같은 기준으로 맞춰집니다. 1년 이상은 '만료 6개월 전', 1년 미만 9일분은 '1년 도래 3개월 전', 2일분은 '1년 도래 1개월 전'이 각각 그 2차의 짝이 되는 1차 통보 시기입니다. [절차 진행 현황]의 목록과 요약 카드 4종, [1차·2차 일괄발송] 대상에도 같은 기준이 적용되어 1차 기록 없는 분께 2차가 먼저 나가는 일을 막습니다",
+                "👁️ [필요하면 펼쳐 볼 수 있습니다] 촉진 대상 목록에 [2026년 8월 이전 1차분의 2차 숨기기] 체크(기본 켜짐)를 두었습니다. 해제하면 그 건들이 다시 보이고 이름 아래에 노란 '시행 이전 1차분' 배지가 붙습니다. 숨긴 건수도 '시행 이전 1차분이라 숨긴 2차 N건'으로 표시됩니다",
+                "🎉 [신규 입사자 확인 신설] [직원 명부] 탭 맨 위에서 이번 달에 입사한 분을 한눈에 확인할 수 있습니다. 이름과 입사일이 함께 표시되고 [◀][▶][이번 달로] 버튼으로 지난달·다음 달도 볼 수 있습니다. 매달 명부를 받은 뒤 누가 새로 들어왔는지 따로 대조할 필요가 없습니다",
+                "🔑 [계정 발급 누락 방지] 신규 입사자 중 아직 로그인 계정이 없는 분은 이름 옆에 빨간 '계정 미발급' 표시가 붙고, '이 중 N명은 아직 계정이 발급되지 않았습니다' 안내가 함께 뜹니다. 아래 목록에서 바로 [개별 발급]을 누르시면 됩니다",
+                "📅 [입사일 열 신설] 직원 목록에 입사일이 바로 보입니다. 종전에는 이름을 눌러 상세 팝업을 열거나 [수정] 화면에 들어가야 확인할 수 있었습니다. 열 제목 [입사일]을 누르면 입사일 순으로 정렬되고, 이번 달 입사자는 초록 '신규' 배지, 입사 1년 미만은 '입사 123일째', 아직 입사일 전이면 '입사 예정', 비어 있으면 빨간 '미입력'으로 표시됩니다",
+                "🔎 [그 달 입사자만 보기 · 엑셀에도 입사일] 신규 입사자 카드의 체크박스로 아래 목록을 그 달 입사자로 좁혀 볼 수 있고, 기존 [미발급 직원만]·[퇴사자 포함 보기] 필터와 함께 쓸 수 있습니다. [계정 정보 다운] 엑셀에도 '입사일' 열이 이름 다음에 추가되어 신규 입사자 안내문을 만들 때 그대로 쓰실 수 있습니다",
+                "🛡️ [호환] 촉진 판정 날짜 공식, 통보서 서식과 발송, 연차 계산·차감 로직, 명부 엑셀 업로드 판정 규칙, 저장 데이터 구조, 감사 로그, 직원 화면은 v6.41.0 과 동일합니다. [2차 통보 예정] 화면도 종전 그대로입니다 — 그 화면은 실제 1차 발송 기록을 근거로 집계하므로 영향을 받지 않습니다"
+            ] },
             // ════════════════════════════════════════════════════════════════
             // ▼ v6.41.0-stable : 정식 릴리즈 — 근무시간 관리 3건 (관리자 전용)
             //   ① 명부 엑셀이 기존 직원의 근무시간을 덮어쓰던 동작을 막음(이력 보호)
@@ -1120,6 +1188,28 @@
                 prev = nw;
                 return out;
             });
+        };
+        // [v6.42.0-beta1 신규] 입사일 기준 '이번 달 신규 입사자' 판정
+        //   · getCurrentYM() : 한국 시간 기준 이번 달 'YYYY-MM'
+        //   · getJoinYM(s)   : 그 직원의 입사 월 'YYYY-MM' (입사일이 없거나 형식이 깨졌으면 '')
+        //   · isNewHireIn(s, ym) : 그 직원이 지정한 달에 입사했는지
+        //   · daysSinceJoin(s)   : 입사한 지 며칠 됐는지(오늘 포함 전 일수, 미래 입사면 음수)
+        const getCurrentYM = () => {
+            const t = nowKST();
+            return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
+        };
+        const getJoinYM = (staff) => {
+            const d = safeDate(staff && staff.joinDate);
+            return d && d.length >= 7 ? d.slice(0, 7) : '';
+        };
+        const isNewHireIn = (staff, ym) => !!ym && getJoinYM(staff) === ym;
+        const daysSinceJoin = (staff) => {
+            const d = safeDate(staff && staff.joinDate);
+            if (!d) return null;
+            const j = new Date(d + 'T00:00:00');
+            if (isNaN(j.getTime())) return null;
+            const today = new Date(toLocalYMD(nowKST()) + 'T00:00:00');
+            return Math.round((today.getTime() - j.getTime()) / 86400000);
         };
         const WORK_HOURS_LOG_MAX = 60;
         const WH_ACTION_LABELS = { ADD: '변경 등록', EDIT: '변경 내용 수정', DELETE: '변경 삭제', CORRECT: '근무시간 정정' };
@@ -2106,6 +2196,7 @@
                         promoCategory: 'over1', portion: 'regular', step: 2, order: 2,
                         type: '2차 촉진', msg: '만료 2개월 전 (데모 계정 고정)',
                         color: 'bg-red-100 text-red-700',
+                        firstNoticeDate: toLocalYMD(over1First),
                         noticeDate: toLocalYMD(over1Second),
                         deadlineDate: toLocalYMD(over1Second),
                         windowText: '이 날짜까지 사용시기 지정 통보 (1차 미제출자 한정)',
@@ -2132,6 +2223,7 @@
                         promoCategory: 'under1', portion: '9days', step: 2, order: 2,
                         type: '9일분 2차', msg: '1년 도래 1개월 전 (데모 계정 고정)',
                         color: 'bg-rose-100 text-rose-700',
+                        firstNoticeDate: toLocalYMD(n9First),
                         noticeDate: toLocalYMD(n9Second),
                         deadlineDate: toLocalYMD(n9Second),
                         windowText: '이 날짜까지 사용시기 지정 통보 (1차 미제출자 한정)',
@@ -2158,6 +2250,7 @@
                         promoCategory: 'under1', portion: '2days', step: 2, order: 4,
                         type: '2일분 2차', msg: '1년 도래 10일 전 (데모 계정 고정)',
                         color: 'bg-red-100 text-red-700',
+                        firstNoticeDate: toLocalYMD(n2First),
                         noticeDate: toLocalYMD(n2Second),
                         deadlineDate: toLocalYMD(n2Second),
                         windowText: '이 날짜까지 사용시기 지정 통보 (1차 미제출자 한정)',
@@ -2202,6 +2295,7 @@
                         promoCategory: 'under1', portion: '9days', step: 2, order: 2,
                         type: '9일분 2차', msg: '1년 도래 1개월 전',
                         color: 'bg-rose-100 text-rose-700',
+                        firstNoticeDate: toLocalYMD(n9First),   // [v6.43.0-beta1] 짝이 되는 1차 통보 기준일
                         noticeDate: toLocalYMD(n9Second), deadlineDate: toLocalYMD(n9Second),
                         windowText: '이 날짜까지 사용시기 지정 통보 (1차 미제출자 한정)',
                         promoPlanKey: 'promoPlan_under1_9days_' + baseYear,
@@ -2219,6 +2313,7 @@
                         promoCategory: 'under1', portion: '2days', step: 2, order: 4,
                         type: '2일분 2차', msg: '1년 도래 10일 전',
                         color: 'bg-red-100 text-red-700',
+                        firstNoticeDate: toLocalYMD(n2First),   // [v6.43.0-beta1] 짝이 되는 1차 통보 기준일
                         noticeDate: toLocalYMD(n2Second), deadlineDate: toLocalYMD(n2Second),
                         windowText: '이 날짜까지 사용시기 지정 통보 (1차 미제출자 한정)',
                         promoPlanKey: 'promoPlan_under1_2days_' + baseYear
@@ -2239,6 +2334,7 @@
                         promoCategory: 'over1', portion: 'regular', step: 2, order: 2,
                         type: '2차 촉진', msg: '만료 2개월 전',
                         color: 'bg-red-100 text-red-700',
+                        firstNoticeDate: toLocalYMD(n1),   // [v6.43.0-beta1] 짝이 되는 1차 통보 기준일
                         noticeDate: toLocalYMD(n2), deadlineDate: toLocalYMD(n2),
                         windowText: '이 날짜까지 사용시기 지정 통보 (1차 미제출자 한정)',
                         promoPlanKey: 'promoPlan_' + baseYear
@@ -2248,6 +2344,40 @@
             // 같은 달에 여러 건이 잡히면 '오래된 산정기간 → 이른 단계' 순으로 정렬
             out.sort((a, b) => (a.baseYear - b.baseYear) || (a.order - b.order));
             return out;
+        };
+        // ════════════════════════════════════════════════════════════════
+        // [v6.43.0-beta1 신규] '시스템 정식 운영 시작' 이전 2차 건 구분
+        // ----------------------------------------------------------------------------
+        //  ▣ 왜 필요한가
+        //     촉진 판정 엔진은 입사일과 근로기준법 날짜 공식만으로 1차·2차 시기를
+        //     계산합니다. 그래서 이 시스템으로 1차 통보를 시작하기 전(2026년 7월 이전)에
+        //     1차 시기가 지나간 분들까지 지금 '2차 촉진 대상'으로 잡혔습니다.
+        //     그 건들은 시스템에 1차 통보 기록 자체가 없어, 대시보드 '오늘 할 일'과
+        //     촉진 대상 목록에 섞이면 업무 체크가 어그러집니다.
+        //
+        //  ▣ 기준
+        //     PROMO_SYSTEM_START = '2026-08' (이 시스템으로 1차 통보를 시작한 달)
+        //     2차 행은 짝이 되는 '1차 통보 기준일'(status.firstNoticeDate)이 이 달
+        //     이후일 때만 실제 2차 촉진 대상으로 봅니다.
+        //       · 1년 이상 : 1차 = 만료 6개월 전     / 2차 = 만료 2개월 전
+        //       · 9일분    : 1차 = 1년 도래 3개월 전 / 2차 = 1년 도래 1개월 전
+        //       · 2일분    : 1차 = 1년 도래 1개월 전 / 2차 = 1년 도래 10일 전
+        //     그 이전 1차분의 2차는 [2차 통보 예정] 화면에서 월별로 확인합니다.
+        //
+        //  ▣ 적용 범위 — '보여주는 쪽'만 거릅니다(판정 엔진·저장 구조는 무변경).
+        //     촉진 대상 목록 / 탭 건수 / 1·2차 일괄발송 대상 / 대시보드 '오늘 할 일'.
+        //     데모 계정('양지누림')은 화면 점검용이므로 면제합니다.
+        // ════════════════════════════════════════════════════════════════
+        const PROMO_SYSTEM_START = '2026-08';
+        const PROMO_SYSTEM_START_LABEL = (() => {
+            const [y, m] = PROMO_SYSTEM_START.split('-').map(Number);
+            return `${y}년 ${m}월`;
+        })();
+        const isPrePromoSystemSecond = (status) => {
+            if (!status || status.step !== 2 || status.isDemo) return false;
+            const f = String(status.firstNoticeDate || '');
+            if (f.length < 7) return false;
+            return f.slice(0, 7) < PROMO_SYSTEM_START;
         };
         // [하위 호환] 종전 시그니처 그대로 '대표 1건'만 반환합니다.
         //   다중 엑셀 대조 모달의 촉진 대상자 필터 등 기존 호출부가 그대로 동작합니다.
@@ -5048,6 +5178,9 @@
             const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
             const [showUnregisteredOnly, setShowUnregisteredOnly] = useState(false);
             const [showResignedToo, setShowResignedToo] = useState(false); // [v6.11.0] 퇴사자 포함 보기
+            // [v6.42.0-beta1] 신규 입사자 확인 — 조회할 입사 월(기본 이번 달)과 '그 달 입사자만' 보기
+            const [hireMonth, setHireMonth] = useState(getCurrentYM());
+            const [showNewHiresOnly, setShowNewHiresOnly] = useState(false);
             // [v6.34.0-beta1] 명부 엑셀 '반영 전 미리보기' — 계획(plan)과 반영 진행 상태
             const [uploadPlan, setUploadPlan] = useState(null);
             const [applyingPlan, setApplyingPlan] = useState(false);
@@ -5056,6 +5189,7 @@
                 let data = showResignedToo ? staffList : activeStaffList;
                 if (searchTerm) { const t = searchTerm.toLowerCase(); data = data.filter(s => (s.name && s.name.toLowerCase().includes(t)) || (s.phone && s.phone.includes(t))); }
                 if (showUnregisteredOnly) data = data.filter(s => s.authStatus !== 'success');
+                if (showNewHiresOnly) data = data.filter(s => isNewHireIn(s, hireMonth));   // [v6.42.0-beta1]
                 data = data.map(staff => {
                     const leaveInfo = calculateAnnualLeave(staff.joinDate);
                     const dailyHours = safeParseFloat(staff.workHours) || 8;
@@ -5064,11 +5198,16 @@
                     const usedHours = staff.annualLeaveUsed || 0;
                     const remainingHours = totalHours - usedHours;
                     return { ...staff, dailyHours, totalDays, totalHours, usedHours, remainingHours, leaveInfo,
+                        // [v6.42.0-beta1] 입사일 열 정렬·신규 배지에 쓰는 값 (저장 값은 건드리지 않습니다)
+                        joinSort: safeDate(staff.joinDate) || '',
+                        isNewHire: isNewHireIn(staff, hireMonth),
+                        joinedDays: daysSinceJoin(staff),
                         remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0,
                         usedDays: dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0 };
                 });
                 if (sortConfig.key) {
-                    const k = sortConfig.key === 'remaining' ? 'remainingHours' : sortConfig.key;
+                    const k = sortConfig.key === 'remaining' ? 'remainingHours'
+                        : (sortConfig.key === 'joinDate' ? 'joinSort' : sortConfig.key);
                     data.sort((a, b) => {
                         if (a[k] < b[k]) return sortConfig.direction === 'asc' ? -1 : 1;
                         if (a[k] > b[k]) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -5076,7 +5215,23 @@
                     });
                 }
                 return data;
-            }, [activeStaffList, staffList, showResignedToo, searchTerm, sortConfig, showUnregisteredOnly]);
+            }, [activeStaffList, staffList, showResignedToo, searchTerm, sortConfig, showUnregisteredOnly, showNewHiresOnly, hireMonth]);
+            // [v6.42.0-beta1] 선택한 달의 신규 입사자 — 필터와 무관하게 '재직자 기준'으로 항상 집계합니다.
+            const newHireList = useMemo(
+                () => activeStaffList.filter(s => isNewHireIn(s, hireMonth))
+                    .sort((a, b) => String(safeDate(a.joinDate) || '').localeCompare(String(safeDate(b.joinDate) || ''))),
+                [activeStaffList, hireMonth]
+            );
+            const hireMonthLabel = useMemo(() => {
+                const [y, m] = String(hireMonth || '').split('-');
+                return (y && m) ? `${Number(y)}년 ${Number(m)}월` : '';
+            }, [hireMonth]);
+            const isThisMonth = hireMonth === getCurrentYM();
+            const shiftHireMonth = (delta) => {
+                const [y, m] = String(hireMonth || getCurrentYM()).split('-').map(Number);
+                const d = new Date(y, m - 1 + delta, 1);
+                setHireMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            };
             const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
             // ════════════════════════════════════════════════════════════════
             // [v6.34.0-beta1 개편] 명부 엑셀 업로드 — '미리보기 후 반영' 2단계로 변경
@@ -5215,7 +5370,7 @@
                     catch (err) { showAlert('오류: ' + err.message); }
                 });
             };
-            const handleResetFilters = () => { setSearchTerm(''); setSelectedIds(new Set()); setShowUnregisteredOnly(false); };
+            const handleResetFilters = () => { setSearchTerm(''); setSelectedIds(new Set()); setShowUnregisteredOnly(false); setShowNewHiresOnly(false); setHireMonth(getCurrentYM()); };
             const handleResetAuth = () => {
                 showConfirm("모든 직원의 계정 발급 상태를 '미발급'으로 되돌리시겠습니까?\n\n※ 연차 데이터와 기본 정보는 100% 안전하게 보존됩니다.\n휴대폰 번호를 다시 업로드하고 새로운 ID로 재발급 받기 위한 기능입니다.", async () => {
                     setUploadMsg('계정 상태 초기화 중...');
@@ -5228,10 +5383,11 @@
                 });
             };
             const handleDownloadAccountInfo = () => {
-                const wsData = [ ['양지누림 직원 계정 안내 정보'], [`출력 일자: ${nowKST().toLocaleDateString()}`], [], ['이름', '연락처', '로그인 ID', '초기 비밀번호', '계정 상태'] ];
-                processedStaffList.forEach(s => wsData.push([ s.name, s.phone || '미입력', s.employeeId ? `${s.employeeId}@ygnurim.com` : '미발급', s.tempPw || '미발급', s.authStatus === 'success' ? '발급완료' : '미발급' ]));
+                // [v6.42.0-beta1] '입사일' 열 추가 — 신규 입사자 안내문을 만들 때 그대로 쓸 수 있도록
+                const wsData = [ ['양지누림 직원 계정 안내 정보'], [`출력 일자: ${nowKST().toLocaleDateString()}`], [], ['이름', '입사일', '연락처', '로그인 ID', '초기 비밀번호', '계정 상태'] ];
+                processedStaffList.forEach(s => wsData.push([ s.name, safeDate(s.joinDate) || '미입력', s.phone || '미입력', s.employeeId ? `${s.employeeId}@ygnurim.com` : '미발급', s.tempPw || '미발급', s.authStatus === 'success' ? '발급완료' : '미발급' ]));
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
-                ws['!cols'] = [{ wch: 15 }, { wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
+                ws['!cols'] = [{ wch: 15 }, { wch: 14 }, { wch: 20 }, { wch: 25 }, { wch: 15 }, { wch: 15 }];
                 const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "계정정보");
                 XLSX.writeFile(wb, `양지누림_직원계정안내_${toLocalYMD(nowKST()).replace(/-/g, '')}.xlsx`);
             };
@@ -5333,8 +5489,52 @@
                     {viewingStaff && <StaffDetailModal staff={viewingStaff} onClose={() => setViewingStaff(null)} />}
                     {/* [v6.34.0-beta1 신규] 명부 엑셀은 이 미리보기에서 [반영하기] 를 눌러야 저장됩니다 */}
                     {uploadPlan && <StaffUploadPreviewModal plan={uploadPlan} applying={applyingPlan} onCancel={() => { if (!applyingPlan) setUploadPlan(null); }} onApply={applyUploadPlan} />}
+
+                    {/* ═══ [v6.42.0-beta1 신규] 신규 입사자 확인 ═══ */}
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">🎉 신규 입사자 확인</h3>
+                                <div className="flex items-center gap-1">
+                                    <button type="button" onClick={() => shiftHireMonth(-1)} className="px-2 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition" title="지난달">◀</button>
+                                    <input type="month" value={hireMonth} onChange={e => setHireMonth(e.target.value)} className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold outline-none" />
+                                    <button type="button" onClick={() => shiftHireMonth(1)} className="px-2 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-bold hover:bg-slate-200 transition" title="다음달">▶</button>
+                                    {!isThisMonth && <button type="button" onClick={() => setHireMonth(getCurrentYM())} className="px-2 py-1.5 bg-slate-700 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition">이번 달로</button>}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className={`px-3 py-1.5 rounded-xl text-xs font-black border ${newHireList.length > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                                    {hireMonthLabel} 입사 {newHireList.length}명
+                                </span>
+                                {newHireList.length > 0 && (
+                                    <label className="flex items-center gap-2 cursor-pointer bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition shadow-sm">
+                                        <input type="checkbox" checked={showNewHiresOnly} onChange={e => setShowNewHiresOnly(e.target.checked)} />
+                                        <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">이 달 입사자만 보기</span>
+                                    </label>
+                                )}
+                            </div>
+                        </div>
+                        {newHireList.length === 0 ? (
+                            <p className="text-[11px] font-bold text-slate-400 mt-2">{hireMonthLabel}에 입사한 재직자가 없습니다. (입사일이 비어 있는 분은 집계되지 않습니다 — 아래 목록의 [입사일] 칸에서 확인하실 수 있습니다)</p>
+                        ) : (
+                            <>
+                                <div className="flex flex-wrap gap-1.5 mt-3">
+                                    {newHireList.map(s => (
+                                        <span key={s.id} className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1.5">
+                                            <span className="text-xs font-black text-emerald-800">{s.name}</span>
+                                            <span className="text-[10px] font-bold text-emerald-600">{safeDate(s.joinDate)}</span>
+                                            {s.authStatus !== 'success' && <span className="text-[10px] font-black text-red-500 bg-red-50 border border-red-100 rounded px-1">계정 미발급</span>}
+                                        </span>
+                                    ))}
+                                </div>
+                                {newHireList.filter(s => s.authStatus !== 'success').length > 0 && (
+                                    <p className="text-[11px] font-bold text-red-500 mt-2">⚠️ 이 중 {newHireList.filter(s => s.authStatus !== 'success').length}명은 아직 로그인 계정이 발급되지 않았습니다. 아래 목록에서 [개별 발급]을 눌러주세요.</p>
+                                )}
+                            </>
+                        )}
+                    </div>
                     <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div className="flex items-center gap-4 w-full md:w-auto justify-between"><div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 ({showResignedToo ? '퇴사자 포함' : '퇴사자 제외'})</p></div></div>
+                        <div className="flex items-center gap-4 w-full md:w-auto justify-between"><div><h3 className="font-bold text-lg text-slate-800">직원 명부 관리</h3><p className="text-xs text-slate-500">총 {processedStaffList.length}명 ({showResignedToo ? '퇴사자 포함' : '퇴사자 제외'}{showNewHiresOnly ? ` · ${hireMonthLabel} 입사자만` : ''})</p></div></div>
                         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
                             <div className="relative flex items-center w-full md:w-auto gap-1">
                                 <div className="relative group flex-1 md:flex-none"><div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500"><Icons.Search /></div><input type="text" placeholder="이름 검색..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full md:w-48 pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition" /></div>
@@ -5356,6 +5556,8 @@
                                 <tr>
                                     <th className="p-4 w-12 text-center"><input type="checkbox" checked={processedStaffList.length > 0 && selectedIds.size === processedStaffList.length} onChange={handleSelectAll} /></th>
                                     <th className="p-4 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('name')}><div className="flex items-center">이름 (상세보기) <SortIcon sortConfig={sortConfig} columnKey="name" /></div></th>
+                                    {/* [v6.42.0-beta1 신규] 입사일 — 클릭하면 입사일 순으로 정렬됩니다 */}
+                                    <th className="p-4 text-center cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('joinDate')}><div className="flex items-center justify-center">입사일 <SortIcon sortConfig={sortConfig} columnKey="joinDate" /></div></th>
                                     <th className="p-4 text-center text-blue-600">발생(시간)</th><th className="p-4 text-center text-red-500">사용(시간)</th>
                                     <th className="p-4 text-center text-green-600 cursor-pointer hover:bg-slate-100 transition" onClick={() => handleSort('remaining')}><div className="flex items-center justify-center">잔여(시간) <SortIcon sortConfig={sortConfig} columnKey="remaining" /></div></th>
                                     <th className="p-4 text-center bg-slate-100">계정 상태</th><th className="p-4 text-center w-44">관리</th>
@@ -5368,7 +5570,15 @@
                                     return (
                                         <tr key={staff.id} className={`hover:bg-slate-50 transition ${selectedIds.has(staff.id) ? 'bg-blue-50/50' : ''} ${isRes ? 'bg-slate-50/60' : ''}`}>
                                             <td className="p-4 text-center"><input type="checkbox" checked={selectedIds.has(staff.id)} onChange={() => handleSelectOne(staff.id)} /></td>
-                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>{staff.name} {isRes ? <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-bold ml-1">퇴사</span> : <span className="text-slate-400 text-xs font-normal ml-1">click</span>}</td>
+                                            <td className="p-4 font-bold text-blue-600 cursor-pointer hover:underline" onClick={() => setViewingStaff(staff)}>{staff.name} {isRes ? <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-bold ml-1">퇴사</span> : (staff.isNewHire ? <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-black ml-1">신규</span> : <span className="text-slate-400 text-xs font-normal ml-1">click</span>)}</td>
+                                            {/* [v6.42.0-beta1 신규] 입사일 */}
+                                            <td className={`p-4 text-center ${staff.isNewHire ? 'bg-emerald-50/60' : ''}`}>
+                                                {safeDate(staff.joinDate)
+                                                    ? (<><span className={`text-xs font-bold ${staff.isNewHire ? 'text-emerald-700' : 'text-slate-600'}`}>{safeDate(staff.joinDate)}</span>
+                                                        {staff.joinedDays !== null && staff.joinedDays >= 0 && staff.joinedDays < 365 && <span className="block text-[10px] font-normal text-slate-400 mt-0.5">입사 {staff.joinedDays}일째</span>}
+                                                        {staff.joinedDays !== null && staff.joinedDays < 0 && <span className="block text-[10px] font-bold text-amber-500 mt-0.5">입사 예정</span>}</>)
+                                                    : <span className="text-red-500 text-[11px] font-bold px-2 py-1 bg-red-50 rounded">미입력</span>}
+                                            </td>
                                             <td className="p-4 text-center font-bold text-blue-600">{isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(staff.totalHours)}h <span className="text-xs font-normal text-slate-400">({staff.totalDays}일)</span></>}</td>
                                             <td className="p-4 text-center text-slate-400">{fmt(staff.usedHours)}h <span className="text-xs font-normal text-slate-400">({staff.usedDays}일)</span></td>
                                             <td className="p-4 text-center font-bold text-green-600">{fmt(staff.remainingHours)}h <span className="text-xs font-normal text-slate-400">({staff.remainingDays}일)</span></td>
@@ -5381,7 +5591,7 @@
                                         </tr>
                                     );
                                 })}
-                                {processedStaffList.length === 0 && (<tr><td colSpan="7" className="p-12 text-center text-slate-400">데이터가 없습니다.</td></tr>)}
+                                {processedStaffList.length === 0 && (<tr><td colSpan="8" className="p-12 text-center text-slate-400">{showNewHiresOnly ? `${hireMonthLabel}에 입사한 직원이 없습니다. [이 달 입사자만 보기] 체크를 해제하면 전체가 보입니다.` : '데이터가 없습니다.'}</td></tr>)}
                             </tbody>
                         </table>
                     </div>
@@ -6863,6 +7073,8 @@
             const [guideOpen, setGuideOpen] = useState(true);
             // 2차 촉진은 법적으로 '1차 계획서 미제출자'에게만 보내므로 기본적으로 제출자를 숨깁니다.
             const [hideSubmittedSecond, setHideSubmittedSecond] = useState(true);
+            // [v6.43.0-beta1] 시스템 정식 운영(2026-08) 이전 1차분의 2차 건 숨기기 (기본 ON)
+            const [hidePreSystemSecond, setHidePreSystemSecond] = useState(true);
             const [togglingKey, setTogglingKey] = useState('');
             // [v6.30.0-beta1 신규] 통보 발송 처리 중인 rowKey (중복 클릭 방지) + 미리보기 대상
             const [sendingKey, setSendingKey] = useState('');
@@ -6929,7 +7141,10 @@
                                 promoPlanKey: status.promoPlanKey,
                                 isPlanSubmitted: plan.submitted, isLegacyPlan: plan.fromLegacy,
                                 isNoticeSent: noticeInfo.sent, sentNotice: noticeInfo.notice,
-                                isFirstSent, canSendByDate, noticeGateDate: toLocalYMD(sendGateDateObj)
+                                isFirstSent, canSendByDate, noticeGateDate: toLocalYMD(sendGateDateObj),
+                                // [v6.43.0-beta1] 1차 통보 시기가 시스템 정식 운영(2026-08) 이전인 2차 건
+                                isPreSystemSecond: isPrePromoSystemSecond(status),
+                                firstNoticeDate: status.firstNoticeDate || ''
                             }));
                         });
                     }
@@ -6937,18 +7152,23 @@
                 rows.sort((a, b) => (a.targetY - b.targetY) || (a.targetM - b.targetM)
                     || (a.promoStatus.order - b.promoStatus.order)
                     || String(a.name || '').localeCompare(String(b.name || '')));
+                // [v6.43.0-beta1] 탭 옆 건수는 화면에 실제로 보이는 기준(시행 이전 2차 제외)과 맞춥니다.
+                const countable = rows.filter(r => !r.isPreSystemSecond);
                 return {
                     allRows: rows,
-                    countOver1: rows.filter(r => r.promoStatus.promoCategory === 'over1').length,
-                    countUnder1: rows.filter(r => r.promoStatus.promoCategory === 'under1').length
+                    countOver1: countable.filter(r => r.promoStatus.promoCategory === 'over1').length,
+                    countUnder1: countable.filter(r => r.promoStatus.promoCategory === 'under1').length
                 };
             }, [staffList, startMonth, endMonth]);
             // 선택된 탭 + '2차는 미제출자만' 필터를 적용한 최종 목록
             const promotionList = useMemo(() => {
                 let list = allRows.filter(r => r.promoStatus.promoCategory === promoView);
                 if (hideSubmittedSecond) list = list.filter(r => !(r.promoStatus.step === 2 && r.isPlanSubmitted));
+                // [v6.43.0-beta1] 1차 통보 시기가 2026-08 이전인 2차 건은 기본적으로 뺍니다.
+                //   (그 건들은 [2차 통보 예정] 화면에서 월별로 확인합니다)
+                if (hidePreSystemSecond) list = list.filter(r => !r.isPreSystemSecond);
                 return list;
-            }, [allRows, promoView, hideSubmittedSecond]);
+            }, [allRows, promoView, hideSubmittedSecond, hidePreSystemSecond]);
             // ════════════════════════════════════════════════════════════════
             // [v6.34.0-beta1 신규] 절차 진행 타임라인 — '한 사람 한 줄'로 어디까지 왔는지
             //   종전 목록은 (직원 × 촉진 단계)로 줄이 나뉘어 있어, 같은 사람의 1차와 2차가
@@ -7000,21 +7220,37 @@
                 list.sort((a, b) => (a.stage - b.stage) || String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
                 return list;
             }, [allRows]);
+            // [v6.43.0-beta1] 1차 행은 없고 '시행 이전 1차분의 2차'만 잡힌 묶음은 제외합니다.
+            //   (시스템에 1차 통보 기록이 없는 건이라 '2차 발송 필요'로 뜨면 업무 체크가 어그러집니다)
+            //   요약 카드 건수도 이 기준과 같은 목록에서 셉니다.
+            const timelineBase = useMemo(() => (
+                hidePreSystemSecond
+                    ? timelineGroups.filter(g => !(!g.first && g.second && g.second.isPreSystemSecond))
+                    : timelineGroups
+            ), [timelineGroups, hidePreSystemSecond]);
+            const timelinePreSystemCount = useMemo(
+                () => timelineGroups.filter(g => !g.first && g.second && g.second.isPreSystemSecond).length,
+                [timelineGroups]);
             const timelineSummary = useMemo(() => ({
-                total: timelineGroups.length,
-                s1: timelineGroups.filter(g => g.stage === 1).length,
-                s2: timelineGroups.filter(g => g.stage === 2).length,
-                s3: timelineGroups.filter(g => g.stage === 3).length,
-                done: timelineGroups.filter(g => g.stage === 4).length
-            }), [timelineGroups]);
+                total: timelineBase.length,
+                s1: timelineBase.filter(g => g.stage === 1).length,
+                s2: timelineBase.filter(g => g.stage === 2).length,
+                s3: timelineBase.filter(g => g.stage === 3).length,
+                done: timelineBase.filter(g => g.stage === 4).length
+            }), [timelineBase]);
             const [timelineHideDone, setTimelineHideDone] = useState(false);
             const timelineShown = useMemo(
-                () => timelineHideDone ? timelineGroups.filter(g => g.stage !== 4) : timelineGroups,
-                [timelineGroups, timelineHideDone]);
+                () => timelineHideDone ? timelineBase.filter(g => g.stage !== 4) : timelineBase,
+                [timelineBase, timelineHideDone]);
             const hiddenSecondCount = useMemo(() => {
                 if (!hideSubmittedSecond) return 0;
                 return allRows.filter(r => r.promoStatus.promoCategory === promoView && r.promoStatus.step === 2 && r.isPlanSubmitted).length;
             }, [allRows, promoView, hideSubmittedSecond]);
+            // [v6.43.0-beta1] '시행 이전 1차분'이라 뺀 2차 건수
+            const hiddenPreSystemCount = useMemo(() => {
+                if (!hidePreSystemSecond) return 0;
+                return allRows.filter(r => r.promoStatus.promoCategory === promoView && r.isPreSystemSecond).length;
+            }, [allRows, promoView, hidePreSystemSecond]);
             const pdfTargets = useMemo(() => promotionList.filter(p => !p.isPlanSubmitted && p.portionRemainingDays > 0), [promotionList]);
             // ────────────────────────────────────────────────────────────────
             // [v6.30.0-beta3 신규] secondTargets — [2차 지정통보서(ZIP)] 전용 대상 목록
@@ -7574,6 +7810,7 @@
             const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, name: '' });
             const bulkTargets = (step) => promotionList.filter(r =>
                 r.promoStatus.step === step
+                && !r.isPreSystemSecond          // [v6.43.0-beta1] 시행 이전 1차분의 2차는 일괄발송에서 제외
                 && !r.isNoticeSent
                 && r.portionRemainingDays > 0
                 && (step === 1 ? r.canSendByDate : (r.isFirstSent && !r.isPlanSubmitted))
@@ -8056,12 +8293,27 @@
                             <p className="text-xs font-bold text-slate-500">
                                 조회 결과 <span className={promoView === 'under1' ? 'text-purple-600' : 'text-blue-600'}>{promotionList.length}건</span>
                                 {hiddenSecondCount > 0 && <span className="text-slate-400"> · 1차 제출 완료로 숨긴 2차 {hiddenSecondCount}건</span>}
+                                {hiddenPreSystemCount > 0 && <span className="text-slate-400"> · 시행 이전 1차분이라 숨긴 2차 {hiddenPreSystemCount}건</span>}
                             </p>
-                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition self-start md:self-auto"
+                            <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+                            <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition"
                                 title="근로기준법상 2차 촉진은 1차에서 계획서를 내지 않은 사람에게만 통보합니다">
                                 <input type="checkbox" checked={hideSubmittedSecond} onChange={(e) => setHideSubmittedSecond(e.target.checked)} />
                                 <span className="text-[11px] font-bold text-slate-600 whitespace-nowrap">2차는 1차 미제출자만 보기 (법정 절차)</span>
                             </label>
+                            {/* [v6.43.0-beta1 신규] 시스템 정식 운영 이전 1차분의 2차 숨기기 */}
+                            <label className="flex items-center gap-2 cursor-pointer bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-100 transition"
+                                title={`이 시스템으로 1차 통보를 시작한 ${PROMO_SYSTEM_START_LABEL} 이전에 1차 시기가 지나간 건은 시스템에 1차 통보 기록이 없어 2차 대상에서 뺍니다. 해당 건은 [2차 통보 예정] 화면에서 월별로 확인하세요.`}>
+                                <input type="checkbox" checked={hidePreSystemSecond} onChange={(e) => setHidePreSystemSecond(e.target.checked)} />
+                                <span className="text-[11px] font-bold text-amber-700 whitespace-nowrap">{PROMO_SYSTEM_START_LABEL} 이전 1차분의 2차 숨기기</span>
+                            </label>
+                            </div>
+                        </div>
+                        {/* [v6.43.0-beta1] 시행 기준 안내 */}
+                        <div className="px-1 pb-3 -mt-1">
+                            <p className="text-[11px] font-bold text-amber-600">
+                                ※ 2차 촉진 대상은 <b>{PROMO_SYSTEM_START_LABEL} 1차 통보분부터</b> 표시됩니다. 그 이전에 1차 시기가 지나간 건은 [2차 통보 예정] 화면에서 월별로 확인하실 수 있습니다.
+                            </p>
                         </div>
                         <div className="overflow-x-auto whitespace-nowrap">
                             <table className="w-full text-sm text-left">
@@ -8070,8 +8322,12 @@
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {promotionList.map((staff) => (
-                                        <tr key={staff.rowKey} className={`hover:bg-slate-50 transition ${staff.isPlanSubmitted ? 'opacity-50' : ''}`}>
-                                            <td className="p-4 font-bold text-slate-800">{staff.name}</td>
+                                        <tr key={staff.rowKey} className={`hover:bg-slate-50 transition ${staff.isPlanSubmitted ? 'opacity-50' : ''} ${staff.isPreSystemSecond ? 'bg-amber-50/40' : ''}`}>
+                                            <td className="p-4 font-bold text-slate-800">
+                                                {staff.name}
+                                                {/* [v6.43.0-beta1] 1차 통보 시기가 시스템 시행 이전인 2차 건 */}
+                                                {staff.isPreSystemSecond && <span className="block text-[10px] font-black text-amber-600 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 mt-1 w-max" title={`1차 통보 기준일 ${staff.firstNoticeDate} — 시스템 정식 운영(${PROMO_SYSTEM_START_LABEL}) 이전이라 1차 통보 기록이 없습니다.`}>시행 이전 1차분</span>}
+                                            </td>
                                             <td className="p-4 text-slate-500">{safeDate(staff.joinDate)}</td>
                                             <td className="p-4 text-xs text-slate-400">{staff.leaveInfo.period}</td>
                                             <td className="p-4 text-center font-bold text-blue-600">{staff.targetDate}</td>
@@ -10305,9 +10561,13 @@
                 const prevYm = `${prevM.getFullYear()}-${String(prevM.getMonth() + 1).padStart(2, '0')}`;
                 const prevLabel = `${prevM.getFullYear()}년 ${prevM.getMonth() + 1}월`;
                 // ① 이번 달 촉진 대상 — 통보 미발송 건수까지 함께 셈
-                let promoTotal = 0, promoUnsent = 0;
+                //   [v6.43.0-beta1] 1차 통보 시기가 시스템 정식 운영(2026-08) 이전인 2차 건은
+                //   시스템에 1차 통보 기록이 없어 지금 처리할 일이 아니므로 세지 않습니다.
+                //   (그 건들은 [연차 촉진] → [2차 통보 예정] 화면에서 월별로 확인합니다)
+                let promoTotal = 0, promoUnsent = 0, promoPreSystem = 0;
                 list.forEach(staff => {
                     (getPromotionStatusList(staff, y, m) || []).forEach(status => {
+                        if (isPrePromoSystemSecond(status)) { promoPreSystem++; return; }
                         promoTotal++;
                         if (!resolveNoticeSent(staff, status).sent) promoUnsent++;
                     });
@@ -10351,8 +10611,11 @@
                     {
                         key: 'promo', icon: '📨', tab: 'promotion', tone: 'amber',
                         title: `${m}월 촉진 대상`, count: promoTotal, unit: '건',
-                        desc: promoUnsent > 0 ? `이 중 ${promoUnsent}건은 아직 통보서를 발송하지 않았습니다.` : '이번 달 대상 통보는 모두 발송했습니다.',
-                        done: '이번 달 촉진 대상이 없습니다.'
+                        desc: (promoUnsent > 0 ? `이 중 ${promoUnsent}건은 아직 통보서를 발송하지 않았습니다.` : '이번 달 대상 통보는 모두 발송했습니다.')
+                            + (promoPreSystem > 0 ? ` (${PROMO_SYSTEM_START_LABEL} 이전 1차분의 2차 ${promoPreSystem}건은 제외 — [2차 통보 예정]에서 확인)` : ''),
+                        done: promoPreSystem > 0
+                            ? `이번 달 촉진 대상이 없습니다. (${PROMO_SYSTEM_START_LABEL} 이전 1차분의 2차 ${promoPreSystem}건은 [2차 통보 예정]에서 확인)`
+                            : '이번 달 촉진 대상이 없습니다.'
                     },
                     {
                         key: 'expiring', icon: '⏳', tab: 'leave', tone: 'purple',
