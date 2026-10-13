@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.44.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (v6.44.0-beta2)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -586,10 +586,21 @@
         //       명단 엑셀 · 줄별 [통지서 보기] / [발행] / [발행 취소]
         //     · 대시보드 '오늘 할 일'에 '오늘 노무수령 거부 통지' 줄 추가
         //
+        //  ④ [beta2] '양지누림' 데모 계정으로 노무수령 거부 통지를 점검할 수 있게 함
+        //     이 기능은 2차 통보를 실제로 발송해야만 지정일이 생기므로, 아직 2차를 보낸
+        //     분이 없으면 화면이 비어 서식·발행·인쇄를 전혀 확인할 수 없었습니다.
+        //     · refusalRows : 데모 계정은 실제 2차 발송 건이 0건일 때만 '오늘 · 모레 ·
+        //       닷새 뒤' 가상 지정일 3건을 만들어 넣습니다(isDemoRow: true).
+        //       실제 2차를 보내면 그 지정일이 올라오고 가상 건은 더 만들지 않습니다.
+        //     · processRefusalNoticeTransaction : 데모 계정은 '2차 발송 선행' 전제를
+        //       면제합니다(이름 완전 일치 시에만. 실제 직원은 종전 그대로 차단).
+        //     · 데모 행은 '데모' 배지 + 안내 배너로 구분하고, 명단 엑셀과 대시보드
+        //       '오늘 할 일' 집계에서는 제외합니다.
+        //
         //  ※ 연차 계산·차감 로직, 촉진 판정 날짜 공식, 1·2차 통보서 서식과 발송,
         //    저장 데이터 구조(기존 필드), 직원 화면은 v6.43.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.44.0-beta1";
+        const SYSTEM_VERSION = "6.44.0-beta2";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -604,6 +615,12 @@
             // ====================================================================
             // ▼ v6.44.0-beta1 : 계획서 대리 등록 보완 2건 + 노무수령 거부 통지 신설 (관리자 전용 · 베타)
             //   직원 화면에는 변화가 없어 staffDetails 를 넣지 않았습니다.
+            { version: "6.44.0-beta2", date: "2026-10-13", details: [
+                "🧪 [데모 계정으로 바로 시험해 보실 수 있습니다] 노무수령 거부 통지는 2차(사용시기 지정) 통보를 실제로 발송해야 지정일이 생겨서, 아직 2차를 보낸 분이 없으면 화면이 비어 있었습니다. 이제 '양지누림' 데모 계정에 오늘·모레·닷새 뒤 3건의 점검용 지정일이 자동으로 표시되어 [통지서 보기] · [발행] · [발행 취소] · [인쇄]를 실제와 똑같이 확인하실 수 있습니다",
+                "🔒 [실제 업무에는 영향 없음] 데모 건은 이름이 정확히 '양지누림'인 계정에만 만들어지고, 줄에 파란 '데모' 배지가 붙습니다. 명단 엑셀과 대시보드 [오늘 할 일] 건수에는 들어가지 않습니다. 실제 직원은 종전대로 2차 통보를 발송해야만 거부 통지를 발행할 수 있습니다",
+                "📌 [실제 2차를 보내면] 그 지정일이 이 화면에 올라옵니다. 데모 계정에 실제 2차 통보를 발송하시면 점검용 3건 대신 진짜 지정일이 표시됩니다"
+            ] },
+            // ▼ v6.44.0-beta1 : 같은 작업의 1차 베타
             { version: "6.44.0-beta1", date: "2026-10-12", details: [
                 "🔔 [노무수령 거부 통지 신설] [연차 촉진] 탭에 [노무수령 거부 통지] 화면이 생겼습니다. 2차(사용시기 지정) 통보로 확정된 지정일을 하루씩 펼쳐 보여주고, 그 날짜의 통지서를 발행합니다. 2차 통보까지 했더라도 지정일에 출근해 일하신 분께 '그 날의 노무를 받지 않는다'는 뜻을 서면으로 밝혀두지 않으면, 연차를 사용한 것으로 인정되지 않아 미사용 수당을 그대로 지급해야 합니다",
                 "📄 [지정일 하루에 한 장] 통지서는 지정일 1일당 1장으로 만들어집니다([서식 2] 노무수령 거부 통지서). 소속·성명·입사일·대상기간·거부일·해당 일수·2차 통보일이 자동으로 채워지고, 수령 확인란(성명·서명)이 포함됩니다. 지정일 당일에 본인에게 전달하거나 근무 장소에 게시해 주세요",
@@ -1987,10 +2004,15 @@
                     throw new Error('이미 발송 처리된 노무수령 거부 통지입니다. (다른 관리자가 먼저 처리했거나 새로고침이 필요할 수 있습니다)');
                 }
                 // 2차(사용시기 지정) 통보가 실제로 발송된 건에만 노무수령 거부 통지를 낼 수 있습니다.
-                const sent = Array.isArray(freshData.sentNotices) ? freshData.sentNotices : [];
-                const secondKey = getNoticeKey(p.promoPlanKey, 2);
-                if (!sent.some(n => n && n.noticeKey === secondKey)) {
-                    throw new Error('2차(사용시기 지정) 통보가 먼저 발송되어야 노무수령 거부 통지를 보낼 수 있습니다.');
+                //   [v6.44.0-beta2] 단, '양지누림' 데모 계정은 화면·서식 점검용이므로 이 전제를 면제합니다.
+                //     (실제 직원은 종전과 동일하게 2차 발송 없이는 발행되지 않습니다)
+                const isDemoTarget = String(freshData.name || '').trim() === DEMO_PROMO_ACCOUNT_NAME;
+                if (!isDemoTarget) {
+                    const sent = Array.isArray(freshData.sentNotices) ? freshData.sentNotices : [];
+                    const secondKey = getNoticeKey(p.promoPlanKey, 2);
+                    if (!sent.some(n => n && n.noticeKey === secondKey)) {
+                        throw new Error('2차(사용시기 지정) 통보가 먼저 발송되어야 노무수령 거부 통지를 보낼 수 있습니다.');
+                    }
                 }
                 const entry = {
                     id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
@@ -2001,6 +2023,7 @@
                     promoType: p.promoType || '', baseYear: p.baseYear || 0,
                     secondNoticeId: p.secondNoticeId || '',
                     secondSentAt: p.secondSentAt || '',
+                    isDemo: isDemoTarget || undefined,
                     // 발송 시점의 산정기간·연차 수치 스냅샷 (나중에 값이 바뀌어도 통지서 내용은 고정)
                     noticeSnapshot: p.noticeSnapshot || null,
                     sentAt: new Date().toISOString(), sentBy: actorName
@@ -7947,9 +7970,10 @@
                 const todayYmd = toLocalYMD(nowKST());
                 const out = [];
                 base.forEach(staff => {
-                    if (isDemoStaff(staff)) return;
+                    const demo = isDemoStaff(staff);
                     const notices = Array.isArray(staff.sentNotices) ? staff.sentNotices : [];
                     const refusals = Array.isArray(staff.refusalNotices) ? staff.refusalNotices : [];
+                    let realCount = 0;
                     notices.forEach(n => {
                         if (!n || n.step !== 2 || !Array.isArray(n.designatedDates)) return;
                         const snap = n.noticeSnapshot || {};
@@ -7972,10 +7996,58 @@
                                 refusalKey, refusal, isSent: !!refusal,
                                 isToday: ymd === todayYmd,
                                 isPast: ymd < todayYmd,
-                                noticeSnapshot: snap
+                                noticeSnapshot: snap,
+                                isDemoRow: false
                             });
+                            realCount++;
                         });
                     });
+                    // ────────────────────────────────────────────────────────
+                    // [v6.44.0-beta2] '양지누림' 데모 계정 — 화면 점검용 가상 지정일
+                    //   노무수령 거부 통지는 2차(사용시기 지정) 통보를 실제로 발송해야만
+                    //   지정일이 생깁니다. 그래서 아직 2차를 보낸 분이 없으면 이 화면이
+                    //   비어 있어 서식·발행·인쇄를 전혀 점검할 수 없습니다.
+                    //   데모 계정에 한해, 실제 2차 발송 건이 없을 때 오늘·모레·닷새 뒤
+                    //   3건을 만들어 넣어 전체 흐름을 그대로 시험해 볼 수 있게 합니다.
+                    //   (실제 직원 데이터에는 전혀 영향이 없습니다 — 이름 완전 일치 시에만)
+                    // ────────────────────────────────────────────────────────
+                    if (demo && realCount === 0) {
+                        const baseYear = nowKST().getFullYear();
+                        const demoPlanKey = `promoPlan_${baseYear}`;
+                        const demoSentAt = new Date(nowKST().getTime() - 7 * 86400000).toISOString();
+                        // 오늘은 '오늘 지정일' 알림까지 확인할 수 있도록 요일과 무관하게 넣고,
+                        // 나머지 2건은 주말을 건너뛴 평일로 잡습니다.
+                        const demoDates = [{ ymd: toLocalYMD(nowKST()), days: 1 }];
+                        for (let i = 1; i <= 21 && demoDates.length < 3; i++) {
+                            const t = nowKST(); t.setDate(t.getDate() + i);
+                            if (t.getDay() === 0 || t.getDay() === 6) continue;   // 토·일 제외
+                            if (demoDates.length === 1 && i < 2) continue;        // 최소 이틀 뒤부터
+                            demoDates.push({ ymd: toLocalYMD(t), days: demoDates.length === 1 ? 1 : 0.5 });
+                        }
+                        demoDates.forEach(d => {
+                            const ymd = d.ymd;
+                            const refusalKey = getRefusalKey(demoPlanKey, ymd);
+                            const refusal = refusals.find(r => r && r.refusalKey === refusalKey) || null;
+                            out.push({
+                                rowKey: `${staff.id}__${refusalKey}`,
+                                staffId: staff.id, name: staff.name || '', phone: staff.phone || '',
+                                joinDate: staff.joinDate || '',
+                                resigned: false,
+                                promoPlanKey: demoPlanKey, baseYear,
+                                promoCategory: 'over1', portion: 'regular',
+                                promoType: '2차 촉진 (데모)',
+                                period: `${baseYear}-01-01 ~ ${baseYear}-12-31`,
+                                secondNoticeId: '', secondSentAt: demoSentAt,
+                                designatedYmd: ymd, designatedDays: d.days,
+                                weekday: weekdayOf(ymd),
+                                refusalKey, refusal, isSent: !!refusal,
+                                isToday: ymd === todayYmd,
+                                isPast: ymd < todayYmd,
+                                noticeSnapshot: null,
+                                isDemoRow: true
+                            });
+                        });
+                    }
                 });
                 out.sort((a, b) => String(a.designatedYmd).localeCompare(String(b.designatedYmd))
                     || String(a.name).localeCompare(String(b.name), 'ko'));
@@ -8068,15 +8140,17 @@
                     });
             };
             const handleDownloadRefusalList = () => {
-                if (!refusalShown.length) { showAlert('내려받을 명단이 없습니다.'); return; }
+                // [v6.44.0-beta2] 데모 계정의 점검용 가상 지정일은 실제 명단에 넣지 않습니다.
+                const rowsForExcel = refusalShown.filter(r => !r.isDemoRow);
+                if (!rowsForExcel.length) { showAlert('내려받을 명단이 없습니다. (데모 계정의 점검용 건은 명단에 넣지 않습니다)'); return; }
                 const wsData = [
                     [`양지누림 노무수령 거부 통지 명단 (${refusalMonthLabel} 지정일)`],
-                    [`출력 일자: ${nowKST().toLocaleDateString()} / 총 ${refusalShown.length}건${refusalPendingOnly ? ' (미발행만)' : ' (발행분 포함 전체)'}`],
+                    [`출력 일자: ${nowKST().toLocaleDateString()} / 총 ${rowsForExcel.length}건${refusalPendingOnly ? ' (미발행만)' : ' (발행분 포함 전체)'}`],
                     [`※ 2차(사용시기 지정) 통보에서 지정된 날짜를 하루씩 펼친 목록입니다. 통지서는 지정일 당일에 전달·게시해야 합니다.`],
                     [],
                     ['No.', '지정일', '요일', '이름', '휴대폰', '해당 일수', '촉진 유형', '연차 사용 대상기간', '2차 통보일', '발행 여부', '발행 일시', '처리자', '재직상태']
                 ];
-                refusalShown.forEach((r, i) => wsData.push([
+                rowsForExcel.forEach((r, i) => wsData.push([
                     i + 1, r.designatedYmd, r.weekday, r.name, r.phone, fmt(r.designatedDays), r.promoType, r.period,
                     r.secondSentAt ? kstText(r.secondSentAt, 'date') : '-',
                     r.isSent ? '발행 완료' : '미발행',
@@ -8543,6 +8617,18 @@
                                         )}
                                     </div>
                                 </div>
+                                {refusalShown.some(r => r.isDemoRow) && (
+                                    <div className="mt-4 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+                                        <p className="text-sm font-black text-indigo-700">🧪 '양지누림' 데모 계정의 점검용 지정일이 함께 표시됩니다.</p>
+                                        <p className="text-[11px] font-bold text-indigo-600 mt-1">
+                                            아직 2차(사용시기 지정) 통보를 보낸 분이 없으면 이 화면이 비어 있어 서식을 확인할 수 없습니다.
+                                            그래서 데모 계정에 한해 <b>오늘 · 모레 · 닷새 뒤</b> 3건을 만들어 두었습니다.
+                                            [통지서 보기] · [발행] · [발행 취소] · [인쇄] 를 실제와 똑같이 시험해 보실 수 있고,
+                                            명단 엑셀과 대시보드 건수에는 들어가지 않습니다.
+                                            실제 직원에게 2차 통보를 보내시면 그 지정일이 이 자리에 올라오고 데모 3건은 그대로 남습니다.
+                                        </p>
+                                    </div>
+                                )}
                                 {refusalTodayRows.length > 0 && (
                                     <div className="mt-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                                         <p className="text-sm font-black text-red-700">🔔 오늘({toLocalYMD(nowKST())})이 지정일인 미발행 건이 {refusalTodayRows.length}건 있습니다.</p>
@@ -8612,6 +8698,8 @@
                                                 <td className="p-4 font-bold text-slate-800">
                                                     {r.name}
                                                     {r.resigned && <span className="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-bold ml-1">퇴사</span>}
+                                                    {/* [v6.44.0-beta2] 점검용 가상 지정일 */}
+                                                    {r.isDemoRow && <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-black ml-1">데모</span>}
                                                 </td>
                                                 <td className="p-4 text-center font-bold text-blue-600">{fmt(r.designatedDays)}일</td>
                                                 <td className="p-4 text-xs text-slate-500">{r.promoType || '-'}</td>
