@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.44.0-beta2)</title>
+    <title>양지누림 연차 관리 시스템 (v6.44.0-beta4)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -597,10 +597,42 @@
         //     · 데모 행은 '데모' 배지 + 안내 배너로 구분하고, 명단 엑셀과 대시보드
         //       '오늘 할 일' 집계에서는 제외합니다.
         //
+        //  ⑤ [beta3] 직원 화면에 노무수령 거부 통지 노출 + 본인 전자서명 수령 확인
+        //     beta1~2 까지는 관리자 화면에서 발행·인쇄만 가능했고 직원 화면에는 아무것도
+        //     뜨지 않았습니다. 이 통지는 '전달했다'는 사실이 효력의 핵심이라 수령 확인이
+        //     필요한데, 근로지원인은 각자 다른 사업장에 있어 당일 대면 서명이 어렵습니다.
+        //     · acknowledgeRefusalNoticeTransaction(staffId, refusalKey, signature)
+        //       refusalNotices 의 해당 항목에 ackAt / ackSignature 를 채웁니다.
+        //       본인 이름과 cleanName 비교로 일치해야 하고, 이미 확인한 건은 거부합니다.
+        //       audit_logs domain 'REFUSAL_NOTICE' · actionType 'UPDATE' 로 기록.
+        //     · StaffPlanTab 상단에 받은 통지 카드(StaffRefusalCard) — 거부일·일수·안내문,
+        //       [통지서 보기](관리자와 같은 서식·인쇄), 성명 입력 후 [수령 확인].
+        //       미확인 건이 위로 오고, 직원 탭 배지에 미확인 건수가 합산됩니다.
+        //     · RefusalNoticeDocument 의 수령확인란이 전자서명·확인 일시로 자동으로 채워집니다.
+        //     · 관리자 화면 : 줄마다 '✍ 본인 확인 「이름」' 또는 '본인 수령 확인 대기',
+        //       요약 카드에 '본인 수령 확인 대기' 추가, 명단 엑셀에 확인 3열 추가.
+        //     ※ 발행하지 않은 지정일은 직원 화면에 전혀 노출되지 않습니다.
+        //
+        //  ⑥ [beta4] 시행 이전(2026-08 이전) 1차분도 2차 통보를 보낼 수 있게 함
+        //     v6.43.0 에서 '1차 통보 시기가 시행 기준일보다 이른 2차 건'을 화면·집계에서
+        //     걸러냈는데, 그 건들은 1차를 서면·싸인오케이 등 시스템 밖에서 이미 처리한
+        //     경우라 지금 2차를 보내야 하는데도 '1차 통보가 먼저 발송되어야' 에 막혔습니다.
+        //     · processPromotionNoticeTransaction : step 2 에 1차 기록이 없을 때,
+        //       payload.firstNoticeDate 의 앞 7자가 PROMO_SYSTEM_START 보다 이르면
+        //       전제를 면제하고 entry 에 firstNoticeSkipped·firstNoticeDate 를 남깁니다.
+        //     · handleSendNotice : skipFirst 판정 + 전용 확인창(1차 기록이 없다는 경고와
+        //       '시스템 밖에서 처리한 건인지 확인' 안내)으로 분기.
+        //     · bulkTargets : 2차 조건을 (isFirstSent || isPreSystemSecond) 로 완화.
+        //       단 그런 건은 기본적으로 숨겨져 있으므로, [시행 이전 1차분의 2차 숨기기]
+        //       체크를 해제해 화면에 올린 상태에서만 일괄발송에 잡힙니다(보이는 대로 발송).
+        //     · 줄 버튼 활성화 조건 2곳 완화 + '1차 기록 없음 (시행 이전 · 발송 가능)' 표시.
+        //     · 발송 명단 엑셀에 '비고' 열 신설 — 1차 기록 없이 보낸 2차를 표시합니다.
+        //     ※ 시행 기준일 이후 건은 종전 그대로 1차를 먼저 보내야만 2차가 나갑니다.
+        //
         //  ※ 연차 계산·차감 로직, 촉진 판정 날짜 공식, 1·2차 통보서 서식과 발송,
-        //    저장 데이터 구조(기존 필드), 직원 화면은 v6.43.0-stable 과 동일합니다.
+        //    저장 데이터 구조(기존 필드)는 v6.43.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.44.0-beta2";
+        const SYSTEM_VERSION = "6.44.0-beta4";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -615,6 +647,24 @@
             // ====================================================================
             // ▼ v6.44.0-beta1 : 계획서 대리 등록 보완 2건 + 노무수령 거부 통지 신설 (관리자 전용 · 베타)
             //   직원 화면에는 변화가 없어 staffDetails 를 넣지 않았습니다.
+            { version: "6.44.0-beta4", date: "2026-10-14", details: [
+                "📌 [시행 이전 1차분도 2차 통보를 보낼 수 있습니다] 2026년 8월 이전에 1차 촉진 시기가 지나간 분들은 1차를 서면·싸인오케이 등 시스템 밖에서 처리하신 경우라 시스템에 1차 통보 기록이 없습니다. 그동안 이런 건은 '1차 통보가 먼저 발송되어야 합니다'에 막혀 2차를 보낼 수 없었는데, 이제 그대로 2차(사용시기 지정) 통보를 발송하실 수 있습니다",
+                "👁️ [먼저 목록에 올려야 합니다] 이 건들은 평소 화면을 깔끔하게 두기 위해 숨겨져 있습니다. 촉진 대상 목록의 [2026년 8월 이전 1차분의 2차 숨기기] 체크를 해제하시면 목록에 나타나고, 그때부터 한 줄 [발송]과 [2차 일괄발송] 모두 대상에 포함됩니다. 화면에 보이는 대로만 발송되므로 실수로 나갈 염려는 없습니다",
+                "⚠️ [발송 전 확인 문구] 이런 건의 [발송]을 누르면 '1차 통보 기록이 시스템에 없습니다. 1차를 서면 등으로 이미 처리하신 건인지 확인해 주세요'라는 안내가 먼저 뜹니다. 목록에도 '1차 기록 없음 (시행 이전 · 발송 가능)'으로 표시됩니다",
+                "🧾 [기록에 남습니다] 1차 기록 없이 보낸 2차라는 사실이 발송 기록과 [변경 이력 조회]에 함께 저장되고, [발송 명단] 엑셀에 '비고' 열이 새로 생겨 '1차 기록 없음 (2026-06-30)'처럼 표시됩니다. 나중에 점검 시 왜 1차 없이 2차가 나갔는지 설명할 근거가 됩니다",
+                "🛡️ [2026년 8월 이후는 종전 그대로] 시행 기준일 이후 건은 반드시 1차를 먼저 발송해야만 2차가 나갑니다. 근로기준법상 절차를 건너뛰지 않도록 그대로 두었습니다"
+            ] },
+            // ▼ v6.44.0-beta3 : 직원 화면 노출 + 전자서명 수령 확인
+            { version: "6.44.0-beta3", date: "2026-10-14", details: [
+                "📬 [직원 화면에 노무수령 거부 통지가 표시됩니다] 종전에는 관리자 화면에서 발행·인쇄만 할 수 있었고 직원 화면에는 아무것도 뜨지 않았습니다. 이제 관리자가 [발행]을 누른 통지가 해당 직원의 [연차 사용 계획] 탭 맨 위에 카드로 나타납니다. 발행하지 않은 지정일은 직원 화면에 보이지 않습니다",
+                "✍️ [직원이 전자서명으로 수령 확인] 직원이 본인 성명을 입력하고 [수령 확인]을 누르면, 통지서의 수령확인란에 전자서명과 확인 일시가 자동으로 찍힙니다. 근로지원인은 각자 다른 사업장에서 근무해 지정일 당일에 종이로 서명받기 어려운데, 이제 시스템에서 바로 확인됩니다. 성명이 본인과 일치해야 버튼이 열립니다",
+                "👀 [관리자 화면에서 확인 현황이 보입니다] 목록의 각 줄에 '✍ 본인 확인 「이름」 + 확인 일시' 또는 '본인 수령 확인 대기'가 표시되고, 요약 카드에 [본인 수령 확인 대기] 건수가 추가되었습니다. 명단 엑셀에도 본인 수령 확인 · 확인 서명 · 확인 일시 3개 열이 들어갑니다",
+                "🔴 [직원 알림] 아직 확인하지 않은 통지가 있으면 직원 화면의 [연차 사용 계획] 탭에 빨간 숫자 배지가 뜹니다(계획서 미제출 건수와 합산). 통지서 원문은 직원도 [통지서 보기]로 열어 인쇄하실 수 있습니다"
+            ], staffDetails: [
+                "📬 회사가 연차 사용일로 지정한 날짜에 대한 '노무수령 거부 통지'를 받으시면 [연차 사용 계획] 탭 맨 위에 표시됩니다. 내용을 확인하신 뒤 성명을 입력해 [수령 확인]을 눌러주세요",
+                "✍️ 수령 확인은 '통지서를 받아 보았다'는 뜻이며, 확인하신 시각이 함께 기록됩니다. 통지서 원문은 [통지서 보기]로 확인·인쇄하실 수 있고, 내용에 이의가 있으시면 사무국(02-441-9664)으로 연락해 주세요"
+            ] },
+            // ▼ v6.44.0-beta2 : 데모 계정 점검용 지정일
             { version: "6.44.0-beta2", date: "2026-10-13", details: [
                 "🧪 [데모 계정으로 바로 시험해 보실 수 있습니다] 노무수령 거부 통지는 2차(사용시기 지정) 통보를 실제로 발송해야 지정일이 생겨서, 아직 2차를 보낸 분이 없으면 화면이 비어 있었습니다. 이제 '양지누림' 데모 계정에 오늘·모레·닷새 뒤 3건의 점검용 지정일이 자동으로 표시되어 [통지서 보기] · [발행] · [발행 취소] · [인쇄]를 실제와 똑같이 확인하실 수 있습니다",
                 "🔒 [실제 업무에는 영향 없음] 데모 건은 이름이 정확히 '양지누림'인 계정에만 만들어지고, 줄에 파란 '데모' 배지가 붙습니다. 명단 엑셀과 대시보드 [오늘 할 일] 건수에는 들어가지 않습니다. 실제 직원은 종전대로 2차 통보를 발송해야만 거부 통지를 발행할 수 있습니다",
@@ -1921,10 +1971,21 @@
                     throw new Error('이미 발송 처리된 통보입니다. (다른 관리자가 먼저 처리했거나 새로고침이 필요할 수 있습니다)');
                 }
                 // 2차 통보는 '1차가 실제로 발송된 건'에게만 보낼 수 있습니다 (근로기준법상 절차).
+                //   [v6.44.0-beta4 예외] 이 시스템으로 촉진을 시작하기 전(PROMO_SYSTEM_START 이전)에
+                //   1차 시기가 지나간 건은, 1차를 시스템 밖(서면·싸인오케이)에서 처리했거나
+                //   시스템에 기록이 없을 뿐입니다. 그 건까지 막아 두면 지금 보내야 할 2차를
+                //   영영 보낼 수 없으므로, 'firstNoticeDate 가 시행 기준일보다 이르다'는 것이
+                //   확인될 때에만 이 전제를 면제하고 그 사실을 기록에 남깁니다.
+                let firstNoticeSkipped = false;
                 if (step === 2) {
                     const firstKey = getNoticeKey(p.promoPlanKey, 1);
                     if (!existingList.some(n => n && n.noticeKey === firstKey)) {
-                        throw new Error('1차 통보가 먼저 발송되어야 2차 통보를 보낼 수 있습니다.');
+                        const fnd = String(p.firstNoticeDate || '');
+                        const preSystem = fnd.length >= 7 && fnd.slice(0, 7) < PROMO_SYSTEM_START;
+                        if (!preSystem) {
+                            throw new Error('1차 통보가 먼저 발송되어야 2차 통보를 보낼 수 있습니다.');
+                        }
+                        firstNoticeSkipped = true;
                     }
                 }
                 const entry = {
@@ -1937,6 +1998,9 @@
                     noticeSnapshot: p.noticeSnapshot || null,
                     // 2차 통보만 사용시기 지정 날짜표를 가짐 (1차는 null)
                     designatedDates: step === 2 ? (p.designatedDates || null) : null,
+                    // [v6.44.0-beta4] 시스템에 1차 기록 없이 보낸 2차임을 남깁니다 (시행 이전 1차분)
+                    firstNoticeSkipped: firstNoticeSkipped || undefined,
+                    firstNoticeDate: p.firstNoticeDate || undefined,
                     sentAt: new Date().toISOString(), sentBy: actorName
                 };
                 const afterList = [...existingList, entry];
@@ -2083,6 +2147,63 @@
                     systemVersion: SYSTEM_VERSION
                 });
                 txResult = { canceled: true, refusalKey: String(refusalKey), auditLogId: auditRef.id };
+            });
+            return txResult;
+        };
+        // ============================================================================
+        // [v6.44.0-beta3 신규] 노무수령 거부 통지 — 직원 본인 '수령 확인(전자서명)'
+        // ----------------------------------------------------------------------------
+        //  ▣ 왜 필요한가
+        //     이 통지는 '전달했다'는 사실 자체가 효력의 핵심입니다. 종전에는 종이를
+        //     건네고 수령확인란에 손으로 서명을 받아야 했는데, 근로지원인은 각자 다른
+        //     사업장에서 근무해 당일에 만나기 어렵습니다. 직원 본인이 시스템에서 바로
+        //     확인·서명하면 '언제 수령했는지'가 시각과 함께 남습니다.
+        //  ▣ 처리 내용
+        //     refusalNotices 배열에서 refusalKey 가 같은 항목에 ackAt / ackSignature 를
+        //     채워 넣습니다. 이미 확인한 건은 다시 덮어쓰지 않습니다(최초 1회만).
+        //     audit_logs 에 domain:'REFUSAL_NOTICE' · actionType:'UPDATE' 로 남습니다.
+        //  ▣ 서명 검증
+        //     본인 이름과 정확히 같아야 합니다(cleanName 비교). 화면에서도 같은 기준으로
+        //     버튼을 잠그지만, 여기서 한 번 더 막아 우회 저장을 방지합니다.
+        // ============================================================================
+        const acknowledgeRefusalNoticeTransaction = async (staffId, refusalKey, signature) => {
+            if (!staffId) throw new Error('처리 대상 직원 ID가 없습니다.');
+            if (!refusalKey) throw new Error('확인할 통지가 지정되지 않았습니다.');
+            const sign = cleanName(signature);
+            if (!sign) throw new Error('성명을 입력해주세요.');
+            const userRef = db.collection('users').doc(staffId);
+            const auditRef = db.collection(AUDIT_COLLECTION).doc();
+            let txResult = null;
+            await db.runTransaction(async (transaction) => {
+                const snap = await transaction.get(userRef);
+                if (!snap.exists) throw new Error('직원 정보를 찾을 수 없습니다.');
+                const freshData = snap.data() || {};
+                if (sign !== cleanName(freshData.name)) {
+                    throw new Error('성명이 일치하지 않습니다. 본인 성명을 정확히 입력해주세요.');
+                }
+                const list = Array.isArray(freshData.refusalNotices) ? freshData.refusalNotices : [];
+                const target = list.find(n => n && String(n.refusalKey) === String(refusalKey));
+                if (!target) throw new Error('해당 통지를 찾을 수 없습니다. 화면을 새로고침해 주세요.');
+                if (target.ackAt) throw new Error('이미 수령 확인이 완료된 통지입니다.');
+                const ackAt = new Date().toISOString();
+                const after = list.map(n => (n && String(n.refusalKey) === String(refusalKey))
+                    ? { ...n, ackAt, ackSignature: sign } : n);
+                transaction.update(userRef, { refusalNotices: after });
+                transaction.set(auditRef, {
+                    timestamp: ackAt,
+                    targetStaffId: staffId,
+                    actionType: 'UPDATE',
+                    adminName: `${sign} (본인 확인)`,
+                    beforeData: sanitizeForAudit([target]),
+                    afterData: sanitizeForAudit([{ ...target, ackAt, ackSignature: sign }]),
+                    domain: 'REFUSAL_NOTICE',
+                    targetStaffName: freshData.name || '',
+                    targetIds: [String(refusalKey)],
+                    changedCount: 1,
+                    origin: 'StaffPortal.acknowledgeRefusalNotice',
+                    systemVersion: SYSTEM_VERSION
+                });
+                txResult = { ackAt, ackSignature: sign, refusalKey: String(refusalKey), auditLogId: auditRef.id };
             });
             return txResult;
         };
@@ -7012,6 +7133,9 @@
             const ymd = item.designatedYmd;
             const wd = weekdayOf(ymd);
             const issuedYmd = item.refusal ? kstText(item.refusal.sentAt, 'date') : ymd;
+            // [v6.44.0-beta3] 직원 본인 수령 확인(전자서명) 정보
+            const ack = (item.refusal && item.refusal.ackAt)
+                ? { at: item.refusal.ackAt, sign: item.refusal.ackSignature || '' } : null;
             return (
                 <div id={domId} className="bg-white text-black text-left font-sans"
                     style={{ width: '180mm', minHeight: '262mm', padding: '8px', boxSizing: 'border-box', fontSize: '11px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -7087,15 +7211,28 @@
                                 <SealMark />
                             </p>
                         </div>
+                        {/* [v6.44.0-beta3] 직원이 시스템에서 전자서명하면 이 칸이 자동으로 채워집니다 */}
                         <table className="w-full border-collapse border border-black">
                             <tbody>
                                 <tr>
                                     <th className={cellTh} style={{ width: '20%' }}>수령 확인</th>
                                     <th className={cellTh} style={{ width: '14%' }}>성명</th>
-                                    <td className={cellTd} style={{ width: '26%', height: '30px' }}></td>
+                                    <td className={cellTd + ' font-bold'} style={{ width: '26%', height: '30px' }}>{ack ? ack.sign : ''}</td>
                                     <th className={cellTh} style={{ width: '14%' }}>서명</th>
-                                    <td className={cellTd} style={{ width: '26%' }}></td>
+                                    <td className={cellTd} style={{ width: '26%' }}>
+                                        {ack ? (
+                                            <span style={{ display: 'inline-block', border: '1px solid #2563eb', borderRadius: '4px', padding: '1px 6px', color: '#2563eb', fontSize: '10px', fontWeight: 700 }}>
+                                                전자서명 「{ack.sign}」
+                                            </span>
+                                        ) : ''}
+                                    </td>
                                 </tr>
+                                {ack && (
+                                    <tr>
+                                        <th className={cellTh}>확인 일시</th>
+                                        <td className={cellTd} colSpan="3">{kstText(ack.at, 'full')} (본인 전자서명)</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                         {item.refusal && (
@@ -7802,13 +7939,21 @@
                     showAlert(`1차 통보는 통보 기준일(${row.noticeGateDate}) 이후에 발송할 수 있습니다.`);
                     return;
                 }
+                // [v6.44.0-beta4] 시행 이전(2026-08 이전) 1차분은 시스템에 1차 기록이 없으므로 예외로 허용합니다.
+                const skipFirst = step === 2 && !row.isFirstSent && row.isPreSystemSecond;
                 if (step === 2) {
-                    if (!row.isFirstSent) { showAlert('1차 통보가 먼저 발송되어야 2차 통보를 보낼 수 있습니다.'); return; }
+                    if (!row.isFirstSent && !skipFirst) { showAlert('1차 통보가 먼저 발송되어야 2차 통보를 보낼 수 있습니다.'); return; }
                     if (row.isPlanSubmitted) { showAlert('이미 계획서를 제출한 직원에게는 2차 통보를 보낼 수 없습니다.'); return; }
                 }
                 const confirmMsg = step === 1
                     ? `[${row.name}] 직원에게 1차 통보서를 발송하시겠습니까?\n\n발송하면 직원 화면에 즉시 노출되며, 통보서 내용(연차 수치)이 지금 시점으로 고정됩니다.`
-                    : `[${row.name}] 직원에게 2차 통보서(사용시기 지정)를 발송하시겠습니까?\n\n지금 이 순간 회사가 지정하는 사용 날짜가 무작위로 확정되어 저장되며, 이후에는 바뀌지 않습니다.`;
+                    : (skipFirst
+                        ? `[${row.name}] 직원에게 2차 통보서(사용시기 지정)를 발송하시겠습니까?\n\n` +
+                          `⚠️ 이 건은 1차 통보 시기가 ${PROMO_SYSTEM_START_LABEL} 이전(${row.firstNoticeDate || '-'})이라 시스템에 1차 통보 기록이 없습니다.\n` +
+                          `1차를 서면·싸인오케이 등 시스템 밖에서 이미 처리하신 건인지 확인하신 뒤 진행해 주세요.\n` +
+                          `(1차 기록 없이 보낸 2차라는 사실이 발송 기록과 변경 이력에 함께 남습니다)\n\n` +
+                          `지금 이 순간 회사가 지정하는 사용 날짜가 무작위로 확정되어 저장되며, 이후에는 바뀌지 않습니다.`
+                        : `[${row.name}] 직원에게 2차 통보서(사용시기 지정)를 발송하시겠습니까?\n\n지금 이 순간 회사가 지정하는 사용 날짜가 무작위로 확정되어 저장되며, 이후에는 바뀌지 않습니다.`);
                 showConfirm(confirmMsg, async () => {
                     setSendingKey(row.rowKey);
                     try {
@@ -7829,6 +7974,8 @@
                             promoType: row.promoStatus.type, baseYear: row.promoStatus.baseYear,
                             targetY: row.targetY, targetM: row.targetM,
                             noticeSnapshot, designatedDates,
+                            // [v6.44.0-beta4] 시행 이전 1차분 예외 판정에 쓰입니다
+                            firstNoticeDate: row.firstNoticeDate || '',
                             origin: 'PromotionTab.handleSendNotice'
                         });
                         showAlert(`[${row.name}] 직원에게 ${step === 1 ? '1차' : '2차'} 통보서를 발송했습니다.`);
@@ -8064,7 +8211,9 @@
                 total: refusalMonthRows.length,
                 sent: refusalMonthRows.filter(r => r.isSent).length,
                 pending: refusalMonthRows.filter(r => !r.isSent).length,
-                overdue: refusalMonthRows.filter(r => !r.isSent && r.isPast).length
+                overdue: refusalMonthRows.filter(r => !r.isSent && r.isPast).length,
+                // [v6.44.0-beta3] 발행했지만 직원 본인이 아직 확인하지 않은 건
+                ackWait: refusalMonthRows.filter(r => r.isSent && !(r.refusal && r.refusal.ackAt)).length
             }), [refusalMonthRows]);
             const refusalMonthLabel = useMemo(() => {
                 const [y, m] = String(refusalMonth || '').split('-');
@@ -8148,7 +8297,7 @@
                     [`출력 일자: ${nowKST().toLocaleDateString()} / 총 ${rowsForExcel.length}건${refusalPendingOnly ? ' (미발행만)' : ' (발행분 포함 전체)'}`],
                     [`※ 2차(사용시기 지정) 통보에서 지정된 날짜를 하루씩 펼친 목록입니다. 통지서는 지정일 당일에 전달·게시해야 합니다.`],
                     [],
-                    ['No.', '지정일', '요일', '이름', '휴대폰', '해당 일수', '촉진 유형', '연차 사용 대상기간', '2차 통보일', '발행 여부', '발행 일시', '처리자', '재직상태']
+                    ['No.', '지정일', '요일', '이름', '휴대폰', '해당 일수', '촉진 유형', '연차 사용 대상기간', '2차 통보일', '발행 여부', '발행 일시', '처리자', '본인 수령 확인', '확인 서명', '확인 일시', '재직상태']
                 ];
                 rowsForExcel.forEach((r, i) => wsData.push([
                     i + 1, r.designatedYmd, r.weekday, r.name, r.phone, fmt(r.designatedDays), r.promoType, r.period,
@@ -8156,10 +8305,13 @@
                     r.isSent ? '발행 완료' : '미발행',
                     r.refusal ? kstText(r.refusal.sentAt, 'datetime') : '-',
                     r.refusal ? (r.refusal.sentBy || '-') : '-',
+                    (r.refusal && r.refusal.ackAt) ? '확인 완료' : (r.isSent ? '확인 대기' : '-'),
+                    (r.refusal && r.refusal.ackSignature) ? r.refusal.ackSignature : '-',
+                    (r.refusal && r.refusal.ackAt) ? kstText(r.refusal.ackAt, 'datetime') : '-',
                     r.resigned ? '퇴사' : '재직'
                 ]));
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
-                ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 18 }, { wch: 26 }, { wch: 13 }, { wch: 11 }, { wch: 19 }, { wch: 12 }, { wch: 10 }];
+                ws['!cols'] = [{ wch: 6 }, { wch: 13 }, { wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 10 }, { wch: 18 }, { wch: 26 }, { wch: 13 }, { wch: 11 }, { wch: 19 }, { wch: 12 }, { wch: 13 }, { wch: 12 }, { wch: 19 }, { wch: 10 }];
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, '노무수령거부');
                 XLSX.writeFile(wb, `노무수령거부_통지명단_${refusalMonth}.xlsx`);
@@ -8282,6 +8434,8 @@
                             phone: staff.phone || '',
                             birth: safeDate(staff.birth) || '',
                             step: n.step === 2 ? '2차 (사용시기 지정)' : '1차 (사용 촉구)',
+                            // [v6.44.0-beta4] 시스템에 1차 기록 없이 보낸 2차인지 (시행 이전 1차분)
+                            firstSkipped: n.firstNoticeSkipped ? `1차 기록 없음 (${n.firstNoticeDate || '시행 이전'})` : '',
                             promoType: n.promoType || '',
                             baseYear: n.baseYear || '',
                             sentAt: kstText(n.sentAt, 'datetime'),
@@ -8381,13 +8535,13 @@
                     [`출력 일자: ${nowKST().toLocaleDateString()} / 총 ${sentNoticeRows.length}건 (1차 ${first}건 · 2차 ${second}건)`],
                     [`※ '발송한 날' 기준입니다. 같은 직원이 1차·2차를 같은 달에 받으면 두 줄로 나옵니다.`],
                     [],
-                    ['No.', '이름', '휴대폰', '생년월일', '통보 구분', '촉진 유형', '산정연도', '발송일시', '발송자', '계획서', '재직상태']
+                    ['No.', '이름', '휴대폰', '생년월일', '통보 구분', '촉진 유형', '산정연도', '발송일시', '발송자', '계획서', '비고', '재직상태']
                 ];
                 sentNoticeRows.forEach((r, i) => wsData.push([
-                    i + 1, r.name, r.phone, r.birth, r.step, r.promoType, r.baseYear, r.sentAt, r.sentBy, r.planSubmitted, r.resigned
+                    i + 1, r.name, r.phone, r.birth, r.step, r.promoType, r.baseYear, r.sentAt, r.sentBy, r.planSubmitted, r.firstSkipped || '', r.resigned
                 ]));
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
-                ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }];
+                ws['!cols'] = [{ wch: 6 }, { wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 26 }, { wch: 10 }];
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, '통보발송명단');
                 XLSX.writeFile(wb, `촉진통보_발송명단_${sentListMonth}.xlsx`);
@@ -8400,6 +8554,10 @@
             //     · 공통  : 아직 발송하지 않은 건 + 대상 잔여(portionRemainingDays) 가 있는 건
             //     · 1차   : 통보 기준일이 지난 건(canSendByDate)
             //     · 2차   : 1차가 실제로 발송된 건(isFirstSent) + 계획서 미제출자만 (법정 절차)
+            //              [v6.44.0-beta4] 단, 1차 시기가 시행 기준일 이전인 건(isPreSystemSecond)은
+            //              1차 기록이 없어도 포함합니다. 다만 그런 건은 기본적으로 목록에서
+            //              숨겨져 있으므로, [시행 이전 1차분의 2차 숨기기] 체크를 해제해
+            //              화면에 올린 상태에서만 일괄발송 대상이 됩니다(= 보이는 대로 보냅니다).
             //   ▣ 처리 방식
             //     한 번에 몰아 쓰지 않고 직원별 트랜잭션을 순차로 실행합니다.
             //     한 명이 실패해도 나머지는 계속 진행되고, 끝나면 성공·실패를 함께 알려줍니다.
@@ -8409,10 +8567,12 @@
             const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0, name: '' });
             const bulkTargets = (step) => promotionList.filter(r =>
                 r.promoStatus.step === step
-                && !r.isPreSystemSecond          // [v6.43.0-beta1] 시행 이전 1차분의 2차는 일괄발송에서 제외
                 && !r.isNoticeSent
                 && r.portionRemainingDays > 0
-                && (step === 1 ? r.canSendByDate : (r.isFirstSent && !r.isPlanSubmitted))
+                && (step === 1
+                    ? r.canSendByDate
+                    // [v6.44.0-beta4] 시행 이전 1차분은 1차 기록이 없어도 보낼 수 있습니다.
+                    : ((r.isFirstSent || r.isPreSystemSecond) && !r.isPlanSubmitted))
             );
             const handleBulkSend = (step) => {
                 if (bulkSending || sendingKey) return;
@@ -8455,6 +8615,7 @@
                                     promoType: row.promoStatus.type, baseYear: row.promoStatus.baseYear,
                                     targetY: row.targetY, targetM: row.targetM,
                                     noticeSnapshot, designatedDates,
+                                    firstNoticeDate: row.firstNoticeDate || '',   // [v6.44.0-beta4]
                                     origin: 'PromotionTab.handleBulkSend'
                                 });
                                 ok++;
@@ -8638,7 +8799,7 @@
                                         </p>
                                     </div>
                                 )}
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 mt-4">
+                                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 md:gap-3 mt-4">
                                     <div className="p-3 rounded-2xl border-2 border-slate-100 bg-white">
                                         <p className="text-[11px] font-black text-slate-500">{refusalMonthLabel} 지정일</p>
                                         <p className="text-2xl font-black text-slate-800 mt-0.5">{refusalSummary.total}<span className="text-xs font-bold text-slate-400 ml-1">건</span></p>
@@ -8654,6 +8815,11 @@
                                     <div className="p-3 rounded-2xl border-2 border-red-100 bg-red-50">
                                         <p className="text-[11px] font-black text-red-700">지난 날짜인데 미발행</p>
                                         <p className="text-2xl font-black text-red-700 mt-0.5">{refusalSummary.overdue}<span className="text-xs font-bold text-red-400 ml-1">건</span></p>
+                                    </div>
+                                    {/* [v6.44.0-beta3] 발행했지만 직원 본인 확인이 아직인 건 */}
+                                    <div className="p-3 rounded-2xl border-2 border-blue-100 bg-blue-50">
+                                        <p className="text-[11px] font-black text-blue-700">본인 수령 확인 대기</p>
+                                        <p className="text-2xl font-black text-blue-700 mt-0.5">{refusalSummary.ackWait}<span className="text-xs font-bold text-blue-400 ml-1">건</span></p>
                                     </div>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 mt-4">
@@ -8709,6 +8875,12 @@
                                                         <div>
                                                             <span className="bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg text-[11px] font-black border border-emerald-200">발행 완료</span>
                                                             <p className="text-[10px] font-bold text-slate-400 mt-1">{kstText(r.refusal.sentAt, 'datetime')} · {r.refusal.sentBy}</p>
+                                                            {/* [v6.44.0-beta3] 직원 본인 수령 확인(전자서명) */}
+                                                            {r.refusal.ackAt ? (
+                                                                <p className="text-[10px] font-black text-blue-600 mt-1">✍ 본인 확인 「{r.refusal.ackSignature}」<br/>{kstText(r.refusal.ackAt, 'datetime')}</p>
+                                                            ) : (
+                                                                <p className="text-[10px] font-black text-amber-600 mt-1">본인 수령 확인 대기</p>
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded-lg text-[11px] font-black border border-amber-200">미발행</span>
@@ -8909,7 +9081,7 @@
                                                         <span className={`px-3 py-1.5 rounded-xl text-[11px] font-black border text-center ${toneCls[g.tone]}`}>{g.stageLabel}</span>
                                                         {actionRow && (
                                                             <button type="button"
-                                                                disabled={!!sendingKey || (actionRow.promoStatus.step === 1 ? !actionRow.canSendByDate : (!actionRow.isFirstSent || actionRow.isPlanSubmitted))}
+                                                                disabled={!!sendingKey || (actionRow.promoStatus.step === 1 ? !actionRow.canSendByDate : ((!actionRow.isFirstSent && !actionRow.isPreSystemSecond) || actionRow.isPlanSubmitted))}
                                                                 onClick={() => handleSendNotice(actionRow)}
                                                                 className="px-3 py-1.5 rounded-lg text-[11px] font-black bg-amber-500 text-white hover:bg-amber-600 transition disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed">
                                                                 📨 발송
@@ -9064,7 +9236,7 @@
                             </label>
                             {/* [v6.43.0-beta1 신규] 시스템 정식 운영 이전 1차분의 2차 숨기기 */}
                             <label className="flex items-center gap-2 cursor-pointer bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 hover:bg-amber-100 transition"
-                                title={`이 시스템으로 1차 통보를 시작한 ${PROMO_SYSTEM_START_LABEL} 이전에 1차 시기가 지나간 건은 시스템에 1차 통보 기록이 없어 2차 대상에서 뺍니다. 해당 건은 [2차 통보 예정] 화면에서 월별로 확인하세요.`}>
+                                title={`이 시스템으로 1차 통보를 시작한 ${PROMO_SYSTEM_START_LABEL} 이전에 1차 시기가 지나간 건은 시스템에 1차 통보 기록이 없어 평소에는 2차 대상에서 뺍니다. 체크를 해제하면 목록에 나타나고, 1차 기록이 없어도 2차 통보를 발송할 수 있습니다(일괄발송 포함).`}>
                                 <input type="checkbox" checked={hidePreSystemSecond} onChange={(e) => setHidePreSystemSecond(e.target.checked)} />
                                 <span className="text-[11px] font-bold text-amber-700 whitespace-nowrap">{PROMO_SYSTEM_START_LABEL} 이전 1차분의 2차 숨기기</span>
                             </label>
@@ -9073,7 +9245,8 @@
                         {/* [v6.43.0-beta1] 시행 기준 안내 */}
                         <div className="px-1 pb-3 -mt-1">
                             <p className="text-[11px] font-bold text-amber-600">
-                                ※ 2차 촉진 대상은 <b>{PROMO_SYSTEM_START_LABEL} 1차 통보분부터</b> 표시됩니다. 그 이전에 1차 시기가 지나간 건은 [2차 통보 예정] 화면에서 월별로 확인하실 수 있습니다.
+                                ※ 2차 촉진 대상은 <b>{PROMO_SYSTEM_START_LABEL} 1차 통보분부터</b> 표시됩니다. 그 이전 건을 보시려면 위 <b>[{PROMO_SYSTEM_START_LABEL} 이전 1차분의 2차 숨기기]</b> 체크를 해제하세요.
+                                <br/>※ 시행 이전 건은 시스템에 1차 통보 기록이 없지만, 1차를 서면·싸인오케이 등으로 이미 처리하신 경우라면 <b>그대로 2차 통보를 발송하실 수 있습니다</b>(한 줄 발송·일괄발송 모두). 1차 기록 없이 보낸 2차라는 사실은 발송 기록과 변경 이력에 남습니다.
                             </p>
                         </div>
                         <div className="overflow-x-auto whitespace-nowrap">
@@ -9115,13 +9288,18 @@
                                                 ) : (
                                                     <div>
                                                         <button type="button"
-                                                            disabled={!!sendingKey || (staff.promoStatus.step === 1 ? !staff.canSendByDate : (!staff.isFirstSent || staff.isPlanSubmitted))}
+                                                            disabled={!!sendingKey || (staff.promoStatus.step === 1 ? !staff.canSendByDate : ((!staff.isFirstSent && !staff.isPreSystemSecond) || staff.isPlanSubmitted))}
                                                             onClick={() => handleSendNotice(staff)}
                                                             className="px-3 py-1.5 rounded-lg text-xs font-black bg-amber-500 text-white hover:bg-amber-600 transition disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed">
                                                             📨 발송
                                                         </button>
                                                         {staff.promoStatus.step === 1 && !staff.canSendByDate && <p className="text-[9px] font-bold text-slate-400 mt-1">{staff.noticeGateDate}부터 가능</p>}
-                                                        {staff.promoStatus.step === 2 && !staff.isFirstSent && <p className="text-[9px] font-bold text-slate-400 mt-1">1차 발송 필요</p>}
+                                                        {/* [v6.44.0-beta4] 시행 이전 1차분은 1차 기록이 없어도 보낼 수 있어 안내 문구를 구분합니다 */}
+                                                        {staff.promoStatus.step === 2 && !staff.isFirstSent && (
+                                                            staff.isPreSystemSecond
+                                                                ? <p className="text-[9px] font-black text-amber-600 mt-1">1차 기록 없음<br/>(시행 이전 · 발송 가능)</p>
+                                                                : <p className="text-[9px] font-bold text-slate-400 mt-1">1차 발송 필요</p>
+                                                        )}
                                                     </div>
                                                 )}
                                             </td>
@@ -10545,12 +10723,114 @@
         //   · 오프라인(수기) 제출 서식도 내려받을 수 있지만, 시스템 제출이 원칙임을
         //     적색으로 분명히 강조합니다.
         // ============================================================================
-        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan, onPreview, onPreviewNotice }) => {
+        // ────────────────────────────────────────────────────────────────
+        // [v6.44.0-beta3 신규] StaffRefusalCard — 직원 본인이 받은 노무수령 거부 통지 1건
+        //   관리자가 발행하면 이 카드가 직원 화면에 나타납니다.
+        //   본인 성명을 입력해 [수령 확인] 을 누르면 통지서 수령확인란에
+        //   전자서명과 확인 일시가 찍히고, 관리자 화면에도 바로 반영됩니다.
+        // ────────────────────────────────────────────────────────────────
+        const StaffRefusalCard = ({ item, userName, onPreview, onAcknowledged, showAlert }) => {
+            const [sign, setSign] = useState('');
+            const [saving, setSaving] = useState(false);
+            const [msg, setMsg] = useState('');
+            const r = item.refusal;
+            const acked = !!(r && r.ackAt);
+            const signOk = cleanName(sign) !== '' && cleanName(sign) === cleanName(userName);
+            const handleAck = async () => {
+                if (saving || !signOk) return;
+                setSaving(true); setMsg('');
+                try {
+                    await acknowledgeRefusalNoticeTransaction(item.staffId, item.refusalKey, sign);
+                    setMsg('✅ 수령 확인이 완료되었습니다.');
+                    if (onAcknowledged) onAcknowledged();
+                } catch (err) {
+                    setMsg('❌ ' + err.message);
+                    if (showAlert) showAlert('수령 확인 실패: ' + err.message);
+                } finally { setSaving(false); }
+            };
+            return (
+                <div className={`rounded-2xl border p-4 md:p-5 ${acked ? 'bg-white border-slate-200' : 'bg-gradient-to-br from-rose-50 via-white to-orange-50 border-rose-200'}`}>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[11px] font-black px-2 py-1 rounded-lg border ${acked ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-100 text-rose-700 border-rose-200'}`}>
+                                    {acked ? '✔ 수령 확인 완료' : '수령 확인 필요'}
+                                </span>
+                                {item.isToday && !acked && <span className="text-[11px] font-black px-2 py-1 rounded-lg bg-red-600 text-white">오늘</span>}
+                            </div>
+                            <p className="font-black text-slate-800 text-base md:text-lg mt-2">
+                                {toKoreanDate(item.designatedYmd)}{item.weekday ? ` (${item.weekday})` : ''}
+                                <span className="text-sm font-bold text-slate-500 ml-2">연차 {fmt(item.designatedDays)}일</span>
+                            </p>
+                            <p className="text-[12px] font-bold text-slate-600 mt-1 leading-relaxed">
+                                위 날짜는 회사가 지정한 <b>연차유급휴가 사용일</b>입니다.
+                                회사는 이 날의 노무 제공을 받지 않으며, 출근하시더라도 연차를 사용한 것으로 처리됩니다.
+                            </p>
+                            {r && <p className="text-[11px] font-bold text-slate-400 mt-1.5">통지 발행 {kstText(r.sentAt, 'datetime')}</p>}
+                            {acked && (
+                                <p className="text-[11px] font-black text-emerald-700 mt-1">
+                                    전자서명 「{r.ackSignature}」 · {kstText(r.ackAt, 'full')} 확인
+                                </p>
+                            )}
+                        </div>
+                        <button type="button" onClick={() => onPreview(item)}
+                            className="shrink-0 px-4 py-2.5 rounded-xl text-xs font-black border-2 border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition">
+                            통지서 보기
+                        </button>
+                    </div>
+                    {!acked && (
+                        <div className="mt-4 pt-4 border-t border-rose-100">
+                            <label className="block text-[11px] font-black text-slate-600 mb-1.5">
+                                수령 확인 · 전자서명 <span className="font-bold text-slate-400">(본인 성명을 그대로 입력해주세요)</span>
+                            </label>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <input type="text" value={sign} onChange={e => setSign(e.target.value)} placeholder={userName || '성명'}
+                                    className={`flex-1 border-2 rounded-xl px-4 py-3 text-sm font-bold outline-none transition ${signOk ? 'border-emerald-400 text-emerald-700 bg-emerald-50' : 'border-slate-200 text-slate-700 focus:border-blue-500'}`} />
+                                <button type="button" onClick={handleAck} disabled={saving || !signOk}
+                                    className="px-6 py-3 rounded-xl text-sm font-black text-white bg-rose-600 hover:bg-rose-700 transition shadow-lg shadow-rose-200 disabled:bg-slate-300 disabled:shadow-none">
+                                    {saving ? '처리 중...' : (signOk ? '수령 확인' : '성명을 입력해주세요')}
+                                </button>
+                            </div>
+                            {msg && <p className={`text-[12px] font-bold mt-2 ${msg.startsWith('✅') ? 'text-emerald-600' : 'text-red-500'}`}>{msg}</p>}
+                            <p className="text-[11px] font-bold text-slate-400 mt-2">
+                                ※ 수령 확인은 '통지서를 받아 보았다'는 뜻이며, 확인 시각이 함께 기록됩니다. 내용에 이의가 있으시면 사무국(02-441-9664)으로 연락해 주세요.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan, onPreview, onPreviewNotice, refusalList, onPreviewRefusal, showAlert }) => {
             const isUnder1 = promoList.length > 0 && promoList[0].promoCategory === 'under1';
             const hasTarget = promoList.length > 0;
             const submittedKeys = useMemo(() => new Set((submittedPlans || []).map(p => p.promoPlanKey)), [submittedPlans]);
+            const refusals = refusalList || [];
+            const refusalPending = refusals.filter(r => !(r.refusal && r.refusal.ackAt));
             return (
                 <div className="space-y-4 md:space-y-5 animate-fade-in">
+                    {/* ═══ [v6.44.0-beta3 신규] 노무수령 거부 통지 (받은 건만 표시) ═══ */}
+                    {refusals.length > 0 && (
+                        <div className="space-y-3">
+                            <div className={`rounded-2xl border p-4 md:p-5 ${refusalPending.length > 0 ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200'}`}>
+                                <div className="flex items-start gap-3">
+                                    <span className="text-2xl shrink-0">{refusalPending.length > 0 ? '🔔' : '📄'}</span>
+                                    <div className="min-w-0">
+                                        <h3 className="font-black text-slate-800 text-base md:text-lg">
+                                            노무수령 거부 통지 {refusalPending.length > 0 ? `${refusalPending.length}건 확인 필요` : '(확인 완료)'}
+                                        </h3>
+                                        <p className="text-[12px] md:text-sm font-bold text-slate-600 mt-1 leading-relaxed">
+                                            회사가 연차 사용일로 지정한 날짜에 대해 노무를 받지 않겠다는 통지입니다.
+                                            내용을 확인하신 뒤 <b>본인 성명을 입력해 수령 확인</b>을 눌러주세요.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            {refusals.map(it => (
+                                <StaffRefusalCard key={it.refusalKey} item={it} userName={userData?.name}
+                                    onPreview={onPreviewRefusal} showAlert={showAlert} />
+                            ))}
+                        </div>
+                    )}
                     {/* ── 상단 상태 배너 ── */}
                     <div className={`rounded-2xl border p-4 md:p-5 ${hasTarget ? 'bg-gradient-to-br from-red-50 via-white to-orange-50 border-red-200' : 'bg-gradient-to-br from-green-50 via-white to-teal-50 border-green-200'}`}>
                         <div className="flex items-start gap-3">
@@ -10758,6 +11038,8 @@
             // [v6.30.0-beta1 신규] 통보서 원문 미리보기 대상 (null 이면 닫힘) — PromotionNoticePreviewModal 이 기대하는
             //   row 형태({ promoStatus, leaveInfo, name, joinDate, sentNotice, ... })로 감싸 넘깁니다.
             const [previewNoticeSt, setPreviewNoticeSt] = useState(null);
+            // [v6.44.0-beta3] 노무수령 거부 통지서 원문 미리보기 (null 이면 닫힘)
+            const [previewRefusal, setPreviewRefusal] = useState(null);
             useEffect(() => {
                 const unsub = db.collection('users').doc(user.email).onSnapshot(doc => {
                     if (doc.exists) setUserData({ id: doc.id, ...doc.data() });
@@ -10821,6 +11103,39 @@
                 return list.sort((a, b) => (a.baseYear - b.baseYear) || (a.order - b.order));
             }, [userData]);
             const mySubmittedPlans = useMemo(() => (Array.isArray(userData?.submittedPlans) ? userData.submittedPlans : []), [userData]);
+            // ────────────────────────────────────────────────────────────────
+            // [v6.44.0-beta3 신규] 내가 받은 노무수령 거부 통지
+            //   관리자가 '발행'한 건만 들어 있는 refusalNotices 를 그대로 읽습니다.
+            //   (발행하지 않은 지정일은 직원 화면에 노출되지 않습니다)
+            //   지정일이 가까운 순으로 보여주고, 아직 확인하지 않은 건을 위로 올립니다.
+            // ────────────────────────────────────────────────────────────────
+            const myRefusalList = useMemo(() => {
+                const list = Array.isArray(userData?.refusalNotices) ? userData.refusalNotices : [];
+                const todayYmd = toLocalYMD(nowKST());
+                return list
+                    .filter(r => r && r.designatedYmd)
+                    .map(r => ({
+                        refusalKey: r.refusalKey,
+                        staffId: userData.id,
+                        name: userData.name || '',
+                        joinDate: userData.joinDate || '',
+                        promoCategory: r.promoCategory || '',
+                        promoType: r.promoType || '',
+                        period: (r.noticeSnapshot && r.noticeSnapshot.period) || '',
+                        secondSentAt: r.secondSentAt || '',
+                        designatedYmd: r.designatedYmd,
+                        designatedDays: safeParseFloat(r.designatedDays) || 0,
+                        weekday: weekdayOf(r.designatedYmd),
+                        isToday: r.designatedYmd === todayYmd,
+                        refusal: r
+                    }))
+                    .sort((a, b) => {
+                        const aAck = a.refusal.ackAt ? 1 : 0, bAck = b.refusal.ackAt ? 1 : 0;
+                        if (aAck !== bAck) return aAck - bAck;                       // 미확인이 위로
+                        return String(a.designatedYmd).localeCompare(String(b.designatedYmd));
+                    });
+            }, [userData]);
+            const refusalAckPending = useMemo(() => myRefusalList.filter(r => !r.refusal.ackAt).length, [myRefusalList]);
             // 아직 계획서를 내지 않은 촉진 건수 — 탭 배지 숫자
             const promoBadgeCount = useMemo(() => myPromoList.filter(st => {
                 const inSubmitted = mySubmittedPlans.some(p => p.promoPlanKey === st.promoPlanKey);
@@ -11052,6 +11367,8 @@
                     )}
                     {/* [v6.30.0-beta1 신규] 2차 통보서(사용시기 지정) 원문 미리보기 — 직원용
                         PromotionNoticeDocument 가 기대하는 row 형태로 감싸서 넘깁니다. */}
+                    {/* [v6.44.0-beta3] 직원이 받은 노무수령 거부 통지서 원문 — 관리자와 같은 서식·인쇄 */}
+                    {previewRefusal && <RefusalNoticePreviewModal item={previewRefusal} onClose={() => setPreviewRefusal(null)} />}
                     {previewNoticeSt && (
                         <PromotionNoticePreviewModal
                             row={{
@@ -11093,9 +11410,10 @@
                             <button type="button" onClick={() => setStaffView('plan')}
                                 className={`relative flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition ${staffView === 'plan' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
                                 <Icons.FileText /> 연차 사용 계획
-                                {promoBadgeCount > 0 && (
+                                {/* [v6.44.0-beta3] 계획서 미제출 + 노무수령 거부 통지 미확인 합산 */}
+                                {(promoBadgeCount + refusalAckPending) > 0 && (
                                     <span className="absolute top-1.5 right-1.5 md:static md:ml-1 bg-red-500 text-white text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center animate-pulse shadow-md shadow-red-300">
-                                        {promoBadgeCount}
+                                        {promoBadgeCount + refusalAckPending}
                                     </span>
                                 )}
                             </button>
@@ -11104,7 +11422,10 @@
                             <StaffPlanTab userData={userData} dailyHours={dailyHours} promoList={myPromoList}
                                 submittedPlans={mySubmittedPlans} onStartPlan={(st) => setPlanTarget(st)}
                                 onPreview={(p) => setPreviewPlan(p)}
-                                onPreviewNotice={(st) => setPreviewNoticeSt(st)} />
+                                onPreviewNotice={(st) => setPreviewNoticeSt(st)}
+                                refusalList={myRefusalList}
+                                onPreviewRefusal={(it) => setPreviewRefusal(it)}
+                                showAlert={showAlert} />
                         )}
                         {staffView === 'home' && (<React.Fragment>
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-bold text-slate-500">({leaveStats.period})</span></h2>
