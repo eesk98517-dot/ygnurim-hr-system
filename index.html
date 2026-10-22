@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.44.0-stable)</title>
+    <title>양지누림 연차 관리 시스템 (v6.44.1-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -554,6 +554,29 @@
         //     (그 화면은 실제 1차 발송 기록을 근거로 집계하므로 영향이 없습니다).
         // ============================================================================
         // ============================================================================
+        // ============================================================================
+        // [v6.44.1-stable] 긴급 수정 (2026-10-22)
+        //
+        //  ▣ 증상
+        //     통보서 [발송] 을 누르면 아래 오류가 뜨며 발송이 되지 않았습니다.
+        //     "Function Transaction.update() called with invalid data.
+        //      Unsupported field value: undefined"
+        //
+        //  ▣ 원인 — v6.44.0 에서 넣은 코드의 실수
+        //     Firestore 는 값이 undefined 인 필드를 저장하지 못합니다.
+        //     v6.44.0-beta4 에서 '시행 이전 1차분의 2차'를 표시하려고
+        //       firstNoticeSkipped: firstNoticeSkipped || undefined
+        //       firstNoticeDate:    p.firstNoticeDate   || undefined
+        //     로 썼는데, 해당하지 않는 일반 발송에서는 둘 다 undefined 가 되어
+        //     1차·2차 발송이 전부 실패했습니다. (beta2 의 isDemo 도 같은 형태)
+        //
+        //  ▣ 수정
+        //     undefined 대신 false / '' 를 넣습니다. 값이 없다는 뜻은 그대로이고
+        //     읽는 쪽(n.firstNoticeSkipped ? ... : '')도 종전과 동일하게 동작합니다.
+        //       · processPromotionNoticeTransaction : !!firstNoticeSkipped / p.firstNoticeDate || ''
+        //       · processRefusalNoticeTransaction   : !!isDemoTarget
+        //     기능·화면·저장 구조는 v6.44.0 과 동일합니다.
+        // ============================================================================
         // [v6.44.0-stable] 정식 릴리즈 (2026-10-20)
         //   beta1~beta4 테스트 결과 이상이 없어 코드 변경 없이 버전 표기와
         //   업데이트 내역만 정식으로 승격했습니다.
@@ -637,7 +660,7 @@
         //  ※ 연차 계산·차감 로직, 촉진 판정 날짜 공식, 1·2차 통보서 서식과 발송,
         //    저장 데이터 구조(기존 필드)는 v6.43.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.44.0-stable";
+        const SYSTEM_VERSION = "6.44.1-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -650,6 +673,11 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
+            // ▼ v6.44.1-stable : 발송 오류 긴급 수정
+            { version: "6.44.1-stable", date: "2026-10-22", details: [
+                "🐞 [긴급 수정 · 통보서 발송 오류] 통보서 [발송]을 누르면 'Unsupported field value: undefined' 오류가 뜨며 발송되지 않던 문제를 해결했습니다. v6.44.0에서 '시행 이전 1차분' 표시용으로 추가한 항목이, 해당하지 않는 일반 발송에서 빈 값이 되면서 저장이 거부된 것이 원인이었습니다. 1차·2차 통보 발송과 노무수령 거부 통지 발행 모두 정상 동작합니다",
+                "🛡️ [영향 범위] 기능·화면·저장 구조는 v6.44.0 과 동일합니다. 이 오류로 발송이 중단된 건은 저장 자체가 되지 않았으므로, 해당 직원을 다시 [발송]하시면 정상 처리됩니다"
+            ] },
             // ════════════════════════════════════════════════════════════════
             // ▼ v6.44.0-stable : 정식 릴리즈
             //   beta1(계획서 대리 등록 보완 2건 + 노무수령 거부 통지 신설) ·
@@ -1989,9 +2017,11 @@
                     noticeSnapshot: p.noticeSnapshot || null,
                     // 2차 통보만 사용시기 지정 날짜표를 가짐 (1차는 null)
                     designatedDates: step === 2 ? (p.designatedDates || null) : null,
-                    // [v6.44.0-beta4] 시스템에 1차 기록 없이 보낸 2차임을 남깁니다 (시행 이전 1차분)
-                    firstNoticeSkipped: firstNoticeSkipped || undefined,
-                    firstNoticeDate: p.firstNoticeDate || undefined,
+                    // [v6.44.0-beta4 / v6.44.1 수정] 시스템에 1차 기록 없이 보낸 2차임을 남깁니다 (시행 이전 1차분)
+                    //   ※ Firestore 는 undefined 를 저장할 수 없어(Unsupported field value: undefined)
+                    //     값이 없을 때 undefined 를 넣으면 발송 자체가 실패합니다. false/'' 로 둡니다.
+                    firstNoticeSkipped: !!firstNoticeSkipped,
+                    firstNoticeDate: p.firstNoticeDate || '',
                     sentAt: new Date().toISOString(), sentBy: actorName
                 };
                 const afterList = [...existingList, entry];
@@ -2078,7 +2108,7 @@
                     promoType: p.promoType || '', baseYear: p.baseYear || 0,
                     secondNoticeId: p.secondNoticeId || '',
                     secondSentAt: p.secondSentAt || '',
-                    isDemo: isDemoTarget || undefined,
+                    isDemo: !!isDemoTarget,   // [v6.44.1 수정] undefined 금지 (Firestore 저장 불가)
                     // 발송 시점의 산정기간·연차 수치 스냅샷 (나중에 값이 바뀌어도 통지서 내용은 고정)
                     noticeSnapshot: p.noticeSnapshot || null,
                     sentAt: new Date().toISOString(), sentBy: actorName
