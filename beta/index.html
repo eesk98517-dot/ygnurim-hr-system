@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.46.0-beta1)</title>
+    <title>양지누림 연차 관리 시스템 (v6.46.1-beta1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -674,7 +674,7 @@
         //  ※ 연차 계산·차감 로직, 촉진 판정 날짜 공식, 1·2차 통보서 서식과 발송,
         //    저장 데이터 구조(기존 필드)는 v6.43.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.46.0-beta1";
+        const SYSTEM_VERSION = "6.46.1-beta1";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -687,11 +687,12 @@
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
             // ====================================================================
-            // ▼ v6.46.0-beta1 : 교육 모드를 '실제 직원 화면 그대로'로 재구성 (베타)
-            { version: "6.46.0-beta1", date: "2026-11-11", details: [
-                "🎓 [교육 모드 전면 개편] 교육 모드의 휴대폰 화면을 '흉내 낸 미니 화면'에서 '직원이 실제로 보는 화면(StaffPortal) 그대로'로 바꿨습니다. 로그인 → 연차 현황 → 휴가 신청(달력·시간 입력·장바구니) → 수정·삭제까지 진짜 직원 화면과 100% 동일하게 눌러볼 수 있어, 교육 효과가 훨씬 높아졌습니다",
+            // ▼ v6.46.1-beta1 : 교육 모드 전체 화면 사용 (휴대폰 목업 틀 제거)
+            { version: "6.46.1-beta1", date: "2026-11-11", details: [
+                "🎓 [교육 모드 전면 개편] 교육 모드 화면을 '흉내 낸 미니 화면'에서 '직원이 실제로 보는 화면(StaffPortal) 그대로'로 바꿨습니다. 로그인 → 연차 현황 → 휴가 신청(달력·시간 입력·장바구니) → 수정·삭제까지 진짜 직원 화면과 100% 동일하게 눌러볼 수 있어, 교육 효과가 훨씬 높아졌습니다",
+                "🖥️ [전체 화면 사용] 휴대폰 목업 틀을 없애고 교육 화면이 화면 전체 폭을 쓰도록 바꿨습니다. 빔프로젝터로 띄울 때 더 크고 선명하게 보입니다. 상단 안내 바의 [교육 진행 순서 보기]로 5단계 진행 순서를 펼쳐 볼 수 있고, [처음부터 다시]는 항상 오른쪽 위에 있습니다",
                 "🛡️ [완전 샌드박스 — 실제 데이터 미접촉] 교육 화면은 가짜 저장소(메모리)로만 돌아갑니다. 교육생이 로그인·등록·수정·삭제를 아무리 눌러도 실제 Firebase 에는 단 한 건도 저장되지 않습니다(브라우저 테스트로 '실제 쓰기 0건' 확인). [처음부터 다시]를 누르면 깨끗한 상태로 초기화됩니다",
-                "📱 [교육용 가짜 직원 '김교육'] 실제와 똑같은 데이터 구조의 가상 직원 1명으로 시연합니다. 비밀번호 강제 변경 화면은 뜨지 않도록 처리했고, 알림·확인창도 휴대폰 틀 안에서 뜨게 해 화면 밖으로 새지 않습니다"
+                "📱 [교육용 가짜 직원 '김교육'] 실제와 똑같은 데이터 구조의 가상 직원 1명으로 시연합니다. 비밀번호 강제 변경 화면은 뜨지 않도록 처리했고, 알림·확인창도 교육 화면 안에서 뜨게 해 흐름이 끊기지 않습니다"
             ] },
             // ▼ v6.45.0-beta1 : 과거 연차 직접 등록 · 로그인 즉시 할 일 팝업 · 교육 모드 (베타)
             { version: "6.45.0-beta1", date: "2026-11-11", details: [
@@ -10272,10 +10273,10 @@
             const [id, setId] = useState('yg5678');
             const [pw, setPw] = useState('••••••');
             return (
-                <div className="flex h-full items-center justify-center bg-slate-100 p-4 overflow-y-auto">
-                    <div className="w-full max-w-md bg-white p-6 rounded-2xl shadow-xl">
+                <div className="flex items-center justify-center bg-slate-100 p-4 md:p-8" style={{ minHeight: '640px' }}>
+                    <div className="w-full max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl">
                         <div className="text-center mb-6">
-                            <h1 className="text-xl font-black text-blue-600 tracking-tighter mb-1">양지누림</h1>
+                            <h1 className="text-2xl font-black text-blue-600 tracking-tighter mb-1">양지누림</h1>
                             <p className="text-slate-500 font-bold text-sm mb-1">연차 관리 시스템</p>
                             <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-1 rounded font-bold uppercase">교육 체험용</span>
                         </div>
@@ -10311,20 +10312,20 @@
             const showConfirm = useCallback((msg, onOk) => setMiniConfirm({ msg: String(msg), onOk }), []);
             if (!loggedIn) return <TrainingLoginScreen onLogin={() => setLoggedIn(true)} />;
             return (
-                <div className="w-full h-full relative">
+                <div className="w-full relative">
                     <StaffPortal user={demoUser} onLogout={() => setLoggedIn(false)} showAlert={showAlert} showConfirm={showConfirm} sandbox={sandbox} />
-                    {/* 휴대폰 안 전용 알림/확인 — 화면 밖으로 안 나가게 폰 틀 내부에 띄웁니다 */}
+                    {/* 교육용 전용 알림/확인 — 교육 화면 영역 안에 고정으로 띄웁니다 */}
                     {miniAlert !== null && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[700] p-4">
-                            <div className="bg-white rounded-2xl p-5 w-full max-w-[240px] text-center shadow-2xl">
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[700] p-4">
+                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
                                 <p className="text-[13px] font-bold text-slate-800 whitespace-pre-wrap mb-4 leading-relaxed">{miniAlert}</p>
                                 <button type="button" onClick={() => setMiniAlert(null)} className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-black text-sm">확인</button>
                             </div>
                         </div>
                     )}
                     {miniConfirm !== null && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-[700] p-4">
-                            <div className="bg-white rounded-2xl p-5 w-full max-w-[240px] text-center shadow-2xl">
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[700] p-4">
+                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
                                 <p className="text-[13px] font-bold text-slate-800 whitespace-pre-wrap mb-4 leading-relaxed">{miniConfirm.msg}</p>
                                 <div className="flex gap-2">
                                     <button type="button" onClick={() => setMiniConfirm(null)} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm">취소</button>
@@ -10339,62 +10340,46 @@
 
         const TrainingModeTab = () => {
             const [resetKey, setResetKey] = useState(0);
+            const [showGuide, setShowGuide] = useState(false); // 교육 진행 순서 접기/펴기
             return (
-                <div className="space-y-5 animate-fade-in">
-                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-lg">
-                        <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0"><Icons.GraduationCap /></div>
-                            <div>
-                                <h3 className="text-xl md:text-2xl font-black mb-1">교육 모드</h3>
-                                <p className="text-[13px] md:text-sm font-bold opacity-90 leading-relaxed">아래 휴대폰 화면은 <b className="text-yellow-200">직원이 실제로 보는 화면 그대로</b>입니다. 빔프로젝터로 띄워 시연하거나 참석자가 직접 눌러보게 하세요. 로그인·휴가 신청·수정·삭제까지 전부 진짜처럼 동작하지만, <b className="text-yellow-200">실제 데이터에는 전혀 저장되지 않습니다.</b></p>
+                <div className="space-y-4 animate-fade-in">
+                    {/* 상단 안내 바 — 제목 + 안전 안내 + [처음부터 다시] (전체 폭) */}
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl p-5 md:p-6 text-white shadow-lg">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                                <div className="w-11 h-11 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0"><Icons.GraduationCap /></div>
+                                <div>
+                                    <h3 className="text-lg md:text-xl font-black mb-0.5">교육 모드 · 실제 직원 화면 그대로</h3>
+                                    <p className="text-[12px] md:text-[13px] font-bold opacity-90 leading-relaxed">아래는 <b className="text-yellow-200">직원이 실제로 보는 화면 그대로</b>입니다. 로그인·휴가 신청·수정·삭제까지 진짜처럼 동작하지만, <b className="text-yellow-200">실제 데이터에는 전혀 저장되지 않습니다.</b></p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                                <button type="button" onClick={() => setShowGuide(v => !v)} className="bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 rounded-xl font-black text-xs md:text-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap"><Icons.Smartphone /> 교육 진행 순서 {showGuide ? '접기' : '보기'}</button>
+                                <button type="button" onClick={() => setResetKey(k => k + 1)} className="bg-white text-blue-700 px-4 py-2.5 rounded-xl font-black text-xs md:text-sm transition hover:bg-blue-50 shadow flex items-center justify-center gap-1.5 whitespace-nowrap"><Icons.Refresh /> 처음부터 다시</button>
                             </div>
                         </div>
+                        {/* 교육 진행 순서 — 펼치면 가로로 5단계 표시 */}
+                        {showGuide && (
+                            <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 animate-fade-in">
+                                {[
+                                    ['로그인 보여주기', '아이디(yg+뒤4자리)와 처음 비밀번호(123456)를 설명하고 [로그인 하기]를 누르세요.'],
+                                    ['할 일 / 사용법 안내', '로그인 직후 뜨는 안내 팝업을 보여주고 닫는 법을 알려주세요.'],
+                                    ['내 연차 현황 읽기', '총 발생·사용·잔여 3개 카드와 달력형 휴가 내역을 짚어주세요.'],
+                                    ['휴가 신청 체험', '달력에서 날짜를 고르고 시간을 입력해 [담기]→[등록]까지 해보게 하세요.'],
+                                    ['수정·삭제 체험', '등록한 휴가를 눌러 수정·삭제까지 해보게 하세요. 잔여가 바로 바뀝니다.']
+                                ].map(([t, d], i) => (
+                                    <div key={i} className="bg-white/10 rounded-xl p-3">
+                                        <div className="flex items-center gap-2 mb-1"><span className="w-5 h-5 bg-white text-blue-700 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0">{i + 1}</span><p className="font-black text-[12px] text-white">{t}</p></div>
+                                        <p className="text-[11px] font-bold text-white/80 leading-relaxed">{d}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="bg-white rounded-3xl p-5 md:p-8 border border-slate-100 shadow-sm">
-                        <div className="flex flex-col md:flex-row items-center justify-center gap-8">
-                            {/* 휴대폰 틀 안에 실제 직원 화면 */}
-                            <div className="flex-shrink-0">
-                                <div className="relative mx-auto" style={{ width: '340px', height: '700px' }}>
-                                    <div className="absolute inset-0 bg-slate-900 rounded-[46px] shadow-2xl p-3">
-                                        <div className="w-full h-full bg-white rounded-[36px] overflow-hidden relative">
-                                            {/* 노치 */}
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-slate-900 rounded-b-2xl z-[60]"></div>
-                                            {/* 실제 StaffPortal 을 그대로 스크롤되는 화면 안에 띄웁니다 */}
-                                            <div className="w-full h-full pt-6 overflow-y-auto custom-scrollbar">
-                                                <TrainingPhoneApp key={resetKey} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 교육 안내 패널 */}
-                            <div className="w-full md:max-w-sm space-y-4">
-                                <div>
-                                    <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2"><Icons.Smartphone /> 교육 진행 순서</h4>
-                                    <ol className="space-y-2.5">
-                                        {[
-                                            ['로그인 보여주기', '아이디(yg+뒤4자리)와 처음 비밀번호(123456)를 함께 설명하고 [로그인 하기]를 누르세요.'],
-                                            ['할 일 / 사용법 안내', '로그인 직후 뜨는 안내 팝업을 보여주고 닫는 법을 알려주세요.'],
-                                            ['내 연차 현황 읽기', '총 발생·사용·잔여 3개 카드와 달력형 휴가 내역을 짚어주세요.'],
-                                            ['휴가 신청 체험', '달력에서 날짜를 고르고 시간을 입력해 [담기]→[등록]까지 직접 해보게 하세요.'],
-                                            ['수정·삭제 체험', '등록한 휴가를 눌러 수정·삭제까지 해보게 하세요. 잔여 연차가 바로 바뀝니다.']
-                                        ].map(([t, d], i) => (
-                                            <li key={i} className="flex items-start gap-3 bg-slate-50 rounded-xl p-3">
-                                                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-black flex-shrink-0">{i + 1}</span>
-                                                <div><p className="font-black text-[13px] text-slate-800">{t}</p><p className="text-[11px] font-bold text-slate-500 mt-0.5 leading-relaxed">{d}</p></div>
-                                            </li>
-                                        ))}
-                                    </ol>
-                                </div>
-                                <button type="button" onClick={() => setResetKey(k => k + 1)} className="w-full bg-slate-800 text-white py-3 rounded-2xl font-black text-sm hover:bg-slate-700 transition shadow-lg flex items-center justify-center gap-2"><Icons.Refresh /> 처음부터 다시 (화면·데이터 초기화)</button>
-                                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                                    <p className="text-[12px] font-black text-amber-800 flex items-center gap-1.5">🛡️ 안전 안내</p>
-                                    <p className="text-[11px] font-bold text-amber-700 mt-1 leading-relaxed">이 화면은 진짜 직원 화면과 똑같이 동작하지만, 교육용 가짜 저장소로만 돌아갑니다. 여기서 무엇을 눌러도 실제 직원의 연차·계정에는 아무 변화가 없습니다. [처음부터 다시]를 누르면 깨끗한 상태로 돌아갑니다.</p>
-                                </div>
-                            </div>
-                        </div>
+                    {/* 실제 직원 화면 — 목업 틀 없이 전체 폭 사용 */}
+                    <div className="bg-[#F1F5F9] rounded-3xl border border-slate-200 shadow-inner overflow-hidden" style={{ minHeight: '640px' }}>
+                        <TrainingPhoneApp key={resetKey} />
                     </div>
                 </div>
             );
