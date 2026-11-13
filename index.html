@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.44.2-stable)</title>
+    <title>양지누림 연차 관리 시스템 (v6.48.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -555,7 +555,7 @@
         // ============================================================================
         // ============================================================================
         // ============================================================================
-        // [v6.44.2-stable] 로그인 아이디 대소문자 보정 (2026-10-22)
+        // [v6.44.2-beta1] 로그인 아이디 대소문자 보정 (2026-10-22, 베타 — 테스트 후 정식 승격)
         //
         //  ▣ 증상 — 아이디를 대문자로 치면 로그인이 되지 않았습니다.
         //     계정 아이디와 Firestore 문서 이름은 전부 소문자(yg8028@ygnurim.com)인데,
@@ -674,7 +674,7 @@
         //  ※ 연차 계산·차감 로직, 촉진 판정 날짜 공식, 1·2차 통보서 서식과 발송,
         //    저장 데이터 구조(기존 필드)는 v6.43.0-stable 과 동일합니다.
         // ============================================================================
-        const SYSTEM_VERSION = "6.44.2-stable";
+        const SYSTEM_VERSION = "6.48.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -686,9 +686,23 @@
             //     예) staffDetails: ["🗓️ 휴가 신청 화면에서 달력이 더 커졌습니다"]
             //     ※ staffDetails 를 적지 않으면, 직원에게는 아래
             //       STAFF_DEFAULT_NOTICE 문구('기능 개선 및 성능 최적화') 한 줄만 보입니다.
-            // ====================================================================
-            // ▼ v6.44.2-stable : 로그인 아이디 대소문자 보정
-            { version: "6.44.2-stable", date: "2026-10-22", details: [
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.48.0-stable : 정식 릴리즈
+            //   beta 3개(6.45.0 과거연차 직접등록·할일팝업·교육모드 / 6.46.1 교육모드 실제화면·전체폭 /
+            //   6.47.0 교육모드 계획서·통보·거부통지 시연)를 하나의 정식으로 통합. 코드 로직 무변경.
+            //   내부 [v6.45.0]·[v6.46.0]·[v6.47.0] 주석 마커는 이력으로 유지.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.48.0-stable", date: "2026-11-13", details: [
+                "🗓️ [과거 연차 승인제도 파기 · 직원 직접 등록] 직원이 '올해(당해 연도) 전체'의 과거 연차를 직접 등록·수정·삭제할 수 있습니다. 종전에는 '이번 달 1일' 이전은 [과거 연차 승인 요청]으로 관리자 승인을 받아야 했으나, 이 승인제도를 없앴습니다. 작년 이전만 잠기며, 관리자는 종전처럼 모든 연도를 제한 없이 처리합니다",
+                "📋 [로그인 즉시 '할 일' 팝업] 관리자가 미사용연차 계획서·2차 사용시기 지정 통보서·노무수령 거부 통지서를 보내면, 해당 직원이 로그인하자마자 '아직 작성·확인이 끝나지 않은 서류'만 모아 팝업으로 안내합니다. 버튼을 누르면 바로 작성/확인 화면으로 이동하고, '나중에 하기'로 닫아도 끝내지 않으면 다음 로그인 때 다시 뜹니다(완료 항목은 더 이상 안 뜸)",
+                "🎓 [교육 모드 신설] 관리자 메뉴에 [교육 모드] 탭이 생겼습니다. 화면 전체 폭에 '직원이 실제로 보는 화면 그대로'를 띄워, 로그인 → 할 일 팝업 → 연차 현황 → 휴가 신청·수정·삭제 → 계획서 작성 → 2차 통보서 확인 → 노무수령 거부 통지서 수령 확인까지 처음부터 끝까지 직접 눌러보며 교육할 수 있습니다. 상단 [교육 진행 순서 보기]로 5단계 안내를 펼쳐볼 수 있습니다",
+                "🛡️ [교육 모드 완전 샌드박스] 교육 화면의 모든 동작(등록·수정·삭제·계획서 제출·수령 확인)은 교육용 가짜 저장소로만 처리됩니다. 교육생이 무엇을 눌러도 실제 데이터에는 한 건도 저장되지 않으며, [처음부터 다시] 버튼으로 언제든 깨끗하게 초기화됩니다. 12월 근로지원인 교육용"
+            ], staffDetails: [
+                "🗓️ 이제 올해 연차는 지난 날짜도 직접 등록·수정·삭제하실 수 있습니다. 더 이상 과거 연차 승인 요청을 하지 않으셔도 됩니다 (작년 이전만 관리자에게 요청)",
+                "📋 로그인하시면 아직 작성·확인하지 않은 서류(계획서·통보서)가 있을 때 팝업으로 안내해 드립니다. '나중에 하기'로 닫으셔도 끝내지 않으면 다음에 다시 알려드려요"
+            ] },
+            // ▼ v6.44.2-beta1 : 로그인 아이디 대소문자 보정 (베타)
+            { version: "6.44.2-beta1", date: "2026-10-22", details: [
                 "🔑 [아이디 대소문자를 가리지 않습니다] 종전에는 아이디를 소문자로 정확히 입력해야만 로그인이 되었습니다. 이제 'YG8028' · 'Yg8028' 처럼 대문자가 섞여도, 앞뒤에 공백이 들어가도 같은 계정으로 들어갑니다. 관리자 아이디(ygnurim)도 마찬가지입니다",
                 "📱 [휴대폰 자동 대문자 차단] 휴대폰 자판이 첫 글자를 자동으로 대문자로 바꾸면서 로그인이 막히는 경우가 많았습니다. 아이디 입력칸에서 자동 대문자·자동 고침이 꺼지도록 했습니다",
                 "🔒 [비밀번호는 종전과 동일] 비밀번호는 보안상 대소문자를 그대로 구분합니다. 바꾸지 않았습니다"
@@ -1134,6 +1148,8 @@
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth(); const db = firebase.firestore();
+        // [v6.46.0] 교육 모드에서 StaffPortal 이 db 를 지역 변수로 가릴 때, 실제 db 참조를 전역으로도 보관합니다.
+        window.__ygRealDb = db;
         // ------------------ 유틸리티 함수 ------------------
         const safeParseFloat = (val) => { const num = parseFloat(val); return isNaN(num) ? 0 : num; };
         const fmt = (num) => { if (num === undefined || num === null || isNaN(num)) return '0'; return Number(Number(num).toFixed(2)); };
@@ -2797,23 +2813,22 @@
             while (curr <= last) { if (!off.includes(curr.getDay())) dates.push(toLocalYMD(curr)); curr.setDate(curr.getDate() + 1); }
             return dates;
         };
-        // ============ [v6.17.0] 월별 마감 · 미래(예정) 판정 공통 유틸 ============
-        // [3번 월별 마감] 직원은 '당월 1일'부터만 등록/수정/삭제할 수 있습니다.
-        //   currentMonthStart() = 이번 달 1일 00:00 의 'YYYY-MM-01' 문자열.
-        //   isPastLockedForStaff(dateStr) = 그 날짜가 당월 1일보다 이전이면 true(직원 잠금).
-        //   ※ 관리자에게는 이 함수를 적용하지 않습니다(제한 없음).
-        const currentMonthStart = () => {
-            const t = nowKST();
-            return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-01`;
-        };
+        // ============ [v6.17.0 → v6.45.0 개정] 연도별 마감 · 미래(예정) 판정 공통 유틸 ============
+        // [v6.45.0 변경] 직원 등록/수정/삭제 허용 범위를 '당월 1일 이후'에서 '당해 연도(올해) 전체'로 넓혔습니다.
+        //   과거 연차 승인제도를 파기하고, 근로지원인이 올해 안의 과거 연차를 직접 등록·수정·삭제할 수 있게 합니다.
+        //   staffYearStart()       = 올해 1월 1일 'YYYY-01-01' 문자열.
+        //   isPastLockedForStaff() = 그 날짜가 올해 1월 1일보다 이전(= 작년 이전)이면 true(직원 잠금).
+        //   ※ 관리자에게는 이 함수를 적용하지 않습니다(제한 없음 — 종전과 동일).
+        //   ※ 함수 이름은 그대로 두어 기존 호출부(등록/수정/삭제 가드·달력)가 전부 자동으로 새 기준을 따릅니다.
+        const staffYearStart = () => `${nowKST().getFullYear()}-01-01`;
         const isPastLockedForStaff = (dateStr) => {
             if (!dateStr) return false;
-            return String(dateStr) < currentMonthStart();
+            return String(dateStr) < staffYearStart();
         };
-        // 달력에서 '과거로 잠긴 달'인지 판정 (해당 월의 말일이 당월 1일보다 이전이면 그 달 전체가 과거)
+        // 달력에서 '과거로 잠긴 달'인지 판정 (해당 월의 말일이 올해 1월 1일보다 이전이면 = 작년 이전 달)
         const isMonthPastLocked = (year, month0) => {
             const lastDay = new Date(year, month0 + 1, 0);
-            return toLocalYMD(lastDay) < currentMonthStart();
+            return toLocalYMD(lastDay) < staffYearStart();
         };
         // [4번 미래 '예정' 표시] 오늘(자정 기준)보다 뒤 날짜면 아직 오지 않은 '예정' 연차입니다.
         //   차감·합산은 종전과 동일하게 이뤄지되, 화면에서만 '예정'으로 구분해 보여줍니다.
@@ -2980,7 +2995,7 @@
                             else if (dow === 0) cls = 'text-red-400';
                             else if (dow === 6) cls = 'text-blue-400';
                             return (
-                                <button key={idx} type="button" disabled={isLocked} onClick={() => handleClick(dateStr)} title={isLocked ? (isOutOfRange(dateStr) ? '선택 가능한 기간을 벗어났어요' : '지난달 이전은 관리자만 등록할 수 있어요') : (isTaken ? '이미 등록된 휴가가 있는 날' : '')} className={`relative h-9 rounded-lg text-xs transition flex items-center justify-center ${isLocked ? 'opacity-30 cursor-not-allowed line-through' : 'hover:bg-slate-100'} ${cls} ${isOff && !sel && !isAnchor && !isLocked ? 'opacity-40' : ''}`}>
+                                <button key={idx} type="button" disabled={isLocked} onClick={() => handleClick(dateStr)} title={isLocked ? (isOutOfRange(dateStr) ? '선택 가능한 기간을 벗어났어요' : '작년 이전은 관리자만 등록할 수 있어요') : (isTaken ? '이미 등록된 휴가가 있는 날' : '')} className={`relative h-9 rounded-lg text-xs transition flex items-center justify-center ${isLocked ? 'opacity-30 cursor-not-allowed line-through' : 'hover:bg-slate-100'} ${cls} ${isOff && !sel && !isAnchor && !isLocked ? 'opacity-40' : ''}`}>
                                     {d}
                                     {isTaken && <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${sel ? 'bg-white' : 'bg-orange-400'}`}></span>}
                                 </button>
@@ -3024,7 +3039,10 @@
             Key: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
             Lock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
             Save: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
-            UserX: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>
+            UserX: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg>,
+            // [v6.45.0] 교육 모드용 아이콘
+            GraduationCap: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 2 3 6 3s6-2 6-3v-5"/></svg>,
+            Smartphone: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
         };
         // ------------------ 단순 모달 컴포넌트 ------------------
         const CustomAlertModal = ({ msg, onClose }) => (<div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] animate-fade-in p-4 backdrop-blur-sm"><div className="bg-white p-6 rounded-2xl shadow-2xl min-w-[300px] max-w-lg text-center"><div className="text-blue-500 mb-4 flex justify-center"><Icons.Info /></div><p className="text-slate-800 font-bold mb-6 whitespace-pre-wrap text-left leading-relaxed text-sm">{msg}</p><button onClick={onClose} className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">확인</button></div></div>);
@@ -3284,6 +3302,58 @@
                         ? <div className="tour-tip" style={{ top: tipPos.top, left: tipPos.left }}>{Card}</div>
                         : <div className="tour-tip-center">{Card}</div>}
                 </>
+            );
+        };
+        // ============ [v6.45.0 신규] 로그인 즉시 '할 일' 팝업 (StaffTodoPopup) ============
+        //  관리자가 계획서·2차 통보서·노무수령 거부 통지서를 발송하면, 해당 직원이 로그인하자마자
+        //  '작성/확인이 끝나지 않은 서류'만 모아 팝업으로 띄웁니다.
+        //   · tasks: [{ key, kind('plan'|'notice'|'refusal'), title, desc, badge, onAction, actionLabel }]
+        //   · '나중에 하기'로 닫아도 미완료면 다음 로그인 때 다시 뜹니다(완료분은 사라짐).
+        //   · 같은 세션 안에서는 한 번만 자동으로 뜹니다(sessionStorage).
+        const StaffTodoPopup = ({ tasks, onClose }) => {
+            useEscClose(onClose);
+            const toneByKind = {
+                plan:    { bg: 'bg-blue-50',   dot: 'bg-blue-500',   text: 'text-blue-700',   btn: 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' },
+                notice:  { bg: 'bg-indigo-50', dot: 'bg-indigo-500', text: 'text-indigo-700', btn: 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' },
+                refusal: { bg: 'bg-rose-50',   dot: 'bg-rose-500',   text: 'text-rose-700',   btn: 'bg-rose-600 hover:bg-rose-700 shadow-rose-200' }
+            };
+            return (
+                <div className="fixed inset-0 bg-slate-900/70 flex items-center justify-center z-[650] animate-fade-in backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md relative overflow-hidden max-h-[90vh] flex flex-col">
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 px-6 py-5 text-white flex-shrink-0">
+                            <p className="text-[11px] font-black tracking-widest uppercase opacity-80 mb-1">알림</p>
+                            <h3 className="text-xl font-black flex items-center gap-2">📋 처리하실 서류가 있어요</h3>
+                            <p className="text-[13px] font-bold opacity-90 mt-1.5">아직 작성·확인이 끝나지 않은 서류 <b>{tasks.length}건</b>이 있습니다.</p>
+                        </div>
+                        <div className="p-5 space-y-3 overflow-y-auto custom-scrollbar">
+                            {tasks.map(t => {
+                                const tone = toneByKind[t.kind] || toneByKind.plan;
+                                return (
+                                    <div key={t.key} className={`${tone.bg} rounded-2xl p-4 border border-slate-100`}>
+                                        <div className="flex items-start gap-2.5 mb-3">
+                                            <span className={`${tone.dot} w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5`}></span>
+                                            <div className="min-w-0">
+                                                <p className={`font-black text-sm ${tone.text}`}>{t.title}</p>
+                                                {t.desc && <p className="text-[12px] font-bold text-slate-500 mt-0.5 leading-relaxed">{t.desc}</p>}
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={t.onAction}
+                                            className={`w-full ${tone.btn} text-white py-2.5 rounded-xl font-black text-[13px] transition shadow-lg active:scale-95`}>
+                                            {t.actionLabel}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="p-4 border-t border-slate-100 flex-shrink-0">
+                            <button type="button" onClick={onClose}
+                                className="w-full py-3 rounded-xl font-bold text-sm text-slate-500 bg-slate-100 hover:bg-slate-200 transition">
+                                나중에 하기
+                            </button>
+                            <p className="text-[11px] font-bold text-slate-400 text-center mt-2">완료하지 않으면 다음 로그인 때 다시 안내해 드려요.</p>
+                        </div>
+                    </div>
+                </div>
             );
         };
         const StaffGuideModal = ({ onClose, onStartTour }) => {
@@ -10075,6 +10145,321 @@
         //   · [반려] : 관리자에게 반려 사유를 입력받는 프롬프트 창을 띄운 뒤,
         //              pendingRequests에서 제거하고 rejectReason을 포함해 rejectedRequests에 보관합니다.
         // ============================================================================
+        // ============================================================================
+        // [v6.45.0 신규 → v6.46.0 전면 개편] 교육 모드 (TrainingModeTab)
+        //   · 12월 근로지원인 교육용. 관리자 화면 안의 '휴대폰 틀' 안에 '실제 직원 페이지(StaffPortal)'를
+        //     그대로 띄웁니다. 흉내 낸 미니 화면이 아니라 진짜 직원이 보는 화면과 100% 동일합니다.
+        //   · 완전 샌드박스 — 가짜 Firestore(createSandboxDb)를 StaffPortal 에 주입해, 로그인·연차 등록·
+        //     수정·삭제 등 어떤 동작도 실제 Firebase 에는 닿지 않습니다. 교육생이 무엇을 눌러도 안전합니다.
+        // ============================================================================
+        // 교육용 가짜 직원 1명 — 실제 저장 구조와 똑같은 모양이되 전부 가상입니다.
+        //   tempPw 를 이미 바꾼 값('train')으로 둬서 교육 화면에서 '비밀번호 강제변경'이 뜨지 않게 합니다.
+        //   [v6.47.0] 이름을 DEMO_PROMO_ACCOUNT_NAME('양지누림')으로 둬서, getPromotionStatusList 가
+        //     촉진 6종을 자동 생성 → 직원 화면에 '미사용 연차 사용 계획서 작성'이 뜹니다(계획서 시연 가능).
+        //     또 sentNotices 에 2차 통보 1건, refusalNotices 에 거부통지 1건을 심어
+        //     '2차 통보서 확인'·'노무수령 거부 통지서 수령 확인'까지 모두 시연할 수 있게 했습니다.
+        const makeDemoStaff = () => {
+            const Y = nowKST().getFullYear();
+            const planKey = 'promoPlan_' + Y;              // getPromotionStatusList 데모가 쓰는 키와 동일
+            const secondNoticeKey = `${planKey}__step2`;   // getNoticeKey(planKey, 2)
+            const kstToday = toLocalYMD(nowKST());
+            // 거부통지 지정일 — 오늘 1건(오늘 지정일 알림까지 확인) + 평일 2건
+            const nextWeekday = (base, add) => { const d = new Date(base); let n = 0; while (n < add) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) n++; } return toLocalYMD(d); };
+            const noticeSnapshot = { period: `${Y}-01-01 ~ ${Y}-12-31`, remainingDays: 3, promoType: '1차 촉진' };
+            return {
+                id: 'training-demo@ygnurim.com',
+                email: 'training-demo@ygnurim.com',
+                name: DEMO_PROMO_ACCOUNT_NAME,   // '양지누림' — 촉진 데모 활성화 트리거
+                phone: '010-1234-5678',
+                birth: '1985-05-05',
+                joinDate: '2022-03-02',
+                workHours: 8,
+                offDays: [0],
+                role: 'staff',
+                tempPw: 'train',            // 123456 이 아니므로 강제 변경 모달이 뜨지 않음
+                authStatus: 'success',
+                status: 'active',
+                annualLeaveTotal: 15,
+                annualLeavePeriod: '',
+                annualLeaveUsed: 24,
+                submittedPlans: [],
+                // [시연] 관리자가 발송한 2차(사용시기 지정) 통보 1건 — 직원 화면에 '2차 통보서 확인'으로 뜸
+                sentNotices: [
+                    {
+                        noticeKey: secondNoticeKey, promoPlanKey: planKey, step: 2,
+                        promoType: '2차 촉진', promoCategory: 'over1', portion: 'regular',
+                        sentAt: new Date(nowKST().getTime() - 3 * 86400000).toISOString(),
+                        period: `${Y}-01-01 ~ ${Y}-12-31`,
+                        designatedDates: [
+                            { month: Number(nextWeekday(nowKST(), 5).slice(5, 7)), date: Number(nextWeekday(nowKST(), 5).slice(8, 10)), days: 1 },
+                            { month: Number(nextWeekday(nowKST(), 10).slice(5, 7)), date: Number(nextWeekday(nowKST(), 10).slice(8, 10)), days: 1 }
+                        ]
+                    }
+                ],
+                // [시연] 관리자가 발행한 노무수령 거부 통지 2건 — '수령 확인'으로 뜸(미확인이 위로 정렬)
+                refusalNotices: [
+                    {
+                        refusalKey: `${planKey}__refusal__${kstToday}`,
+                        promoPlanKey: planKey, promoCategory: 'over1', promoType: '2차 촉진',
+                        designatedYmd: kstToday, designatedDays: 1,
+                        secondSentAt: new Date(nowKST().getTime() - 3 * 86400000).toISOString(),
+                        noticeSnapshot, ackAt: '', ackSignature: ''
+                    },
+                    {
+                        refusalKey: `${planKey}__refusal__${nextWeekday(nowKST(), 3)}`,
+                        promoPlanKey: planKey, promoCategory: 'over1', promoType: '2차 촉진',
+                        designatedYmd: nextWeekday(nowKST(), 3), designatedDays: 0.5,
+                        secondSentAt: new Date(nowKST().getTime() - 3 * 86400000).toISOString(),
+                        noticeSnapshot, ackAt: '', ackSignature: ''
+                    }
+                ],
+                pendingRequests: [],
+                rejectedRequests: [],
+                leaveHistory: [
+                    { id: 'd1', date: `${Y}-03-15`, days: 8, type: '8시간', reason: '개인 사유', addedBy: '본인(직원)', fullDay: true, startTime: '', endTime: '', breakStart: '', breakEnd: '' },
+                    { id: 'd2', date: `${Y}-05-02`, days: 4, type: '4시간', reason: '병원 방문', addedBy: '본인(직원)', startTime: '09:00', endTime: '13:00', breakStart: '00:00', breakEnd: '00:00' },
+                    { id: 'd3', date: `${Y}-07-20`, days: 8, type: '8시간', reason: '여름 휴가', addedBy: '본인(직원)', fullDay: true, startTime: '', endTime: '', breakStart: '', breakEnd: '' },
+                    { id: 'd4', date: `${Y}-09-11`, days: 4, type: '4시간', reason: '가족 행사', addedBy: '본인(직원)', startTime: '13:00', endTime: '17:00', breakStart: '00:00', breakEnd: '00:00' }
+                ]
+            };
+        };
+
+        // ── 가짜 Firestore ──────────────────────────────────────────────────────────
+        //   StaffPortal 과 그 자식들이 쓰는 db.collection('users').doc(id) 경로를 메모리로만 흉내 냅니다.
+        //   지원: onSnapshot(구독) / get / update / set / runTransaction. 모든 변경은 store 에만 쌓입니다.
+        //   store 는 { [docId]: data } 한 벌이고, 바뀔 때마다 구독자(onSnapshot 콜백)에게 즉시 통지합니다.
+        const createSandboxDb = (initialDocs) => {
+            const store = {};
+            (initialDocs || []).forEach(d => { store[d.id] = JSON.parse(JSON.stringify(d)); });
+            const listeners = {}; // docId -> Set(callback)
+            const snapOf = (id) => ({ exists: !!store[id], id, data: () => store[id] ? JSON.parse(JSON.stringify(store[id])) : undefined });
+            const notify = (id) => { (listeners[id] ? [...listeners[id]] : []).forEach(cb => { try { cb(snapOf(id)); } catch (e) {} }); };
+            const docRef = (id) => ({
+                _id: id,
+                onSnapshot(cb) {
+                    (listeners[id] = listeners[id] || new Set()).add(cb);
+                    Promise.resolve().then(() => cb(snapOf(id)));          // 즉시 1회 전달(실제 onSnapshot 과 동일)
+                    return () => { if (listeners[id]) listeners[id].delete(cb); };
+                },
+                async get() { return snapOf(id); },
+                async set(data, opt) {
+                    store[id] = (opt && opt.merge && store[id]) ? Object.assign({}, store[id], data) : JSON.parse(JSON.stringify(data));
+                    notify(id); return;
+                },
+                async update(patch) {
+                    if (!store[id]) throw new Error('No document to update: ' + id);
+                    store[id] = Object.assign({}, store[id], JSON.parse(JSON.stringify(patch)));
+                    notify(id); return;
+                }
+            });
+            const collRef = () => ({ doc: (id) => docRef(id) });
+            const db = {
+                collection: () => collRef(),
+                // runTransaction: get→함수→update 를 메모리에서 순차 처리(동시성 없음)
+                async runTransaction(fn) {
+                    const tx = {
+                        async get(ref) { return snapOf(ref._id); },
+                        update(ref, patch) { ref.update(patch); return tx; },
+                        set(ref, data, opt) { ref.set(data, opt); return tx; }
+                    };
+                    return await fn(tx);
+                }
+            };
+            return { db, store };
+        };
+
+        // 가짜 연차 트랜잭션 — 실제 processLeaveTransaction 의 ADD/UPDATE/DELETE + 잔여 재계산을 메모리에서 재현합니다.
+        //   (감사 로그는 교육용이라 남기지 않습니다. 잔여 계산은 실제와 같은 calculateAnnualLeave·sumUsedHours 사용)
+        const sandboxLeaveTransaction = async (sandbox, staffId, payload) => {
+            const ref = sandbox.db.collection('users').doc(staffId);
+            const snap = await ref.get();
+            if (!snap.exists) throw new Error('대상 직원 문서를 찾을 수 없습니다.');
+            const fresh = snap.data() || {};
+            const before = Array.isArray(fresh.leaveHistory) ? fresh.leaveHistory.map(h => ({ ...h })) : [];
+            const rawType = String(payload.type || '').toUpperCase();
+            const inputLeaves = Array.isArray(payload.leaves) ? payload.leaves.filter(Boolean) : (payload.leaves ? [payload.leaves] : []);
+            const targetIds = Array.isArray(payload.targetId) ? payload.targetId.map(String) : (payload.targetId ? [String(payload.targetId)] : []);
+            let after = before;
+            if (rawType === 'ADD') {
+                const existing = new Set(before.map(h => String(h.id)));
+                const added = inputLeaves.filter(r => !existing.has(String(r.id)));
+                if (!added.length) throw new Error('이미 등록된 연차 내역입니다.');
+                after = [...before, ...added];
+            } else if (rawType === 'UPDATE') {
+                const map = new Map();
+                inputLeaves.forEach(r => { if (r && r.id) map.set(String(r.id), r); });
+                after = before.map(h => map.has(String(h.id)) ? Object.assign({}, h, map.get(String(h.id))) : h);
+            } else if (rawType === 'DELETE') {
+                const del = new Set(targetIds);
+                after = before.filter(h => !del.has(String(h.id)));
+                if (after.length === before.length) throw new Error('삭제하려는 연차 내역이 없습니다.');
+            } else {
+                throw new Error('알 수 없는 처리 유형: ' + payload.type);
+            }
+            const info = calculateAnnualLeave(fresh.joinDate || '');
+            await ref.update({
+                annualLeaveUsed: sumUsedHours(after, info.startDate, info.endDate),
+                annualLeaveTotal: info.total,
+                annualLeavePeriod: info.period,
+                leaveHistory: after
+            });
+        };
+
+        // [v6.47.0] 가짜 계획서 제출 트랜잭션 — 실제 processPromotionPlanTransaction 재현
+        //   promoPlanKey=true 설정 + extraUpdates(submittedPlans 추가)를 user 문서에 반영(감사로그 생략).
+        const sandboxPlanTransaction = async (sandbox, staffId, payload) => {
+            const ref = sandbox.db.collection('users').doc(staffId);
+            const snap = await ref.get();
+            if (!snap.exists) throw new Error('대상 직원 문서를 찾을 수 없습니다.');
+            const fresh = snap.data() || {};
+            const planKey = payload.promoPlanKey;
+            if (!planKey) throw new Error('촉진 계획서 저장 항목이 지정되지 않았습니다.');
+            const updates = {};
+            if (payload.nextValue === true) updates[planKey] = true;
+            if (payload.extraUpdates) {
+                const extra = (typeof payload.extraUpdates === 'function') ? payload.extraUpdates(fresh) : payload.extraUpdates;
+                if (extra && typeof extra === 'object') Object.assign(updates, extra);
+            }
+            if (Object.keys(updates).length) await ref.update(updates);
+        };
+
+        // [v6.47.0] 가짜 거부통지 수령확인 트랜잭션 — 실제 acknowledgeRefusalNoticeTransaction 재현
+        //   성명 일치 검증 후 refusalNotices 해당 항목에 ackAt·ackSignature 기록(감사로그 생략).
+        const sandboxRefusalAck = async (sandbox, staffId, refusalKey, signature) => {
+            const ref = sandbox.db.collection('users').doc(staffId);
+            const snap = await ref.get();
+            if (!snap.exists) throw new Error('직원 정보를 찾을 수 없습니다.');
+            const fresh = snap.data() || {};
+            const sign = cleanName(signature);
+            if (!sign) throw new Error('성명을 입력해주세요.');
+            if (sign !== cleanName(fresh.name)) throw new Error('성명이 일치하지 않습니다. 본인 성명을 정확히 입력해주세요.');
+            const list = Array.isArray(fresh.refusalNotices) ? fresh.refusalNotices : [];
+            const target = list.find(n => n && String(n.refusalKey) === String(refusalKey));
+            if (!target) throw new Error('해당 통지를 찾을 수 없습니다.');
+            if (target.ackAt) throw new Error('이미 수령 확인이 완료된 통지입니다.');
+            const ackAt = new Date().toISOString();
+            const after = list.map(n => (n && String(n.refusalKey) === String(refusalKey)) ? { ...n, ackAt, ackSignature: sign } : n);
+            await ref.update({ refusalNotices: after });
+            return { ackAt, ackSignature: sign, refusalKey: String(refusalKey) };
+        };
+
+        // 교육용 로그인 화면 — 실제 Login 과 똑같이 생겼지만, [로그인 하기]를 누르면 바로 샌드박스 직원 화면으로 들어갑니다.
+        const TrainingLoginScreen = ({ onLogin }) => {
+            const [id, setId] = useState('yg5678');
+            const [pw, setPw] = useState('••••••');
+            return (
+                <div className="flex items-center justify-center bg-slate-100 p-4 md:p-8" style={{ minHeight: '640px' }}>
+                    <div className="w-full max-w-md bg-white p-6 md:p-8 rounded-2xl shadow-xl">
+                        <div className="text-center mb-6">
+                            <h1 className="text-2xl font-black text-blue-600 tracking-tighter mb-1">양지누림</h1>
+                            <p className="text-slate-500 font-bold text-sm mb-1">연차 관리 시스템</p>
+                            <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-1 rounded font-bold uppercase">교육 체험용</span>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-2">아이디 (yg + 휴대폰 뒤 4자리)</label>
+                                <input type="text" value={id} onChange={e => setId(e.target.value)} className="w-full px-4 py-3 border rounded-xl text-sm" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 mb-2">비밀번호 (처음엔 123456)</label>
+                                <input type="password" value={pw} onChange={e => setPw(e.target.value)} className="w-full px-4 py-3 border rounded-xl text-sm" />
+                            </div>
+                            <button type="button" onClick={onLogin} className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition">로그인 하기</button>
+                            <p className="text-[11px] text-slate-400 font-bold text-center">교육용 화면입니다 · 아무 값이나 두고 눌러도 들어갑니다</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 휴대폰 틀 안에 실제 직원 화면(StaffPortal)을 샌드박스로 띄우는 본체
+        const TrainingPhoneApp = () => {
+            // 가짜 Firestore 1벌 — 이 인스턴스가 사는 동안 교육생의 모든 등록/수정/삭제가 여기에만 쌓입니다.
+            const sandboxRef = useRef(null);
+            if (!sandboxRef.current) sandboxRef.current = createSandboxDb([makeDemoStaff()]);
+            const sandbox = sandboxRef.current;
+            const [loggedIn, setLoggedIn] = useState(false);
+            const demoUser = useMemo(() => ({ email: 'training-demo@ygnurim.com', role: 'staff', name: '김교육', tempPw: 'train' }), []);
+            // 교육용 알림 — 실제 showAlert/showConfirm 대신 휴대폰 안에서 처리(브라우저 alert/confirm 미사용)
+            const [miniAlert, setMiniAlert] = useState(null);
+            const [miniConfirm, setMiniConfirm] = useState(null);
+            const showAlert = useCallback((msg) => setMiniAlert(String(msg)), []);
+            const showConfirm = useCallback((msg, onOk) => setMiniConfirm({ msg: String(msg), onOk }), []);
+            if (!loggedIn) return <TrainingLoginScreen onLogin={() => setLoggedIn(true)} />;
+            return (
+                <div className="w-full relative">
+                    <StaffPortal user={demoUser} onLogout={() => setLoggedIn(false)} showAlert={showAlert} showConfirm={showConfirm} sandbox={sandbox} />
+                    {/* 교육용 전용 알림/확인 — 교육 화면 영역 안에 고정으로 띄웁니다 */}
+                    {miniAlert !== null && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[700] p-4">
+                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
+                                <p className="text-[13px] font-bold text-slate-800 whitespace-pre-wrap mb-4 leading-relaxed">{miniAlert}</p>
+                                <button type="button" onClick={() => setMiniAlert(null)} className="w-full bg-blue-600 text-white py-2.5 rounded-xl font-black text-sm">확인</button>
+                            </div>
+                        </div>
+                    )}
+                    {miniConfirm !== null && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[700] p-4">
+                            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
+                                <p className="text-[13px] font-bold text-slate-800 whitespace-pre-wrap mb-4 leading-relaxed">{miniConfirm.msg}</p>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setMiniConfirm(null)} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-xl font-bold text-sm">취소</button>
+                                    <button type="button" onClick={() => { const f = miniConfirm.onOk; setMiniConfirm(null); if (f) f(); }} className="flex-1 bg-red-500 text-white py-2.5 rounded-xl font-bold text-sm">확인</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const TrainingModeTab = () => {
+            const [resetKey, setResetKey] = useState(0);
+            const [showGuide, setShowGuide] = useState(false); // 교육 진행 순서 접기/펴기
+            return (
+                <div className="space-y-4 animate-fade-in">
+                    {/* 상단 안내 바 — 제목 + 안전 안내 + [처음부터 다시] (전체 폭) */}
+                    <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl p-5 md:p-6 text-white shadow-lg">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                            <div className="flex items-start gap-3 flex-1">
+                                <div className="w-11 h-11 bg-white/20 rounded-2xl flex items-center justify-center flex-shrink-0"><Icons.GraduationCap /></div>
+                                <div>
+                                    <h3 className="text-lg md:text-xl font-black mb-0.5">교육 모드 · 실제 직원 화면 그대로</h3>
+                                    <p className="text-[12px] md:text-[13px] font-bold opacity-90 leading-relaxed">아래는 <b className="text-yellow-200">직원이 실제로 보는 화면 그대로</b>입니다. 로그인·휴가 신청·수정·삭제까지 진짜처럼 동작하지만, <b className="text-yellow-200">실제 데이터에는 전혀 저장되지 않습니다.</b></p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 flex-shrink-0">
+                                <button type="button" onClick={() => setShowGuide(v => !v)} className="bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 rounded-xl font-black text-xs md:text-sm transition flex items-center justify-center gap-1.5 whitespace-nowrap"><Icons.Smartphone /> 교육 진행 순서 {showGuide ? '접기' : '보기'}</button>
+                                <button type="button" onClick={() => setResetKey(k => k + 1)} className="bg-white text-blue-700 px-4 py-2.5 rounded-xl font-black text-xs md:text-sm transition hover:bg-blue-50 shadow flex items-center justify-center gap-1.5 whitespace-nowrap"><Icons.Refresh /> 처음부터 다시</button>
+                            </div>
+                        </div>
+                        {/* 교육 진행 순서 — 펼치면 가로로 5단계 표시 */}
+                        {showGuide && (
+                            <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 animate-fade-in">
+                                {[
+                                    ['로그인 보여주기', '아이디(yg+뒤4자리)와 처음 비밀번호(123456)를 설명하고 [로그인 하기]를 누르세요.'],
+                                    ['할 일 / 사용법 안내', '로그인 직후 뜨는 안내 팝업을 보여주고 닫는 법을 알려주세요.'],
+                                    ['내 연차 현황 읽기', '총 발생·사용·잔여 3개 카드와 달력형 휴가 내역을 짚어주세요.'],
+                                    ['휴가 신청 체험', '달력에서 날짜를 고르고 시간을 입력해 [담기]→[등록]까지 해보게 하세요.'],
+                                    ['수정·삭제 체험', '등록한 휴가를 눌러 수정·삭제까지 해보게 하세요. 잔여가 바로 바뀝니다.']
+                                ].map(([t, d], i) => (
+                                    <div key={i} className="bg-white/10 rounded-xl p-3">
+                                        <div className="flex items-center gap-2 mb-1"><span className="w-5 h-5 bg-white text-blue-700 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0">{i + 1}</span><p className="font-black text-[12px] text-white">{t}</p></div>
+                                        <p className="text-[11px] font-bold text-white/80 leading-relaxed">{d}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 실제 직원 화면 — 목업 틀 없이 전체 폭 사용 */}
+                    <div className="bg-[#F1F5F9] rounded-3xl border border-slate-200 shadow-inner overflow-hidden" style={{ minHeight: '640px' }}>
+                        <TrainingPhoneApp key={resetKey} />
+                    </div>
+                </div>
+            );
+        };
+
         const ApprovalManagementTab = ({ staffList, adminName, showAlert, showConfirm }) => {
             const [processingId, setProcessingId] = useState('');
             // 전 직원의 pendingRequests를 평탄화해서 하나의 목록으로 구성
@@ -10357,7 +10742,9 @@
         //  ※ 제출 시 submittedPlans 배열 저장과 promoPlanKey=true 처리가
         //    processPromotionPlanTransaction 한 번으로 원자적으로 함께 반영됩니다.
         // ============================================================================
-        const StaffPlanWizardModal = ({ userData, status, leaveInfo, dailyHours, onClose, onSubmitted, showAlert, showConfirm }) => {
+        const StaffPlanWizardModal = ({ userData, status, leaveInfo, dailyHours, onClose, onSubmitted, runPlanTxn, showAlert, showConfirm }) => {
+            // [v6.47.0] 교육 모드면 runPlanTxn(가짜)로, 아니면 전역 트랜잭션으로 저장
+            const planTxn = runPlanTxn || processPromotionPlanTransaction;
             const [step, setStep] = useState(1);
             const [selectedDates, setSelectedDates] = useState([]);
             // [v6.28.0-beta1] 날짜별 사용 구분 / 시휴 시간
@@ -10526,7 +10913,7 @@
                             status: 'submitted', systemVersion: SYSTEM_VERSION
                         };
                         // submittedPlans 저장 + promoPlanKey=true 를 하나의 트랜잭션으로 처리
-                        await processPromotionPlanTransaction(userData.id, '본인(직원)', {
+                        await planTxn(userData.id, '본인(직원)', {
                             promoPlanKey: status.promoPlanKey,
                             legacyPlanKey: status.legacyPlanKey,
                             nextValue: true,
@@ -10789,7 +11176,9 @@
         //   본인 성명을 입력해 [수령 확인] 을 누르면 통지서 수령확인란에
         //   전자서명과 확인 일시가 찍히고, 관리자 화면에도 바로 반영됩니다.
         // ────────────────────────────────────────────────────────────────
-        const StaffRefusalCard = ({ item, userName, onPreview, onAcknowledged, showAlert }) => {
+        const StaffRefusalCard = ({ item, userName, onPreview, onAcknowledged, runRefusalAck, showAlert }) => {
+            // [v6.47.0] 교육 모드면 runRefusalAck(가짜)로, 아니면 전역 트랜잭션으로 수령확인
+            const ackTxn = runRefusalAck || acknowledgeRefusalNoticeTransaction;
             const [sign, setSign] = useState('');
             const [saving, setSaving] = useState(false);
             const [msg, setMsg] = useState('');
@@ -10800,7 +11189,7 @@
                 if (saving || !signOk) return;
                 setSaving(true); setMsg('');
                 try {
-                    await acknowledgeRefusalNoticeTransaction(item.staffId, item.refusalKey, sign);
+                    await ackTxn(item.staffId, item.refusalKey, sign);
                     setMsg('✅ 수령 확인이 완료되었습니다.');
                     if (onAcknowledged) onAcknowledged();
                 } catch (err) {
@@ -10860,7 +11249,7 @@
                 </div>
             );
         };
-        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan, onPreview, onPreviewNotice, refusalList, onPreviewRefusal, showAlert }) => {
+        const StaffPlanTab = ({ userData, dailyHours, promoList, submittedPlans, onStartPlan, onPreview, onPreviewNotice, refusalList, onPreviewRefusal, runRefusalAck, showAlert }) => {
             const isUnder1 = promoList.length > 0 && promoList[0].promoCategory === 'under1';
             const hasTarget = promoList.length > 0;
             const submittedKeys = useMemo(() => new Set((submittedPlans || []).map(p => p.promoPlanKey)), [submittedPlans]);
@@ -10887,7 +11276,7 @@
                             </div>
                             {refusals.map(it => (
                                 <StaffRefusalCard key={it.refusalKey} item={it} userName={userData?.name}
-                                    onPreview={onPreviewRefusal} showAlert={showAlert} />
+                                    onPreview={onPreviewRefusal} runRefusalAck={runRefusalAck} showAlert={showAlert} />
                             ))}
                         </div>
                     )}
@@ -11071,11 +11460,27 @@
                 </div>
             );
         };
-        const StaffPortal = ({ user, onLogout, showAlert, showConfirm }) => {
+        const StaffPortal = ({ user, onLogout, showAlert, showConfirm, sandbox }) => {
+            // [v6.46.0] 교육 모드: sandbox 가 있으면 그 가짜 Firestore 를 쓰고, 실제 쓰기 트랜잭션 대신
+            //   가짜 트랜잭션(sandboxLeaveTxn)으로 처리합니다. 함수 안에서 db 를 '지역 변수'로 가려
+            //   StaffPortal 내부의 모든 db.collection(...) 호출이 자동으로 가짜 db 를 쓰게 합니다.
+            const db = sandbox ? sandbox.db : window.__ygRealDb;
+            // 연차 등록/수정/삭제 트랜잭션: 실제는 processLeaveTransaction, 교육 모드는 가짜 처리
+            const runLeaveTxn = sandbox
+                ? ((staffId, adminName, payload) => sandboxLeaveTransaction(sandbox, staffId, payload))
+                : processLeaveTransaction;
+            // [v6.47.0] 계획서 제출 / 거부통지 수령확인 트랜잭션도 교육 모드면 가짜로 처리
+            const runPlanTxn = sandbox
+                ? ((staffId, adminName, payload) => sandboxPlanTransaction(sandbox, staffId, payload))
+                : processPromotionPlanTransaction;
+            const runRefusalAck = sandbox
+                ? ((staffId, refusalKey, signature) => sandboxRefusalAck(sandbox, staffId, refusalKey, signature))
+                : acknowledgeRefusalNoticeTransaction;
             const [userData, setUserData] = useState(null);
             const [loading, setLoading] = useState(true);
             const [showGuide, setShowGuide] = useState(false);
             const [showTour, setShowTour] = useState(false);
+            const [showTodo, setShowTodo] = useState(false); // [v6.45.0] 로그인 즉시 '할 일' 팝업
             const [showHelpMenu, setShowHelpMenu] = useState(false);
             const helpRef = useRef(null);
             const [selectedDates, setSelectedDates] = useState([]);
@@ -11107,12 +11512,8 @@
                 });
                 return () => unsub();
             }, [user.email]);
-            useEffect(() => {
-                if (loading) return;
-                let seen = null;
-                try { seen = localStorage.getItem(GUIDE_KEY); } catch (e) {}
-                if (!seen) { const t = setTimeout(() => setShowGuide(true), 600); return () => clearTimeout(t); }
-            }, [loading]);
+            // [v6.45.0] 로그인 직후 가이드/할 일 팝업 자동 노출 effect는 todoTasks 정의 뒤(아래)로 옮겼습니다.
+            //   (todoTasks 를 참조하므로, 선언 전 참조(TDZ)를 피하려고 정의 이후에 둡니다.)
             useEffect(() => {
                 const h = (e) => { if (helpRef.current && !helpRef.current.contains(e.target)) setShowHelpMenu(false); };
                 document.addEventListener('mousedown', h);
@@ -11196,11 +11597,89 @@
                     });
             }, [userData]);
             const refusalAckPending = useMemo(() => myRefusalList.filter(r => !r.refusal.ackAt).length, [myRefusalList]);
-            // 아직 계획서를 내지 않은 촉진 건수 — 탭 배지 숫자
-            const promoBadgeCount = useMemo(() => myPromoList.filter(st => {
+            // 아직 계획서를 내지 않은 촉진 건 목록 (배지 수 + 할 일 팝업 공용)
+            const pendingPlanList = useMemo(() => myPromoList.filter(st => {
                 const inSubmitted = mySubmittedPlans.some(p => p.promoPlanKey === st.promoPlanKey);
                 return !inSubmitted && !resolvePlanSubmitted(userData || {}, st).submitted;
-            }).length, [myPromoList, mySubmittedPlans, userData]);
+            }), [myPromoList, mySubmittedPlans, userData]);
+            const promoBadgeCount = pendingPlanList.length;
+            // [v6.45.0] 아직 '확인'하지 않은 2차 통보서 — 직원이 한 번도 미리보기로 열지 않은 건.
+            //   확인 여부는 이 기기(localStorage)에 기록합니다(서버 저장 불필요한 단순 '봤음' 표식).
+            const noticeSeenKey = (key) => `ygnurim_notice_seen_${user.email}_${key}`;
+            const unseenNoticeList = useMemo(() => {
+                return myPromoList.filter(st => {
+                    if (Number(st.step) !== 2) return false;  // 2차(사용시기 지정) 통보만
+                    if (!st.sentNotice) return false;         // 실제 발송된 건만
+                    const k = st.secondNoticeId || st.promoPlanKey || `${st.baseYear}_${st.portion}_${st.step}`;
+                    let seen = null; try { seen = localStorage.getItem(noticeSeenKey(k)); } catch (e) {}
+                    return !seen;
+                });
+            }, [myPromoList, user.email]);
+            const markNoticeSeen = useCallback((st) => {
+                const k = st.secondNoticeId || st.promoPlanKey || `${st.baseYear}_${st.portion}_${st.step}`;
+                try { localStorage.setItem(noticeSeenKey(k), '1'); } catch (e) {}
+            }, [user.email]);
+            // [v6.45.0] 로그인 즉시 팝업에 모을 '미완료 할 일' — 계획서 미제출 / 2차 통보 미확인 / 거부통지 미수령확인
+            //   (의존하는 pendingPlanList·unseenNoticeList·markNoticeSeen·myRefusalList 가 모두 위에 정의된 뒤에 둡니다)
+            const todoTasks = useMemo(() => {
+                const list = [];
+                // ① 미사용연차 계획서 미제출
+                pendingPlanList.forEach(st => {
+                    list.push({
+                        key: 'plan_' + (st.promoPlanKey || st.baseYear + '_' + st.portion),
+                        kind: 'plan',
+                        title: '미사용 연차 사용 계획서 작성',
+                        desc: '관리자가 촉진 통보를 보냈어요. 계획서를 작성해 제출해주세요.',
+                        actionLabel: '✍️ 계획서 작성하러 가기',
+                        onAction: () => { setShowTodo(false); setStaffView('plan'); setPlanTarget(st); }
+                    });
+                });
+                // ② 2차(사용시기 지정) 통보서 미확인
+                unseenNoticeList.forEach(st => {
+                    list.push({
+                        key: 'notice_' + (st.secondNoticeId || st.promoPlanKey),
+                        kind: 'notice',
+                        title: '연차 사용시기 지정(2차) 통보서 확인',
+                        desc: '관리자가 사용시기 지정 통보서를 보냈어요. 내용을 확인해주세요.',
+                        actionLabel: '📄 통보서 확인하기',
+                        onAction: () => { setShowTodo(false); setStaffView('plan'); markNoticeSeen(st); setPreviewNoticeSt(st); }
+                    });
+                });
+                // ③ 노무수령 거부 통지서 미수령확인
+                myRefusalList.filter(r => !r.refusal.ackAt).forEach(it => {
+                    list.push({
+                        key: 'refusal_' + it.refusalKey,
+                        kind: 'refusal',
+                        title: '노무수령 거부 통지서 수령 확인',
+                        desc: `${it.designatedYmd} (${fmt(it.designatedDays)}일) 지정일 통지서입니다. 성명 입력 후 수령 확인을 해주세요.`,
+                        actionLabel: '🖋️ 통지서 확인 · 수령 확인하기',
+                        onAction: () => { setShowTodo(false); setStaffView('plan'); setPreviewRefusal(it); }
+                    });
+                });
+                return list;
+            }, [pendingPlanList, unseenNoticeList, myRefusalList, markNoticeSeen]);
+            // [v6.45.0] 로그인 직후 — 할 일이 있으면 그 팝업을 먼저, 없으면 사용법 가이드를 자동 노출합니다.
+            useEffect(() => {
+                if (loading || !userData) return;
+                if (todoTasks.length > 0) return; // 처리할 서류가 있으면 가이드 자동 노출 생략
+                let seen = null;
+                try { seen = localStorage.getItem(GUIDE_KEY); } catch (e) {}
+                if (!seen) { const t = setTimeout(() => setShowGuide(true), 600); return () => clearTimeout(t); }
+            }, [loading, userData, todoTasks.length]);
+            // [v6.45.0] 로그인 즉시 '할 일' 팝업 — 미완료 서류가 있으면 이 세션에서 한 번 자동으로 띄웁니다.
+            //   '나중에 하기'로 닫아도 미완료면 다음 로그인(새 세션) 때 다시 뜹니다.
+            useEffect(() => {
+                if (loading || !userData) return;
+                if (todoTasks.length === 0) return;
+                let shown = null;
+                try { shown = sessionStorage.getItem('ygnurim_todo_shown_' + user.email); } catch (e) {}
+                if (shown) return;
+                const t = setTimeout(() => {
+                    setShowTodo(true);
+                    try { sessionStorage.setItem('ygnurim_todo_shown_' + user.email, '1'); } catch (e) {}
+                }, 500);
+                return () => clearTimeout(t);
+            }, [loading, userData, todoTasks.length, user.email]);
             // [v6.23.0-beta1 신규] 승인 대기 중 / 반려된 내역 (최신순 정렬)
             const pendingRequestList = useMemo(() => [...(userData?.pendingRequests || [])].sort((a, b) => String(b.requestedAt || b.createdAt || '').localeCompare(String(a.requestedAt || a.createdAt || ''))), [userData]);
             const rejectedRequestList = useMemo(() => [...(userData?.rejectedRequests || [])].sort((a, b) => String(b.rejectedAt || '').localeCompare(String(a.rejectedAt || ''))), [userData]);
@@ -11272,7 +11751,7 @@
                         });
                     });
                     // 직원 본인이 처리하는 경로이므로 adminName 은 '본인(직원)' 으로 기록합니다.
-                    await processLeaveTransaction(userData.id, '본인(직원)', {
+                    await runLeaveTxn(userData.id, '본인(직원)', {
                         type: 'ADD',
                         leaves: newRecords,
                         targetId: null,
@@ -11320,7 +11799,7 @@
                         else { rec.startTime = ''; rec.endTime = ''; rec.breakStart = ''; rec.breakEnd = ''; rec.fullDay = true; }
                         newRecords.push(rec);
                     });
-                    await processLeaveTransaction(userData.id, '본인(직원)', {
+                    await runLeaveTxn(userData.id, '본인(직원)', {
                         type: 'ADD',
                         leaves: newRecords,
                         targetId: null,
@@ -11331,14 +11810,14 @@
                 } catch (err) { showAlert('❌ 오류: ' + err.message); }
             };
             // [v6.17.0] 월별 마감 안내 문구
-            const LOCK_MSG = '지난달 이전 내역은 마감되어 수정·삭제할 수 없습니다.\n관리자에게 요청해주세요.';
+            const LOCK_MSG = '작년 이전 내역은 마감되어 수정·삭제할 수 없습니다.\n관리자에게 요청해주세요.';
             const handleDeleteOwnLeave = (rec) => {
                 // [v6.17.0] 당월 1일 이전(과거월) 내역은 직원이 삭제 불가 — 관리자만 가능
                 if (isPastLockedForStaff(rec.date)) { showAlert('🔒 ' + LOCK_MSG); return; }
                 showConfirm(`${rec.date} (${rec.type}) 휴가 내역을 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.`, async () => {
                     try {
                         // [v6.24.0-beta1] 트랜잭션 기반 삭제 (adminName: '본인(직원)')
-                        await processLeaveTransaction(userData.id, '본인(직원)', {
+                        await runLeaveTxn(userData.id, '본인(직원)', {
                             type: 'DELETE',
                             leaves: [],
                             targetId: rec.id,
@@ -11359,7 +11838,7 @@
                 showConfirm(`선택한 ${recs.length}건의 휴가를 삭제하시겠습니까?\n삭제 시 잔여 연차가 자동으로 복구됩니다.\n\n${preview}${more}`, async () => {
                     try {
                         // [v6.24.0-beta1] 다건 삭제도 트랜잭션 1회로 처리 (targetId 배열 허용)
-                        await processLeaveTransaction(userData.id, '본인(직원)', {
+                        await runLeaveTxn(userData.id, '본인(직원)', {
                             type: 'DELETE',
                             leaves: [],
                             targetId: recs.map(r => r.id),
@@ -11382,7 +11861,7 @@
                         startTime: updated.startTime, endTime: updated.endTime, breakStart: updated.breakStart, breakEnd: updated.breakEnd,
                         addedBy: '본인(직원)', updatedAt: new Date().toISOString()
                     };
-                    await processLeaveTransaction(userData.id, '본인(직원)', {
+                    await runLeaveTxn(userData.id, '본인(직원)', {
                         type: 'UPDATE',
                         leaves: [patch],
                         targetId: updated.id,
@@ -11411,6 +11890,8 @@
                 <div className="min-h-screen bg-[#F1F5F9] font-sans relative">
                     {showGuide && <StaffGuideModal onClose={() => setShowGuide(false)} onStartTour={() => setShowTour(true)} />}
                     {showTour && <StaffTourOverlay onClose={() => setShowTour(false)} />}
+                    {/* [v6.45.0] 로그인 즉시 '할 일' 팝업 — 미완료 서류가 있을 때만 */}
+                    {showTodo && todoTasks.length > 0 && <StaffTodoPopup tasks={todoTasks} onClose={() => setShowTodo(false)} />}
                     {detailRec && <StaffLeaveDetailModal rec={detailRec} dailyHours={dailyHours} onClose={() => setDetailRec(null)} onSave={handleSaveEditOwnLeave} onDelete={handleDeleteOwnLeave} />}
                     {showPastRequestModal && <PastLeaveRequestModal userData={userData} onClose={() => setShowPastRequestModal(false)} showAlert={showAlert} showConfirm={showConfirm} />}
                     {/* [v6.26.0-beta1 신규] 연차 사용 계획서 작성 마법사 (1 통지 → 2 계획 → 3 서명) */}
@@ -11418,6 +11899,7 @@
                         <StaffPlanWizardModal userData={userData} status={planTarget} leaveInfo={planTarget.leaveInfo}
                             dailyHours={dailyHours} onClose={() => setPlanTarget(null)}
                             onSubmitted={(rec) => { setStaffView('plan'); setPreviewPlan(rec); }}
+                            runPlanTxn={runPlanTxn}
                             showAlert={showAlert} showConfirm={showConfirm} />
                     )}
                     {/* [v6.27.0-beta1 신규] 제출 직후 / 이력에서 다시 열기 — 미리보기 · 인쇄 · PDF 저장 */}
@@ -11485,6 +11967,7 @@
                                 onPreviewNotice={(st) => setPreviewNoticeSt(st)}
                                 refusalList={myRefusalList}
                                 onPreviewRefusal={(it) => setPreviewRefusal(it)}
+                                runRefusalAck={runRefusalAck}
                                 showAlert={showAlert} />
                         )}
                         {staffView === 'home' && (<React.Fragment>
@@ -11494,10 +11977,10 @@
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-red-500"><div><p className="text-xs font-bold text-slate-600 mb-1">사용 연차</p><span className="text-xl md:text-2xl font-black text-red-500">{fmt(leaveStats.usedHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.usedDays}일)</span>{leaveStats.futureHours > 0 && <p className="text-[10px] font-bold text-slate-400 mt-1">이 중 미래 예정 <span className="text-orange-500">{fmt(leaveStats.futureHours)}시간</span> ({leaveStats.futureDays}일) 포함</p>}</div></div>
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-green-500"><div><p className="text-xs font-bold text-slate-600 mb-1">잔여 연차</p><span className="text-xl md:text-2xl font-black text-green-600">{fmt(leaveStats.remainingHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.remainingDays}일)</span></div></div>
                         </div>
-                        {/* [v6.17.0] 월별 마감 안내 — 직원은 당월 1일부터만 등록/수정 가능 */}
+                        {/* [v6.45.0 개정] 연도 마감 안내 — 직원은 올해 전체를 직접 등록/수정 가능 */}
                         <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-start gap-2 text-[11px] md:text-xs font-bold text-blue-700">
-                            <span className="text-sm leading-none mt-0.5">🔒</span>
-                            <span>이번 달 <b>{nowKST().getMonth() + 1}월 1일</b>부터의 연차만 직접 등록·수정할 수 있어요. 지난달 이전 내역 변경이 필요하면 관리자에게 요청해주세요. <span className="font-normal text-blue-500">(달력의 미래 날짜 연차는 지금 바로 잔여에서 차감되며 <span className="text-orange-500 font-bold">'예정'</span>으로 표시됩니다)</span></span>
+                            <span className="text-sm leading-none mt-0.5">🗓️</span>
+                            <span>올해 <b>{nowKST().getFullYear()}년</b> 연차는 지난 날짜도 직접 등록·수정·삭제할 수 있어요. 작년 이전 내역 변경이 필요하면 관리자에게 요청해주세요. <span className="font-normal text-blue-500">(달력의 미래 날짜 연차는 지금 바로 잔여에서 차감되며 <span className="text-orange-500 font-bold">'예정'</span>으로 표시됩니다)</span></span>
                         </div>
                         {/* [v6.30.0-beta1 신규] 근무시간 변경 안내 — 기존 시간 → 변경 시간 · 변경일자 */}
                         {latestWhChange && (
@@ -11521,11 +12004,16 @@
                                         </p>
                                         {dupDates.length > 0 && <p className="text-[11px] text-orange-600 font-bold mt-1.5 text-center bg-orange-50 py-1.5 rounded-lg border border-orange-200">⚠️ 선택한 날짜 중 {dupDates.length}일은 이미 등록됐거나 목록에 담겨 있어요.</p>}
                                         {/* ============================================================================
-                                            [v6.23.0-beta1 신규] 과거 연차 승인 요청 버튼
-                                              · 당월 1일 이전 날짜는 위 달력에서 선택할 수 없으므로(lockPast),
-                                                이미 지나간 연차는 별도의 '요청' 모달을 통해 사후 등록을 신청합니다.
+                                            [v6.45.0 변경] 과거 연차 승인 요청 버튼 제거.
+                                              · 이제 올해(당해 연도) 과거 날짜는 위 달력에서 직접 선택해 바로 등록합니다.
+                                              · 예전에 보낸 '승인 요청'이 아직 처리 전이라면, 참고용으로 대기 건수만 안내합니다.
+                                                (관리자 [결재 관리] 탭에서 기존 대기 건을 계속 처리할 수 있습니다)
                                            ============================================================================ */}
-                                        <button type="button" onClick={() => setShowPastRequestModal(true)} className="w-full mt-3 bg-amber-50 text-amber-700 border border-amber-200 py-2.5 rounded-xl text-xs font-bold hover:bg-amber-100 transition active:scale-95 flex items-center justify-center gap-1.5"><Icons.History /> 과거 연차 승인 요청 {pendingRequestList.length > 0 && <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full ml-1">{pendingRequestList.length}건 대기중</span>}</button>
+                                        {pendingRequestList.length > 0 && (
+                                            <div className="w-full mt-3 bg-amber-50 text-amber-700 border border-amber-200 py-2 rounded-xl text-[11px] font-bold flex items-center justify-center gap-1.5">
+                                                <Icons.History /> 예전에 요청한 과거 연차 <b>{pendingRequestList.length}건</b>이 관리자 확인 대기 중입니다.
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="bg-slate-50 p-3 rounded-xl border border-slate-100" data-tour="time">
                                         <div className="flex items-center justify-between mb-2">
@@ -12108,6 +12596,8 @@
                 { id: 'promotion', icon: <Icons.Megaphone />, label: '연차 촉진', title: '미사용 연차 사용 촉진' },
                 { id: 'resigned', icon: <Icons.UserMinus />, label: '퇴사자 관리', title: '퇴사자 정보 관리' },
                 { id: 'settings', icon: <Icons.Database />, label: '데이터 관리', title: '시스템 데이터 관리' },
+                // [v6.45.0 신규] 교육 모드 탭 — 근로지원인 교육용 모바일 시연·체험 화면
+                { id: 'training', icon: <Icons.GraduationCap />, label: '교육 모드', title: '근로지원인 교육 모드' },
                 // [v6.23.0-beta1 신규] 결재 관리 탭 — 항상 NAV_ITEMS 배열의 가장 끝에 위치합니다.
                 { id: 'approval', icon: <Icons.CheckCircle />, label: '결재 관리', title: '과거 연차 승인 요청 관리' }
             ];
@@ -12206,6 +12696,8 @@
                             {activeTab === 'promotion' && <PromotionTab staffList={activeStaffs} allStaffList={staffList} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} adminName={adminName} isLeaveModalOpen={showLeaveModal} />}
                             {activeTab === 'resigned' && <ResignedStaffTab staffList={staffList} onOpenModal={handleOpenModal} onEditClick={handleEditLeave} onNameClick={setViewingStaffDetail} showConfirm={showConfirm} showAlert={showAlert} />}
                             {activeTab === 'settings' && <SettingsTab showAlert={showAlert} showConfirm={showConfirm} staffList={activeStaffs} allStaffList={staffList} adminName={adminName} />}
+                            {/* [v6.45.0 신규] 교육 모드 탭 — 완전 샌드박스(DB 미연결) */}
+                            {activeTab === 'training' && <TrainingModeTab />}
                             {/* [v6.23.0-beta1 신규] 결재 관리 탭 — 전 직원의 pendingRequests를 모아 승인/반려 처리 */}
                             {activeTab === 'approval' && <ApprovalManagementTab staffList={staffList} adminName={adminName} showAlert={showAlert} showConfirm={showConfirm} />}
                         </main>
