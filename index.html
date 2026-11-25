@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>양지누림 연차 관리 시스템 (v6.48.1-stable)</title>
+    <title>양지누림 연차 관리 시스템 (v6.49.0-stable)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin="anonymous"></script>
@@ -675,6 +675,18 @@
         //    저장 데이터 구조(기존 필드)는 v6.43.0-stable 과 동일합니다.
         // ============================================================================
         // ============================================================================
+        // ============================================================================
+        // ▣ v6.49.0-stable : 정식 릴리즈 (beta1 승격, 코드 로직 무변경 — 버전 표기·업데이트 내역만 정리)
+        // [v6.49.0-beta1] 이전 대상기간 초과 사용분 검토·차감 (v6.48.1-stable 기반)
+        //   · getPrevPeriodOverInfo : 재직자의 직전 대상기간 발생시간 vs 사용시간 비교, 초과분·제안 차감 일수 산출
+        //   · PrevOverReviewModal   : [연차 관리] 탭 [📉 이전 기간 초과 검토] — 사용 내역 확인 → 차감 확정(0.5일 단위)
+        //                             / 차감 안 함 / 결정 취소, 검토 목록 엑셀
+        //   · processLeaveDeductionTransaction : staff.leaveDeductions 에 결정 기록 + audit domain 'LEAVE_DEDUCTION'
+        //   · calcPeriodLeaveHours  : 그 대상기간에 확정된 차감 일수만큼 총 발생 일수 감소 → totalDays/baseDays/deductDays 반환
+        //                             → 연차 관리·명부·촉진·통보서·싸인오케이·직원 화면 등 모든 총 발생 표시에 자동 반영
+        //   · 대시보드 '오늘 할 일'에 '이전 기간 초과분 검토' 줄, 직원 화면 총 발생 카드에 차감 안내 한 줄
+        //   · 무변경: 연차 사용 기록·차감 시간 계산·근무시간 월 단위 계산 규칙·이미 발송된 통보서
+        // ============================================================================
         // ▣ v6.48.1-stable : 정식 릴리즈 (beta1·beta2 통합, 코드 로직 무변경 — 버전 표기·업데이트 내역만 정리)
         // [v6.48.1-beta2] 베타 주소(/beta/)에서도 업데이트 알림 — 베타는 베타 주소 버전만 확인,
         //   beta1 → beta2 처럼 베타 번호만 올라가도 새로고침 안내가 뜨도록 비교 방식 보완
@@ -688,7 +700,7 @@
         //   · 무변경: 저장 구조, 차감 계산(calcLeaveHours), 사용시간 합계(sumUsedHours),
         //           근무시간 변경 이력, 이미 발송된 통보서(발송 당시 스냅샷 그대로)
         // ============================================================================
-        const SYSTEM_VERSION = "6.48.1-stable";
+        const SYSTEM_VERSION = "6.49.0-stable";
         // [v6.13.0] 직원 휴가 신청이 시간(Hour) 단위로 전면 개편되어, 이전에 본 사람도 새 안내를 다시 볼 수 있도록 키를 v2로 올립니다.
         const GUIDE_KEY = "ygnurim_guide_seen_v2";
         const TOUR_KEY = "ygnurim_tour_seen_v2";
@@ -710,6 +722,19 @@
             // ▼ v6.48.1-stable : 정식 릴리즈 (beta1 근무시간 변경 연차 계산 + beta2 베타 주소 업데이트 알림 통합)
             //   코드 로직 무변경. 내부 [v6.48.1-beta1]·[v6.48.1-beta2] 주석 마커는 이력으로 유지.
             // ════════════════════════════════════════════════════════════════
+            // ════════════════════════════════════════════════════════════════
+            // ▼ v6.49.0-stable : 정식 릴리즈 (beta1 이전 기간 초과 사용분 검토·차감 승격)
+            //   코드 로직 무변경. 내부 [v6.49.0-beta1] 주석 마커는 이력으로 유지.
+            // ════════════════════════════════════════════════════════════════
+            { version: "6.49.0-stable", date: "2026-11-25", details: [
+                "📉 [이전 기간 초과 사용 검토·차감] [연차 관리] 탭에 [이전 기간 초과 검토] 버튼이 생겼습니다. 직전 대상기간에 발생 연차보다 많이 사용한 재직자를 모아, 직전 기간 발생·사용·초과 시간과 사용 내역을 보여줍니다",
+                "✍️ [관리자 결정] 초과 시간 ÷ 하루 근무시간을 0.5일 단위로 올린 '제안 차감 일수'가 미리 채워지며, 관리자가 0.5일 단위로 고쳐 [차감 확정]하거나 [차감 안 함]으로 검토를 마칠 수 있습니다. 잘못 처리했으면 [결정 취소]로 되돌립니다. 검토 목록은 엑셀로 저장할 수 있습니다",
+                "🧮 [반영] 확정한 일수만큼 '지금 대상기간'의 총 발생 일수가 줄어, 연차 관리·직원 명부·연차 촉진(통보서·싸인오케이 엑셀)·직원 화면에 같은 값이 쓰입니다. 연차 관리 표의 총 연차 칸에 '초과분 −N일' 배지가 붙습니다",
+                "📋 [알림·기록] 대시보드 '오늘 할 일'에 '이전 기간 초과분 검토' 줄이 추가되었고, 모든 결정은 [데이터 관리] → [변경 이력 조회]에 '초과분 차감'으로 남습니다",
+                "🛡️ [무변경] 연차 사용 기록, 차감 시간 계산, 근무시간 월 단위 계산, 이미 발송된 통보서 숫자는 그대로입니다"
+            ], staffDetails: [
+                "📉 직전 기간에 연차를 초과 사용해 이번 기간 발생 연차에서 차감된 경우, '총 발생 연차' 아래에 차감 일수가 함께 표시됩니다"
+            ] },
             { version: "6.48.1-stable", date: "2026-11-23", details: [
                 "🧮 [근무시간 변경 시 총 연차시간 계산 수정] 연차 대상기간 중에 하루 근무시간이 바뀌면(예: 6h→5h), 종전에는 대상기간 전체가 새 근무시간으로 다시 계산되어 총 발생 연차시간이 줄어들었습니다. 이제 변경 이전 달은 예전 근무시간, 변경 이후 달은 새 근무시간으로 나누어 월 단위로 계산합니다. 발생 일수를 개월 비율로 정수 일수로 나눠 배정하므로 소수점 시간이 생기지 않습니다(예: 17일 · 6h 5개월 + 5h 7개월 → 6h 7일 + 5h 10일 = 92h). 월 중간에 바뀌면 다음 달부터 반영됩니다",
                 "📊 [적용 화면] 연차 관리(과년도 포함)·직원 명부·대시보드·연차 촉진(목록·2차 예정 명단·재안내)·데이터 점검·만료 임박 필터·직원 화면(연차 현황·계획서 작성)이 모두 같은 계산을 씁니다",
@@ -1435,14 +1460,32 @@
             t.setUTCDate(Math.min(d, last));
             return t.toISOString().slice(0, 10);
         };
+        // ════════════════════════════════════════════════════════════════
+        // [v6.49.0-beta1 신규] 이전 대상기간 '초과 사용분' 차감 기록 (staff.leaveDeductions)
+        //   · 항목: { id, status:'applied'|'skipped', days, sourceStart/End/Period(초과가 난 직전 기간),
+        //            targetStart/End/Period(차감이 적용되는 기간), overHours, suggestedDays, refHours,
+        //            targetBaseDays, note, by, at }
+        //   · status 'applied' 인 항목의 days 만큼, targetStart 가 같은 대상기간의 '총 발생 일수'가 줄어듭니다.
+        //   · 'skipped' = 관리자가 검토했지만 차감하지 않기로 한 건(목록에서 '검토 완료'로 표시, 차감 0).
+        // ════════════════════════════════════════════════════════════════
+        const getLeaveDeductions = (staff) => (staff && Array.isArray(staff.leaveDeductions)) ? staff.leaveDeductions.filter(d => d && d.id) : [];
+        const getAppliedDeductionDays = (staff, targetStart) => {
+            if (!targetStart) return 0;
+            return getLeaveDeductions(staff)
+                .filter(d => d.status === 'applied' && d.targetStart === targetStart)
+                .reduce((a, d) => a + safeParseFloat(d.days), 0);
+        };
         const calcPeriodLeaveHours = (staff, leaveInfo) => {
-            const totalDays = safeParseFloat(leaveInfo && leaveInfo.total);
+            const baseDays = safeParseFloat(leaveInfo && leaveInfo.total);
+            // [v6.49.0-beta1] 이전 기간 초과분 차감 — 이 대상기간에 확정된 차감 일수만큼 총 발생 일수를 줄입니다(0 미만 불가).
+            const deductDays = Math.min(baseDays, getAppliedDeductionDays(staff, leaveInfo && leaveInfo.startDate));
+            const totalDays = Math.max(0, Math.round((baseDays - deductDays) * 100) / 100);
             const start = leaveInfo && leaveInfo.startDate, end = leaveInfo && leaveInfo.endDate;
             const valid = !!(start && end && start.length >= 10 && end.length >= 10 && start <= end);
             const todayStr = toLocalYMD(nowKST());
             const refDate = !valid ? todayStr : (todayStr < start ? start : (todayStr > end ? end : todayStr));
             const refHours = safeParseFloat(getWorkHoursForDate(staff, refDate)) || 8;
-            if (!valid) return { totalHours: Math.round(totalDays * refHours * 100) / 100, refHours, months: [], changed: false };
+            if (!valid) return { totalHours: Math.round(totalDays * refHours * 100) / 100, refHours, months: [], changed: false, totalDays, baseDays, deductDays };
             // 대상기간을 발생일 기준 '월' 단위로 나누고, 각 달 첫날에 적용되던 근무시간으로 그 달을 계산합니다.
             //   예) 5/1 발생 → 5/1, 6/1, … 다음해 4/1 의 12개월. 9/1부터 5h면 4개월 6h + 8개월 5h.
             //   ※ 월 중간에 바뀌면(예: 9/15) 그 다음 달(10/1)부터 새 근무시간이 반영됩니다.
@@ -1473,7 +1516,34 @@
             const frac = totalDays - whole;   // (발생 일수가 정수가 아닌 경우 대비 — 보통 0)
             const total = segs.reduce((a, g) => a + g.days * g.hours, 0) + frac * refHours;
             const changed = segs.length > 1;
-            return { totalHours: Math.round(total * 100) / 100, refHours, months, segments: segs.map(({ start, hours, months: m, days }) => ({ start, hours, months: m, days })), changed };
+            return { totalHours: Math.round(total * 100) / 100, refHours, months, segments: segs.map(({ start, hours, months: m, days }) => ({ start, hours, months: m, days })), changed, totalDays, baseDays, deductDays };
+        };
+        // [v6.49.0-beta1 신규] 직전 대상기간 초과 사용 정보 — 검토 목록·대시보드 공통
+        //   · cur  : 지금 대상기간 / prev : 바로 앞 대상기간 (입사 첫해라 앞 기간이 없으면 null 반환)
+        //   · over : 직전 기간 사용시간 − 직전 기간 발생시간 (근무시간 월 단위 계산·기존 차감 반영)
+        //   · review : 이 직전 기간에 대해 이미 내린 결정(차감 확정/차감 안 함), 없으면 null
+        //   · suggestedDays : 초과시간 ÷ 지금 하루 근무시간 을 0.5일 단위로 올림 (지금 기간 발생 일수 이내)
+        //   초과가 없고 결정 기록도 없으면 null 을 돌려줍니다.
+        const getPrevPeriodOverInfo = (staff) => {
+            if (!staff || !staff.joinDate) return null;
+            const cur = calculateAnnualLeave(staff.joinDate);
+            if (!cur || cur.notJoined || !cur.startDate) return null;
+            const curYear = parseInt(String(cur.startDate).slice(0, 4), 10);
+            if (!curYear) return null;
+            const prev = calculateLeaveForYear(staff.joinDate, curYear - 1);
+            if (!prev || prev.notJoined || !prev.startDate || !prev.endDate) return null;
+            const prevPh = calcPeriodLeaveHours(staff, prev);
+            const usedHours = Math.round(sumUsedHours(staff.leaveHistory, prev.startDate, prev.endDate) * 100) / 100;
+            const overHours = Math.round((usedHours - prevPh.totalHours) * 100) / 100;
+            const review = getLeaveDeductions(staff).find(d => d.sourceStart === prev.startDate) || null;
+            if (overHours <= 0.01 && !review) return null;
+            const curPh = calcPeriodLeaveHours(staff, cur);
+            const curBaseDays = curPh.baseDays;
+            const refHours = curPh.refHours || 8;
+            const rawSuggest = overHours > 0 ? Math.ceil((overHours / refHours) * 2 - 1e-9) / 2 : 0;
+            const suggestedDays = Math.max(0, Math.min(curBaseDays, rawSuggest));
+            return { staff, cur, prev, prevTotalHours: prevPh.totalHours, prevTotalDays: prevPh.totalDays, usedHours,
+                overHours: overHours > 0 ? overHours : 0, review, suggestedDays, refHours, curBaseDays, curPh };
         };
         // [v6.42.0-beta1 신규] 입사일 기준 '이번 달 신규 입사자' 판정
         //   · getCurrentYM() : 한국 시간 기준 이번 달 'YYYY-MM'
@@ -1957,6 +2027,83 @@
                     systemVersion: SYSTEM_VERSION
                 });
                 txResult = { entry, workHours: todayWorkHours, auditLogId: auditRef.id };
+            });
+            return txResult;
+        };
+        // ============================================================================
+        // [v6.49.0-beta1 신규] 이전 기간 초과분 차감 — 확정 / 차감 안 함 / 취소
+        //   · payload.mode : 'APPLY'(차감 확정) | 'SKIP'(검토 완료·차감 안 함) | 'CANCEL'(결정 되돌리기)
+        //   · 같은 직전 기간(sourceStart)에는 결정을 1건만 둘 수 있습니다(중복 확정 방지).
+        //   · audit_logs domain:'LEAVE_DEDUCTION' 으로 기록됩니다.
+        //   ※ Firestore 에는 undefined 를 넣지 않습니다(빈 값은 '' / 0).
+        // ============================================================================
+        const processLeaveDeductionTransaction = async (staffId, adminName, payload) => {
+            if (!staffId) throw new Error('처리 대상 직원 ID가 없습니다.');
+            const p = payload || {};
+            const mode = p.mode;
+            if (!['APPLY', 'SKIP', 'CANCEL'].includes(mode)) throw new Error('처리 구분이 올바르지 않습니다.');
+            const actorName = (adminName === undefined || adminName === null || String(adminName).trim() === '')
+                ? '알 수 없음' : String(adminName);
+            const userRef = db.collection('users').doc(staffId);
+            const auditRef = db.collection(AUDIT_COLLECTION).doc();
+            let txResult = null;
+            await db.runTransaction(async (transaction) => {
+                const snap = await transaction.get(userRef);
+                if (!snap.exists) throw new Error('대상 직원 문서를 찾을 수 없습니다. (퇴사 처리되었거나 삭제되었을 수 있습니다)');
+                const freshData = snap.data() || {};
+                const before = Array.isArray(freshData.leaveDeductions) ? freshData.leaveDeductions.map(d => ({ ...d })) : [];
+                let after, changed, actionType;
+                if (mode === 'CANCEL') {
+                    const target = before.find(d => String(d.id) === String(p.entryId || ''));
+                    if (!target) throw new Error('되돌릴 결정 기록을 찾을 수 없습니다. (이미 취소되었을 수 있습니다)');
+                    after = before.filter(d => String(d.id) !== String(p.entryId));
+                    changed = target; actionType = 'DELETE';
+                } else {
+                    const sourceStart = safeDate(p.sourceStart);
+                    const targetStart = safeDate(p.targetStart);
+                    if (!sourceStart || !targetStart) throw new Error('대상기간 정보가 올바르지 않습니다.');
+                    if (before.some(d => d && d.sourceStart === sourceStart)) throw new Error('이 직전 기간은 이미 검토가 끝났습니다. 다시 처리하려면 먼저 [결정 취소]를 눌러 주세요.');
+                    const baseDays = safeParseFloat(p.targetBaseDays);
+                    let days = 0;
+                    if (mode === 'APPLY') {
+                        days = Math.round(safeParseFloat(p.days) * 2) / 2;
+                        if (!(days > 0)) throw new Error('차감할 일수를 0.5일 이상으로 입력해 주세요.');
+                        if (Math.abs(days * 2 - Math.round(days * 2)) > 1e-9) throw new Error('차감 일수는 0.5일 단위로 입력해 주세요.');
+                        const already = before.filter(d => d.status === 'applied' && d.targetStart === targetStart).reduce((a, d) => a + safeParseFloat(d.days), 0);
+                        if (baseDays > 0 && already + days > baseDays + 1e-9) throw new Error(`차감 일수가 지금 대상기간의 발생 일수(${fmt(baseDays)}일)를 넘을 수 없습니다.`);
+                    }
+                    const entry = {
+                        id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+                        status: mode === 'APPLY' ? 'applied' : 'skipped',
+                        days,
+                        sourceStart, sourceEnd: safeDate(p.sourceEnd) || '', sourcePeriod: p.sourcePeriod || '',
+                        targetStart, targetEnd: safeDate(p.targetEnd) || '', targetPeriod: p.targetPeriod || '',
+                        overHours: Math.round(safeParseFloat(p.overHours) * 100) / 100,
+                        suggestedDays: safeParseFloat(p.suggestedDays),
+                        refHours: safeParseFloat(p.refHours),
+                        targetBaseDays: baseDays,
+                        note: String(p.note || '').slice(0, 200),
+                        by: actorName, at: new Date().toISOString()
+                    };
+                    after = [...before, entry];
+                    changed = entry; actionType = 'CREATE';
+                }
+                transaction.update(userRef, { leaveDeductions: after });
+                transaction.set(auditRef, {
+                    timestamp: new Date().toISOString(),
+                    targetStaffId: staffId,
+                    actionType,
+                    adminName: actorName,
+                    beforeData: sanitizeForAudit(before),
+                    afterData: sanitizeForAudit(after),
+                    domain: 'LEAVE_DEDUCTION',
+                    targetStaffName: freshData.name || '',
+                    targetIds: [String(changed.id)],
+                    changedCount: 1,
+                    origin: p.origin || 'PrevOverReviewModal',
+                    systemVersion: SYSTEM_VERSION
+                });
+                txResult = { entry: changed, auditLogId: auditRef.id };
             });
             return txResult;
         };
@@ -5416,6 +5563,159 @@
             if (sortConfig.key !== columnKey) return <span className="text-slate-300 ml-1">⇅</span>;
             return <span className="text-blue-600 ml-1">{sortConfig.direction === 'asc' ? <Icons.SortAsc /> : <Icons.SortDesc />}</span>;
         };
+        // ============================================================================
+        // [v6.49.0-beta1 신규] 이전 기간 초과 사용 검토 (PrevOverReviewModal)
+        //   · 재직자 중 '직전 대상기간'에 발생 연차보다 많이 쓴 직원을 모아 보여줍니다.
+        //   · 관리자가 사용 내역을 확인한 뒤 차감 일수(0.5일 단위, 제안값 기본)를 정해 [차감 확정]하거나
+        //     [차감 안 함]으로 검토를 마칩니다. 확정된 일수만큼 '지금 대상기간'의 총 발생 일수가 줄어듭니다.
+        //   · 이미 결정한 건은 [결정 취소]로 되돌릴 수 있습니다(감사 로그 기록).
+        // ============================================================================
+        const PrevOverReviewModal = ({ staffList, adminName, onClose, showAlert, showConfirm }) => {
+            useEscClose(onClose);
+            const [showDone, setShowDone] = useState(false);
+            const [openId, setOpenId] = useState('');
+            const [busy, setBusy] = useState('');
+            const [inputs, setInputs] = useState({});   // { staffId: { days, note } }
+            const rows = useMemo(() => {
+                return (staffList || []).map(s => getPrevPeriodOverInfo(s)).filter(Boolean)
+                    .sort((a, b) => (a.review ? 1 : 0) - (b.review ? 1 : 0) || b.overHours - a.overHours || String(a.staff.name).localeCompare(String(b.staff.name)));
+            }, [staffList]);
+            const pending = rows.filter(r => !r.review && r.overHours > 0.01);
+            const applied = rows.filter(r => r.review && r.review.status === 'applied');
+            const skipped = rows.filter(r => r.review && r.review.status === 'skipped');
+            const visible = showDone ? rows : pending;
+            const getInput = (r) => inputs[r.staff.id] || { days: String(r.suggestedDays || ''), note: '' };
+            const setInput = (r, patch) => setInputs(prev => ({ ...prev, [r.staff.id]: { ...getInput(r), ...patch } }));
+            const basePayload = (r) => ({
+                sourceStart: r.prev.startDate, sourceEnd: r.prev.endDate, sourcePeriod: r.prev.period || '',
+                targetStart: r.cur.startDate, targetEnd: r.cur.endDate, targetPeriod: r.cur.period || '',
+                overHours: r.overHours, suggestedDays: r.suggestedDays, refHours: r.refHours, targetBaseDays: r.curBaseDays
+            });
+            const handleApply = (r) => {
+                const inp = getInput(r);
+                const days = Math.round(safeParseFloat(inp.days) * 2) / 2;
+                if (!(days > 0)) { showAlert('차감할 일수를 0.5일 이상으로 입력해 주세요.'); return; }
+                if (Math.abs(safeParseFloat(inp.days) * 2 - Math.round(safeParseFloat(inp.days) * 2)) > 1e-9) { showAlert('차감 일수는 0.5일 단위(예: 1, 1.5, 2)로 입력해 주세요.'); return; }
+                if (days > r.curBaseDays) { showAlert(`차감 일수는 지금 대상기간 발생 일수(${fmt(r.curBaseDays)}일)를 넘을 수 없습니다.`); return; }
+                showConfirm(`${r.staff.name} 직원\n직전 기간(${r.prev.period}) 초과 ${fmt(r.overHours)}시간\n\n→ 지금 대상기간(${r.cur.period}) 총 발생 일수에서 ${fmt(days)}일을 차감합니다.\n   ${fmt(r.curBaseDays)}일 → ${fmt(r.curBaseDays - days)}일\n\n확정하시겠습니까? (나중에 [결정 취소]로 되돌릴 수 있습니다)`, async () => {
+                    setBusy(r.staff.id);
+                    try {
+                        await processLeaveDeductionTransaction(r.staff.id, adminName || '관리자', { mode: 'APPLY', days, note: inp.note || '', ...basePayload(r) });
+                        setOpenId('');
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                    finally { setBusy(''); }
+                });
+            };
+            const handleSkip = (r) => {
+                const inp = getInput(r);
+                showConfirm(`${r.staff.name} 직원의 직전 기간 초과 ${fmt(r.overHours)}시간을 '차감하지 않음'으로 검토 완료 처리합니다.\n(대조 오류였거나 기관 판단으로 차감하지 않는 경우)\n\n계속하시겠습니까?`, async () => {
+                    setBusy(r.staff.id);
+                    try {
+                        await processLeaveDeductionTransaction(r.staff.id, adminName || '관리자', { mode: 'SKIP', days: 0, note: inp.note || '', ...basePayload(r) });
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                    finally { setBusy(''); }
+                });
+            };
+            const handleCancel = (r) => {
+                const rv = r.review;
+                const msg = rv.status === 'applied'
+                    ? `${r.staff.name} 직원의 차감 확정(${fmt(rv.days)}일)을 취소합니다.\n지금 대상기간 총 발생 일수가 원래대로(${fmt(r.curBaseDays)}일) 돌아갑니다.\n\n계속하시겠습니까?`
+                    : `${r.staff.name} 직원의 '차감 안 함' 결정을 취소하고 검토 대기로 되돌립니다.\n\n계속하시겠습니까?`;
+                showConfirm(msg, async () => {
+                    setBusy(r.staff.id);
+                    try {
+                        await processLeaveDeductionTransaction(r.staff.id, adminName || '관리자', { mode: 'CANCEL', entryId: rv.id, origin: 'PrevOverReviewModal.cancel' });
+                    } catch (err) { showAlert('오류: ' + err.message); }
+                    finally { setBusy(''); }
+                });
+            };
+            const handleExcel = () => {
+                try {
+                    const data = rows.map((r, i) => ({
+                        '번호': i + 1, '이름': r.staff.name || '', '직전 대상기간': r.prev.period || '',
+                        '직전 발생(시간)': r.prevTotalHours, '직전 사용(시간)': r.usedHours, '초과(시간)': r.overHours,
+                        '제안 차감(일)': r.suggestedDays, '지금 대상기간': r.cur.period || '', '지금 발생(일, 차감 전)': r.curBaseDays,
+                        '처리 상태': r.review ? (r.review.status === 'applied' ? '차감 확정' : '차감 안 함') : '검토 대기',
+                        '차감(일)': r.review ? safeParseFloat(r.review.days) : '', '처리자': r.review ? (r.review.by || '') : '',
+                        '처리일시': r.review ? kstText(r.review.at, 'datetime') : '', '비고': r.review ? (r.review.note || '') : ''
+                    }));
+                    const ws = XLSX.utils.json_to_sheet(data);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, '이전기간 초과 검토');
+                    XLSX.writeFile(wb, `이전기간_초과사용_검토_${toLocalYMD(nowKST())}.xlsx`);
+                } catch (err) { showAlert('엑셀 저장 중 오류: ' + err.message); }
+            };
+            return (
+                <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-[300] animate-fade-in backdrop-blur-sm p-4"><div className="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-5xl relative flex flex-col max-h-[92vh]"><button type="button" onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><Icons.X /></button>
+                    <div className="border-b pb-4 mb-4 pr-10">
+                        <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">📉 이전 기간 초과 사용 검토</h3>
+                        <p className="text-[11px] md:text-xs font-bold text-slate-400 mt-1 leading-relaxed">직전 대상기간에 <b className="text-slate-600">발생 연차보다 많이 사용한</b> 직원입니다. 사용 내역을 확인한 뒤 초과분을 <b className="text-amber-700">지금 대상기간의 총 발생 일수에서 차감</b>하거나, 차감하지 않기로 결정해 주세요.</p>
+                        <div className="grid grid-cols-3 gap-2 mt-3">
+                            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center"><p className="text-[11px] font-bold text-amber-700">검토 대기</p><p className="text-xl font-black text-amber-700">{pending.length}<span className="text-xs ml-0.5">명</span></p></div>
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-center"><p className="text-[11px] font-bold text-blue-700">차감 확정</p><p className="text-xl font-black text-blue-700">{applied.length}<span className="text-xs ml-0.5">명</span></p></div>
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-center"><p className="text-[11px] font-bold text-slate-600">차감 안 함</p><p className="text-xl font-black text-slate-600">{skipped.length}<span className="text-xs ml-0.5">명</span></p></div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 mt-3">
+                            <label className="flex items-center gap-2 text-xs font-bold text-slate-600 cursor-pointer"><input type="checkbox" checked={showDone} onChange={(e) => setShowDone(e.target.checked)} /> 검토가 끝난 직원도 함께 보기</label>
+                            <button type="button" onClick={handleExcel} disabled={rows.length === 0} className="text-xs font-bold bg-emerald-600 text-white px-3 py-2 rounded-xl hover:bg-emerald-700 disabled:opacity-40 flex items-center gap-1"><Icons.Download /> 검토 목록 엑셀</button>
+                        </div>
+                    </div>
+                    <div className="overflow-y-auto flex-1 space-y-3 pr-1">
+                        {visible.length === 0 && (
+                            <p className="text-center text-slate-400 font-bold py-12 text-sm">{rows.length === 0 ? '직전 대상기간을 초과 사용한 재직자가 없습니다.' : '검토 대기 중인 직원이 없습니다. (위 체크로 검토 끝난 직원을 볼 수 있습니다)'}</p>
+                        )}
+                        {visible.map(r => {
+                            const rv = r.review;
+                            const inp = getInput(r);
+                            const isOpen = openId === r.staff.id;
+                            const prevRecs = (r.staff.leaveHistory || []).filter(h => h && h.date >= r.prev.startDate && h.date <= r.prev.endDate).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+                            const previewDays = Math.round(safeParseFloat(inp.days) * 2) / 2;
+                            return (
+                                <div key={r.staff.id} className={`border rounded-2xl p-4 ${rv ? (rv.status === 'applied' ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 bg-slate-50') : 'border-amber-200 bg-white'}`}>
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                        <div>
+                                            <p className="font-black text-slate-800">{r.staff.name} <span className="text-xs font-bold text-slate-400 ml-1">일 {fmt(r.refHours)}h</span>
+                                                {rv && <span className={`ml-2 text-[10px] font-black px-2 py-0.5 rounded-full border ${rv.status === 'applied' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-slate-200 text-slate-600 border-slate-300'}`}>{rv.status === 'applied' ? `차감 확정 ${fmt(rv.days)}일` : '차감 안 함'}</span>}
+                                            </p>
+                                            <p className="text-xs font-bold text-slate-500 mt-1">직전 기간 {r.prev.period} · 발생 {fmt(r.prevTotalHours)}h ({fmt(r.prevTotalDays)}일) · 사용 <span className="text-red-500">{fmt(r.usedHours)}h</span> · 초과 <span className="text-red-600 font-black">{fmt(r.overHours)}h</span></p>
+                                            <p className="text-xs font-bold text-slate-500 mt-0.5">지금 기간 {r.cur.period} · 발생 {fmt(r.curBaseDays)}일 · 제안 차감 <b className="text-amber-700">{fmt(r.suggestedDays)}일</b> <span className="text-slate-400">(초과 {fmt(r.overHours)}h ÷ {fmt(r.refHours)}h, 0.5일 단위 올림)</span></p>
+                                            {rv && <p className="text-[11px] font-bold text-slate-400 mt-0.5">처리: {rv.by} · {kstText(rv.at, 'datetime')}{rv.note ? ` · 비고: ${rv.note}` : ''}</p>}
+                                        </div>
+                                        <button type="button" onClick={() => setOpenId(isOpen ? '' : r.staff.id)} className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-100 shrink-0">{isOpen ? '사용 내역 닫기' : `직전 기간 사용 내역 (${prevRecs.length}건)`}</button>
+                                    </div>
+                                    {isOpen && (
+                                        <div className="mt-3 bg-white border border-slate-200 rounded-xl max-h-48 overflow-y-auto">
+                                            <table className="w-full text-xs"><thead className="bg-slate-50 text-slate-500 sticky top-0"><tr><th className="p-2 text-left">날짜</th><th className="p-2 text-left">구분</th><th className="p-2 text-right">시간</th><th className="p-2 text-left">등록자</th></tr></thead>
+                                                <tbody className="divide-y divide-slate-100">{prevRecs.map((h, i) => (<tr key={(h.id || '') + '_' + i}><td className="p-2 font-bold">{h.date}</td><td className="p-2">{h.type || ''}</td><td className="p-2 text-right font-bold">{fmt(h.days)}h</td><td className="p-2 text-slate-400">{h.addedBy || ''}</td></tr>))}</tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                    {!rv ? (
+                                        <div className="mt-3 flex flex-col md:flex-row md:items-end gap-2">
+                                            <label className="text-[11px] font-bold text-slate-500">차감 일수 (0.5일 단위)
+                                                <input type="number" min="0.5" step="0.5" max={r.curBaseDays} value={inp.days} onChange={(e) => setInput(r, { days: e.target.value })} className="block w-28 mt-1 px-3 py-2 border rounded-xl text-sm font-black text-slate-800 outline-none focus:ring-2 focus:ring-amber-300" />
+                                            </label>
+                                            <label className="text-[11px] font-bold text-slate-500 flex-1">비고 (선택)
+                                                <input type="text" maxLength={200} value={inp.note} onChange={(e) => setInput(r, { note: e.target.value })} placeholder="예: 본인 확인 완료 / 엑셀 대조 오류" className="block w-full mt-1 px-3 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-300" />
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <button type="button" disabled={busy === r.staff.id} onClick={() => handleApply(r)} className="bg-amber-500 text-white px-4 py-2 rounded-xl text-sm font-black hover:bg-amber-600 disabled:opacity-50 whitespace-nowrap">{previewDays > 0 ? `${fmt(previewDays)}일 차감 확정` : '차감 확정'}</button>
+                                                <button type="button" disabled={busy === r.staff.id} onClick={() => handleSkip(r)} className="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-100 disabled:opacity-50 whitespace-nowrap">차감 안 함</button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-3 flex justify-end">
+                                            <button type="button" disabled={busy === r.staff.id} onClick={() => handleCancel(r)} className="text-xs font-bold text-red-600 bg-white border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50">결정 취소</button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-400 mt-3 leading-relaxed">※ 차감은 '지금 대상기간'의 총 발생 일수에만 적용됩니다. 기존 연차 사용 기록은 바뀌지 않으며, 모든 처리는 [데이터 관리] → [변경 이력 조회]에 '초과분 차감'으로 남습니다.</p>
+                </div></div>
+            );
+        };
         const LeaveManagementTab = ({ staffList, allStaffList, adminName, onOpenModal, onEditClick, isPastMode = false, isResignedTab = false, onNameClick, showConfirm, showAlert, isLeaveModalOpen = false }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [selectedYear, setSelectedYear] = useState(nowKST().getFullYear() - 1);
@@ -5429,6 +5729,8 @@
             const [calendarStaff, setCalendarStaff] = useState(null);
             const [showMonthlyModal, setShowMonthlyModal] = useState(false);
             const [showAdvancedAuditModal, setShowAdvancedAuditModal] = useState(false);
+            // [v6.49.0-beta1] 이전 기간 초과분 검토 창
+            const [showPrevOverModal, setShowPrevOverModal] = useState(false);
             // [v6.31.0-beta1] 이 필터를 쓸 수 있는 화면인지 (과년도·퇴사자 탭에서는 의미가 없어 표시하지 않음)
             const canUseCarryOver = !isPastMode && !isResignedTab;
             const handleResetFilters = () => { setSearchTerm(''); setShowNegativeOnly(false); setShowCheckOnly(false); setShowCarryOverOnly(false); setShowExpiringOnly(false); setSortConfig({ key: 'name', direction: 'asc' }); if (isPastMode) setSelectedYear(nowKST().getFullYear() - 1); };
@@ -5444,14 +5746,15 @@
                         .filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate)
                         .sort((a, b) => b.date.localeCompare(a.date));
                     const usedHours = activeHistory.reduce((acc, cur) => acc + safeParseFloat(cur.days), 0);
-                    const totalDays = leaveInfo.total || 0;
+                    const totalDays = _ph.totalDays;   // [v6.49.0-beta1] 이전 기간 초과분 차감 반영
+                    const deductDays = _ph.deductDays, baseDays = _ph.baseDays;
                     const totalHours = _ph.totalHours;   // [v6.48.1-beta1] 근무시간 변경 구간별 계산
                     const remainingHours = totalHours - usedHours;
                     const dateCounts = {};
                     activeHistory.forEach(h => { if (h.date) dateCounts[h.date] = (dateCounts[h.date] || 0) + 1; });
                     const needsCheck = activeHistory.some(h => dateCounts[h.date] > 1);
                     return {
-                        ...staff, dailyHours, leaveInfo, totalDays, totalHours, usedHours, remainingHours,
+                        ...staff, dailyHours, leaveInfo, totalDays, deductDays, baseDays, totalHours, usedHours, remainingHours,
                         usedDays: dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0,
                         remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0,
                         displayHistory: activeHistory.map(h => ({ ...h, isWarn: dateCounts[h.date] > 1 })),
@@ -5497,6 +5800,11 @@
                 if (!canUseCarryOver) return 0;
                 return staffList.reduce((n, s) => n + (isCarryOverPeriod(calculateAnnualLeave(s.joinDate)) ? 1 : 0), 0);
             }, [staffList, canUseCarryOver]);
+            // [v6.49.0-beta1] 직전 대상기간을 초과 사용했는데 아직 검토(차감 확정/차감 안 함)하지 않은 인원
+            const prevOverPendingCount = useMemo(() => {
+                if (!canUseCarryOver) return 0;
+                return staffList.reduce((n, s) => { const o = getPrevPeriodOverInfo(s); return n + (o && !o.review && o.overHours > 0.01 ? 1 : 0); }, 0);
+            }, [staffList, canUseCarryOver]);
             // [v6.34.0-beta1] 만료 임박 인원 — 필터를 켜지 않아도 몇 명인지 미리 보여줍니다.
             const expiringCount = useMemo(() => {
                 if (!canUseCarryOver) return 0;
@@ -5521,6 +5829,7 @@
                 <div className="space-y-6 relative">
                     {calendarStaff && <PersonalCalendarModal staff={calendarStaff} onClose={() => setCalendarStaff(null)} onOpenModal={onOpenModal} onEditClick={onEditClick} />}
                     {showMonthlyModal && <MonthlyReportModal staffList={staffList} onClose={() => setShowMonthlyModal(false)} showAlert={showAlert} onOpenModal={onOpenModal} />}
+                    {showPrevOverModal && <PrevOverReviewModal staffList={staffList} adminName={adminName} onClose={() => setShowPrevOverModal(false)} showAlert={showAlert} showConfirm={showConfirm} />}
                     {showAdvancedAuditModal && <AdvancedAuditModal staffList={allStaffList || staffList} onClose={() => setShowAdvancedAuditModal(false)} showAlert={showAlert} showConfirm={showConfirm} onOpenModal={onOpenModal} onEditClick={onEditClick} adminName={adminName} isLeaveModalOpen={isLeaveModalOpen} defaultPromoFilter={false} />}
                     <div className="sticky top-0 z-30 bg-[#F1F5F9] pb-4 pt-2 -mt-2">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -5542,6 +5851,12 @@
                                         <input type="checkbox" checked={showExpiringOnly} onChange={(e) => setShowExpiringOnly(e.target.checked)} />
                                         <span className="text-[11px] md:text-sm font-bold text-rose-700 whitespace-nowrap flex items-center gap-1">⏳ 만료 임박{expiringCount > 0 && <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{expiringCount}</span>}</span>
                                     </label>
+                                )}
+                                {/* [v6.49.0-beta1 신규] 직전 대상기간 초과 사용분 검토 → 지금 기간 발생 일수에서 차감 */}
+                                {canUseCarryOver && (
+                                    <button type="button" onClick={() => setShowPrevOverModal(true)} className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] md:text-sm font-bold whitespace-nowrap transition ${prevOverPendingCount > 0 ? 'bg-amber-500 text-white border-amber-500 hover:bg-amber-600 shadow-sm' : 'bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100'}`} title="직전 대상기간에 발생 연차보다 많이 쓴 직원을 검토하고, 초과분을 지금 기간의 총 발생 일수에서 차감합니다">
+                                        📉 이전 기간 초과 검토{prevOverPendingCount > 0 && <span className="bg-white text-amber-700 text-[10px] font-black px-1.5 py-0.5 rounded-full ml-0.5">{prevOverPendingCount}</span>}
+                                    </button>
                                 )}
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-orange-50 px-3 py-2 rounded-xl border border-orange-100 hover:bg-orange-100 transition" title="같은 날짜에 2개 이상의 연차가 등록된 직원을 찾습니다"><input type="checkbox" checked={showCheckOnly} onChange={(e) => setShowCheckOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-orange-600 whitespace-nowrap flex items-center gap-1"><Icons.Alert /> 중복 확인</span></label>
                                 <label className="flex-1 md:flex-none flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-3 py-2 rounded-xl border hover:bg-slate-100 transition"><input type="checkbox" checked={showNegativeOnly} onChange={(e) => setShowNegativeOnly(e.target.checked)} /><span className="text-[11px] md:text-sm font-bold text-red-500 whitespace-nowrap">초과자만</span></label>
@@ -5597,7 +5912,7 @@
                                                 {data.workHours && <div className="text-xs text-slate-500 mt-1">일 {data.workHours}h</div>}
                                                 {data.needsCheck && <div className="text-xs text-orange-600 font-bold mt-1 flex items-center gap-1 animate-pulse"><Icons.Alert /> 중복 입력 확인필요</div>}
                                             </td>
-                                            <td className="p-4 text-center font-bold text-blue-600">{isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({data.totalDays}일)</span></>}</td>
+                                            <td className="p-4 text-center font-bold text-blue-600">{isDateError ? <span className="text-red-500 text-xs px-2 py-1 bg-red-50 rounded">입사일 확인</span> : <>{fmt(data.totalHours)}h <span className="text-xs font-normal text-slate-400">({fmt(data.totalDays)}일)</span>{data.deductDays > 0 && <div className="mt-1"><span className="text-[10px] font-black text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5" title={`원래 ${fmt(data.baseDays)}일에서 이전 기간 초과 사용분을 차감했습니다`}>초과분 −{fmt(data.deductDays)}일</span></div>}</>}</td>
                                             <td className="p-4 text-center font-bold text-red-500">{fmt(data.usedHours)}h <span className="text-xs font-normal text-slate-400">({data.usedDays}일)</span></td>
                                             <td className={`p-4 text-center font-black text-lg ${data.remainingHours < 0 ? 'text-red-600 animate-pulse' : 'text-green-600'}`}>{fmt(data.remainingHours)}h <span className="text-xs font-normal text-slate-400">({data.remainingDays}일)</span></td>
                                             <td className="p-4 text-xs text-slate-400">{data.leaveInfo.period}<div className="mt-1 flex flex-wrap gap-1">{data.isCarryOver && <span className="inline-block bg-purple-100 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[10px] font-black" title="연차 산정 대상기간이 작년에 시작해서 올해 끝나는 직원입니다">작년부터 이어짐</span>}{data.expiringSoon && <span className="inline-block bg-rose-100 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded text-[10px] font-black" title={`대상기간 종료까지 ${data.daysToExpire}일 남았고, 잔여 연차가 남아 있습니다`}>D-{data.daysToExpire} 만료 · 잔여 {fmt(data.remainingDays)}일</span>}</div></td>
@@ -5749,7 +6064,7 @@
                     const leaveInfo = calculateAnnualLeave(staff.joinDate);
                     const _ph = calcPeriodLeaveHours(staff, leaveInfo);   // [v6.48.1-beta1]
                     const dailyHours = _ph.refHours;
-                    const totalDays = leaveInfo.total || 0;
+                    const totalDays = _ph.totalDays;   // [v6.49.0-beta1] 차감 반영
                     const totalHours = _ph.totalHours;
                     const usedHours = staff.annualLeaveUsed || 0;
                     const remainingHours = totalHours - usedHours;
@@ -7880,7 +8195,7 @@
                             const leaveInfo = status.leaveInfo;
                             const _ph = calcPeriodLeaveHours(staff, leaveInfo);   // [v6.48.1-beta1]
                             const dailyHours = _ph.refHours;
-                            const totalDays = leaveInfo.total || 0;
+                            const totalDays = _ph.totalDays;   // [v6.49.0-beta1] 차감 반영
                             const totalHours = _ph.totalHours;
                             const usedHours = sumUsedHours(staff.leaveHistory, leaveInfo.startDate, leaveInfo.endDate);
                             const remainingHours = totalHours - usedHours;
@@ -8286,9 +8601,9 @@
                         if (first && first.leaveInfo && first.leaveInfo.startDate) {
                             const li = first.leaveInfo;
                             period = li.period || period;
-                            const totalDays = li.total || 0;
-                            const usedHours = sumUsedHours(staff.leaveHistory, li.startDate, li.endDate);
                             const _ph = calcPeriodLeaveHours(staff, li);   // [v6.48.1-beta1]
+                            const totalDays = _ph.totalDays;   // [v6.49.0-beta1] 차감 반영
+                            const usedHours = sumUsedHours(staff.leaveHistory, li.startDate, li.endDate);
                             dailyHours = _ph.refHours;
                             const remainingDays = dailyHours > 0 ? Math.round(((_ph.totalHours - usedHours) / dailyHours) * 10) / 10 : 0;
                             portionRemainingDays = remainingDays;
@@ -8604,8 +8919,8 @@
                         let portionRemainingDays = snap.portionRemainingDays || 0;
                         if (status && status.leaveInfo && status.leaveInfo.startDate) {
                             // 발송 뒤에 연차를 더 썼을 수 있으므로, 재안내에는 '지금 기준' 수치를 씁니다.
-                            totalDays = leaveInfo.total || 0;
                             const _ph = calcPeriodLeaveHours(staff, leaveInfo);   // [v6.48.1-beta1]
+                            totalDays = _ph.totalDays;   // [v6.49.0-beta1] 차감 반영
                             dailyHours = _ph.refHours;
                             totalHours = _ph.totalHours;
                             usedHours = sumUsedHours(staff.leaveHistory, leaveInfo.startDate, leaveInfo.endDate);
@@ -9648,7 +9963,9 @@
             PROMOTION_NOTICE: { label: '촉진 통보', color: 'bg-amber-50 text-amber-700 border-amber-200' },
             WORK_HOURS: { label: '근무시간 변경', color: 'bg-teal-50 text-teal-700 border-teal-200' },
             // [v6.44.0-beta1] 노무수령 거부 통지 발행/취소
-            REFUSAL_NOTICE: { label: '노무수령 거부 통지', color: 'bg-rose-50 text-rose-700 border-rose-200' }
+            REFUSAL_NOTICE: { label: '노무수령 거부 통지', color: 'bg-rose-50 text-rose-700 border-rose-200' },
+            // [v6.49.0-beta1] 이전 기간 초과분 차감 확정/차감 안 함/취소
+            LEAVE_DEDUCTION: { label: '초과분 차감', color: 'bg-amber-50 text-amber-700 border-amber-200' }
         };
         const AUDIT_ACTION_LABEL = {
             CREATE: { label: '등록', color: 'bg-green-100 text-green-700' },
@@ -10877,8 +11194,9 @@
             const [saving, setSaving] = useState(false);
             useEscClose(onClose, !saving);
 
-            const totalDays = leaveInfo.total || 0;
-            const totalHours = calcPeriodLeaveHours(userData, leaveInfo).totalHours;   // [v6.48.1-beta1]
+            const _wph = calcPeriodLeaveHours(userData, leaveInfo);   // [v6.48.1-beta1]
+            const totalDays = _wph.totalDays;   // [v6.49.0-beta1] 차감 반영
+            const totalHours = _wph.totalHours;
             const usedHours = sumUsedHours(userData.leaveHistory, leaveInfo.startDate, leaveInfo.endDate);
             const remainingHours = totalHours - usedHours;
             const usedDays = dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0;
@@ -11648,14 +11966,16 @@
             const leaveStats = useMemo(() => {
                 if (!userData || !userData.joinDate) return null;
                 const leaveInfo = calculateAnnualLeave(userData.joinDate);
-                const totalDays = leaveInfo.total || 0;
-                const totalHours = calcPeriodLeaveHours(userData, leaveInfo).totalHours;   // [v6.48.1-beta1] 근무시간 변경 구간별 계산
+                const _sph = calcPeriodLeaveHours(userData, leaveInfo);   // [v6.48.1-beta1] 근무시간 변경 구간별 계산
+                const totalDays = _sph.totalDays;   // [v6.49.0-beta1] 이전 기간 초과분 차감 반영
+                const deductDays = _sph.deductDays, baseDays = _sph.baseDays;
+                const totalHours = _sph.totalHours;
                 const activeHistory = (userData.leaveHistory || []).filter(h => h.date >= leaveInfo.startDate && h.date <= leaveInfo.endDate);
                 const usedHours = activeHistory.reduce((acc, cur) => acc + safeParseFloat(cur.days), 0);
                 const remainingHours = totalHours - usedHours;
                 // [v6.17.0] '예정'(오늘 이후 날짜) 분리 집계 — 차감은 usedHours에 이미 포함되며, 여기선 표시용으로만 나눕니다.
                 const futureHours = activeHistory.filter(h => isFutureLeave(h.date)).reduce((acc, cur) => acc + safeParseFloat(cur.days), 0);
-                return { ...leaveInfo, totalDays, dailyHours, totalHours, usedHours, remainingHours, futureHours,
+                return { ...leaveInfo, totalDays, deductDays, baseDays, dailyHours, totalHours, usedHours, remainingHours, futureHours,
                     usedDays: dailyHours > 0 ? Math.round((usedHours / dailyHours) * 10) / 10 : 0,
                     remainingDays: dailyHours > 0 ? Math.round((remainingHours / dailyHours) * 10) / 10 : 0,
                     futureDays: dailyHours > 0 ? Math.round((futureHours / dailyHours) * 10) / 10 : 0,
@@ -12096,7 +12416,7 @@
                         {staffView === 'home' && (<React.Fragment>
                         <h2 className="text-lg font-black text-slate-800 flex items-center gap-2"><Icons.User /> 나의 연차 현황 <span className="text-xs font-bold text-slate-500">({leaveStats.period})</span></h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4" data-tour="stats">
-                            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500"><div><p className="text-xs font-bold text-slate-600 mb-1">총 발생 연차</p><span className="text-xl md:text-2xl font-black text-slate-800">{fmt(leaveStats.totalHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.totalDays}일)</span></div></div>
+                            <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-blue-500"><div><p className="text-xs font-bold text-slate-600 mb-1">총 발생 연차</p><span className="text-xl md:text-2xl font-black text-slate-800">{fmt(leaveStats.totalHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({fmt(leaveStats.totalDays)}일)</span>{leaveStats.deductDays > 0 && <p className="text-[11px] font-bold text-amber-700 mt-1">이전 기간 초과 사용분 {fmt(leaveStats.deductDays)}일 차감 (원래 {fmt(leaveStats.baseDays)}일)</p>}</div></div>
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-red-500"><div><p className="text-xs font-bold text-slate-600 mb-1">사용 연차</p><span className="text-xl md:text-2xl font-black text-red-500">{fmt(leaveStats.usedHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.usedDays}일)</span>{leaveStats.futureHours > 0 && <p className="text-[10px] font-bold text-slate-400 mt-1">이 중 미래 예정 <span className="text-orange-500">{fmt(leaveStats.futureHours)}시간</span> ({leaveStats.futureDays}일) 포함</p>}</div></div>
                             <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center border-l-4 border-l-green-500"><div><p className="text-xs font-bold text-slate-600 mb-1">잔여 연차</p><span className="text-xl md:text-2xl font-black text-green-600">{fmt(leaveStats.remainingHours)}</span><span className="text-sm font-bold text-slate-500 ml-1">시간</span><span className="text-[11px] font-bold text-slate-500 ml-1">({leaveStats.remainingDays}일)</span></div></div>
                         </div>
@@ -12336,6 +12656,8 @@
                     const e = getPeriodExpiryInfo(s);
                     return e && e.remainingHours < -0.01;
                 });
+                // ③-2 [v6.49.0-beta1] 직전 대상기간 초과 사용 — 아직 검토(차감 확정/차감 안 함)하지 않은 인원
+                const prevOverPending = list.filter(s => { const o = getPrevPeriodOverInfo(s); return o && !o.review && o.overHours > 0.01; });
                 // ④ 지난달 연차 등록 현황 (대조를 마쳤는지 가늠하는 지표)
                 let prevPeople = 0, prevHours = 0;
                 list.forEach(s => {
@@ -12409,6 +12731,12 @@
                         title: '연차 초과 사용', count: over.length, unit: '명',
                         desc: '발생한 연차보다 많이 사용한 상태입니다. 대조 오류일 수 있습니다.',
                         done: '연차를 초과 사용한 직원이 없습니다.'
+                    },
+                    {
+                        key: 'prevOver', icon: '📉', tab: 'leave', tone: 'amber',
+                        title: '이전 기간 초과분 검토', count: prevOverPending.length, unit: '명',
+                        desc: '직전 대상기간에 연차를 초과 사용했습니다. [연차 관리] → [이전 기간 초과 검토]에서 차감 여부를 정해 주세요.',
+                        done: '검토할 이전 기간 초과 사용자가 없습니다.'
                     },
                     {
                         key: 'prev', icon: '🗓️', tab: 'leave', tone: 'blue', info: true,
